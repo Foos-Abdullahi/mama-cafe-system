@@ -102,9 +102,9 @@ export function AppSidebar() {
     };
 
     return (
-        <Sidebar collapsible="icon" variant="inset" className="border-r border-border/50">
+        <Sidebar collapsible="icon" variant="inset">
             {/* Header */}
-            <SidebarHeader className="border-b border-border/50 px-2 py-3">
+            <SidebarHeader className="border-b border-sidebar-border px-2 py-3">
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild className="hover:bg-transparent">
@@ -150,15 +150,13 @@ export function AppSidebar() {
                     </SidebarMenu>
                 </SidebarGroup>
 
-                <SidebarSeparator className="my-2 bg-sidebar-border" />
 
                 {/* Main Sections */}
                 {sections.map((section) => {
-                    const hasActiveChild = section.children.some((child) => isActive(child.href));
                     return (
                         <Collapsible
                             key={section.title}
-                            defaultOpen={hasActiveChild}
+                            defaultOpen={true}
                             className="group/section"
                         >
                             <SidebarGroup className="px-0 py-0">
@@ -204,7 +202,7 @@ export function AppSidebar() {
             </SidebarContent>
 
             {/* Footer */}
-            <SidebarFooter className="border-t border-border/50 px-2 py-2">
+            <SidebarFooter className="border-t border-sidebar-border px-2 py-2">
                 <NavUser />
             </SidebarFooter>
         </Sidebar>

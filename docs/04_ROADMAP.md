@@ -2,32 +2,38 @@
 
 ## Phase 1 --- Foundation
 
--   [ ] Confirm business workflow
--   [ ] Confirm user roles
--   [ ] Confirm product/menu structure
--   [ ] Confirm fixed-number rules
--   [ ] Confirm payment methods
--   [ ] Approve UX design
--   [ ] Approve database schema
--   [ ] Set up project repository
+-   [x] Confirm business workflow
+-   [x] Confirm user roles (admin, manager, operations, waitress)
+-   [x] Confirm product/menu structure
+-   [x] Confirm fixed-number rules
+-   [x] Confirm payment methods
+-   [x] Approve UX design & Brand Design System (#823d21 / #231008)
+-   [x] Approve database schema
+-   [x] Set up project repository & branding
 
 ## Phase 2 --- Admin Panel
 
--   [ ] Admin authentication
--   [ ] Dashboard
--   [ ] User management
--   [ ] Waitress management
--   [ ] Categories
--   [ ] Products
--   [ ] Menu and prices
--   [ ] Order management
--   [ ] Refunds
--   [ ] Cancellations
--   [ ] Fixed-number management
--   [ ] Reports
--   [ ] Payroll
--   [ ] Commission settings
--   [ ] Activity logs
+### Overview
+-   [x] Admin authentication & AdminSeeder (`admin@mamacafe.test`)
+-   [x] Admin sidebar navigation & fixed dark roast layout
+-   [ ] Dashboard KPIs & metrics
+
+### Management
+-   [ ] Orders management (including Refunds & Cancellations)
+-   [ ] Products management
+-   [ ] Categories management
+-   [ ] Waitresses management
+
+### Finance & Reports
+-   [ ] Payments tracking
+-   [ ] Payroll & 15% commission
+-   [ ] Reports (Sales Report, Waitress Report, Daily Closing)
+-   [ ] Daily Closing & reconciliation
+
+### System
+-   [ ] General Settings (including Fixed Numbers configuration)
+-   [ ] Users management
+-   [ ] Activity Logs & audit trail
 
 ## Phase 3 --- Operations POS
 

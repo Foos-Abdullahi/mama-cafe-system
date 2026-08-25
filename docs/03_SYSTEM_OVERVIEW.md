@@ -38,10 +38,24 @@ The system digitizes those activities while keeping the workflow simple.
 
 ## Admin Panel
 
-Admin has full control over: - Dashboard - Users - Waitresses -
-Products - Categories - Menu and prices - Orders - Refunds and
-cancellations - Sales reports - Payroll - 15% commission - Fixed
-numbers - System settings - Activity logs - Security and backup
+Admin has full control organized in 4 structured areas matching the sidebar navigation:
+
+- **Overview**:
+  - `Dashboard`
+- **Management**:
+  - `Orders` (including *All Orders*, *Refunds & Cancellations*)
+  - `Products`
+  - `Categories`
+  - `Waitresses`
+- **Finance & Reports**:
+  - `Payments`
+  - `Payroll` (with 15% commission)
+  - `Reports` (*Sales Report*, *Waitress Report*, *Daily Closing*)
+  - `Daily Closing`
+- **System**:
+  - `General Settings` (including *Fixed Numbers* configuration)
+  - `Users`
+  - `Activity Logs`
 
 ## Operations Portal / POS
 

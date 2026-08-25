@@ -9,6 +9,9 @@ Café rather than a generic enterprise application.
 
 ### Primary colors
 
+-   Caffeine Brown (Brand Primary) --- `#823d21`
+-   Deep Dark Roasted Coffee (Sidebar) --- `#231008`
+-   Latte Cream (Sidebar Text) --- `#FAF4EE`
 -   Espresso Brown --- `#432717`
 -   Dark Coffee --- `#2F1B10`
 -   Cream --- `#F8F4ED`

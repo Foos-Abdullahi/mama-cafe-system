@@ -2,6 +2,24 @@
 
 All notable changes to the system design are documented here.
 
+## \[0.3.0\] --- System Startup & Brand Implementation
+
+### Added
+
+-   Brand design system colors in `app.css`: Primary Caffeine Brown (`#823d21`), Deep Dark Roasted Coffee sidebar background (`#231008`), and Latte Cream typography (`#FAF4EE`).
+-   Branded coffee cup SVG logo component and SVG favicon.
+-   Collapsible multi-section admin sidebar navigation (Overview, Management, Finance & Reports, System).
+-   User `role` database migration (`admin`, `manager`, `operations`, `waitress`).
+-   `AdminSeeder` for default administrator account (`admin@mamacafe.test` / `password`).
+-   Application name configuration (`APP_NAME="MaMa Café"`).
+
+### Updated
+
+-   Sidebar styled with fixed solid dark coffee color in both light and dark modes.
+-   Refunds integrated directly under the Orders module (`All Orders`, `Refunds & Cancellations`).
+-   Fixed Numbers management located under System Settings.
+-   Removed redundant scrollbar from sidebar navigation.
+
 ## \[0.2.0\] --- POS + System Documentation
 
 ### Added

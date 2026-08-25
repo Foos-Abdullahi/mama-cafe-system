@@ -16,25 +16,25 @@ The goal is to digitalize the work the café already does.
 ## Main modules
 
 ### 1. Admin Panel / Back Office
-
-Full management control.
-
--   Dashboard
--   Users
--   Waitresses
--   Products
--   Categories
--   Menu and prices
--   Orders
--   Refunds
--   Cancellations
--   Reports
--   Payroll
--   15% commission
--   Fixed numbers
--   Settings
--   Activity logs
--   Security and backup
+ 
+Full management control organized in 4 core areas:
+ 
+-   **Overview**:
+  - `Dashboard`
+-   **Management**:
+  - `Orders` (with *All Orders*, *Refunds & Cancellations*)
+  - `Products`
+  - `Categories`
+  - `Waitresses`
+-   **Finance & Reports**:
+  - `Payments`
+  - `Payroll` (15% commission)
+  - `Reports` (*Sales Report*, *Waitress Report*, *Daily Closing*)
+  - `Daily Closing`
+-   **System**:
+  - `General Settings` (with *Fixed Numbers* configuration)
+  - `Users`
+  - `Activity Logs`
 
 ### 2. Operations Portal / POS
 

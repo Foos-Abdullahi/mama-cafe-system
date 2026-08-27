@@ -6,7 +6,7 @@ export default function AuthSplitLayout({
     description = 'Please sign in to access the admin panel.',
 }: AuthLayoutProps) {
     return (
-        <div className="relative min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-[#F9F6F0] text-[#4A3225]">
+        <div className="relative min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-[#F9F6F0] text-[#4A3225] overflow-hidden animate-slide-in-right sm:animate-slide-in-bottom">
             {/* Left Column: Coffee Background & Overlay */}
             <div className="relative hidden lg:flex flex-col justify-between p-12 overflow-hidden bg-stone-900">
                 {/* Background Image */}

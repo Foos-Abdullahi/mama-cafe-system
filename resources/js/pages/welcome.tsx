@@ -1,11 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Head, usePage, Form, Link } from '@inertiajs/react';
 import { 
     Coffee, 
     Sparkles, 
     Heart, 
     Smile, 
-    CheckCircle2, 
     ChevronRight, 
     ChevronLeft, 
     User, 
@@ -17,8 +16,7 @@ import {
     X,
     Instagram,
     Facebook,
-    Share2,
-    ShieldCheck
+    CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,117 +32,78 @@ import { dashboard } from '@/routes';
 export default function Welcome() {
     const { auth } = usePage().props as { auth: { user: any } };
     
-    // State for slide index: 0 = Brand, 1 = Fresh Drinks, 2 = Why Choose Us, 3 = Login
-    const [currentSlide, setCurrentSlide] = useState(0);
-    const [deviceType, setDeviceType] = useState<'mobile' | 'tablet' | 'desktop'>('mobile');
+    // Screen responsiveness: isMobile (< 768px) vs Tablet/Desktop (>= 768px)
+    const [isMobile, setIsMobile] = useState<boolean>(false);
     
-    // Touch gesture state
+    // Mobile Onboarding Slide Index: 0 = Fresh Drinks, 1 = MaMa Cafe Main, 2 = Why Choose Us, 3 = Login (Slide Right)
+    const [mobileSlide, setMobileSlide] = useState<number>(0);
+    
+    // Tablet/Desktop Login Sheet State (Slide Up from Bottom)
+    const [showTabletLogin, setShowTabletLogin] = useState<boolean>(false);
+
+    // Touch gesture tracking for mobile swipe
     const [touchStartX, setTouchStartX] = useState<number | null>(null);
-    const [touchStartY, setTouchStartY] = useState<number | null>(null);
     const [touchEndX, setTouchEndX] = useState<number | null>(null);
-    const [touchEndY, setTouchEndY] = useState<number | null>(null);
 
-    // Detect device type / breakpoint
     useEffect(() => {
-        const handleResize = () => {
-            const width = window.innerWidth;
-            if (width < 768) {
-                setDeviceType('mobile');
-            } else if (width >= 768 && width < 1024) {
-                setDeviceType('tablet');
-            } else {
-                setDeviceType('desktop');
-            }
+        const checkMobile = () => {
+            const mobile = window.innerWidth < 768;
+            setIsMobile(mobile);
         };
-
-        handleResize();
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
-    // Handle touch gestures for swiping
+    // Mobile Swipe Gesture Handlers
     const handleTouchStart = (e: React.TouchEvent) => {
+        if (!isMobile) return;
         setTouchStartX(e.targetTouches[0].clientX);
-        setTouchStartY(e.targetTouches[0].clientY);
     };
 
     const handleTouchMove = (e: React.TouchEvent) => {
+        if (!isMobile) return;
         setTouchEndX(e.targetTouches[0].clientX);
-        setTouchEndY(e.targetTouches[0].clientY);
     };
 
     const handleTouchEnd = () => {
-        if (touchStartX === null || touchEndX === null) return;
+        if (!isMobile || touchStartX === null || touchEndX === null) return;
         const deltaX = touchStartX - touchEndX;
-        const deltaY = (touchStartY ?? 0) - (touchEndY ?? 0);
-
         const minSwipeDistance = 40;
 
-        // Horizontal Swipe
-        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipeDistance) {
-            if (deltaX > 0) {
-                // Swipe Left -> Next Slide
-                nextSlide();
-            } else {
+        if (Math.abs(deltaX) > minSwipeDistance) {
+            if (deltaX > 0 && mobileSlide < 3) {
+                // Swipe Left -> Next Slide / Login
+                setMobileSlide((prev) => prev + 1);
+            } else if (deltaX < 0 && mobileSlide > 0) {
                 // Swipe Right -> Prev Slide
-                prevSlide();
-            }
-        } 
-        // Vertical Swipe (Tablet bottom sheet control)
-        else if (deviceType === 'tablet' && Math.abs(deltaY) > minSwipeDistance) {
-            if (deltaY > 0 && currentSlide === 2) {
-                // Swipe Up on last slide -> Open Login
-                setCurrentSlide(3);
-            } else if (deltaY < 0 && currentSlide === 3) {
-                // Swipe Down on Login -> Close Login
-                setCurrentSlide(2);
+                setMobileSlide((prev) => prev - 1);
             }
         }
 
         setTouchStartX(null);
-        setTouchStartY(null);
         setTouchEndX(null);
-        setTouchEndY(null);
     };
-
-    const nextSlide = () => {
-        if (currentSlide < 3) {
-            setCurrentSlide(prev => prev + 1);
-        }
-    };
-
-    const prevSlide = () => {
-        if (currentSlide > 0) {
-            setCurrentSlide(prev => prev - 1);
-        }
-    };
-
-    // Determine max onboarding slides count based on layout mode
-    const totalSlides = 4; // 0, 1, 2 (Onboarding) + 3 (Login)
 
     return (
         <>
-            <Head title="Welcome to MaMa Café" />
+            <Head title="MaMa Café - Artisanal Coffee & Boba" />
 
-            <div 
-                className="relative min-h-screen h-screen w-full overflow-hidden bg-[#F9F6F0] text-[#4A3225] font-sans select-none flex flex-col justify-between"
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-            >
-                {/* TOP HEADER / BAR */}
-                <header className="relative z-30 flex items-center justify-between px-6 py-4 border-b border-[#E6DCD0]/60 bg-[#F9F6F0]/80 backdrop-blur-md">
+            <div className="relative min-h-screen w-full bg-[#FAF7F2] text-[#4A3225] font-sans overflow-x-hidden flex flex-col justify-between">
+                
+                {/* GLOBAL NAVIGATION HEADER */}
+                <header className="relative z-30 flex items-center justify-between px-6 py-4 border-b border-[#E6DCD0] bg-[#FAF7F2]/90 backdrop-blur-md shadow-2xs">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full overflow-hidden border border-amber-900/10 shadow-sm bg-white p-0.5">
-                            <img src="/images/mama-cafe-logo.jpg" alt="MaMa Café" className="w-full h-full object-cover rounded-full" />
+                        <div className="w-10 h-10 rounded-full overflow-hidden border border-amber-900/15 p-0.5 bg-white shadow-xs">
+                            <img src="/images/mama-cafe-logo.jpg" alt="MaMa Café Logo" className="w-full h-full object-cover rounded-full" />
                         </div>
                         <div>
                             <h1 className="font-serif text-lg font-bold text-[#5C2C16] leading-none">MaMa Café</h1>
-                            <span className="text-[10px] font-semibold text-[#8C6D5B] tracking-wider uppercase">Artisanal Coffee & Boba</span>
+                            <span className="text-[10px] font-semibold text-[#8C6D5B] tracking-widest uppercase">Coffee • Boba • Ice Chocolate</span>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                         {auth?.user ? (
                             <Link
                                 href={dashboard()}
@@ -154,258 +113,339 @@ export default function Welcome() {
                             </Link>
                         ) : (
                             <button
-                                onClick={() => setCurrentSlide(currentSlide === 3 ? 0 : 3)}
-                                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-[#7A3E22]/30 bg-white/80 text-[#7A3E22] text-xs font-bold uppercase tracking-wider hover:bg-[#7A3E22] hover:text-white transition-all shadow-xs"
+                                onClick={() => {
+                                    if (isMobile) {
+                                        setMobileSlide(mobileSlide === 3 ? 0 : 3);
+                                    } else {
+                                        setShowTabletLogin(true);
+                                    }
+                                }}
+                                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#7A3E22] text-white text-xs font-bold uppercase tracking-wider shadow-sm hover:bg-[#612F18] transition-all cursor-pointer"
                             >
-                                {currentSlide === 3 ? (
-                                    <>Browse Menu</>
-                                ) : (
-                                    <><LogIn className="w-3.5 h-3.5" /> Sign In</>
-                                )}
+                                <LogIn className="w-3.5 h-3.5" /> Sign In to Portal
                             </button>
                         )}
                     </div>
                 </header>
 
-                {/* MAIN CAROUSEL / SLIDE CONTAINER */}
-                <main className="relative flex-1 w-full overflow-hidden">
-                    {/* MOBILE & DESKTOP SLIDE CAROUSEL (Horizontal Track) */}
+                {/* ========================================================================= */}
+                {/* 1. TABLET & DESKTOP VIEW (Full 3-Panel Landing Page Layout, NO Sliders)   */}
+                {/* ========================================================================= */}
+                {!isMobile && (
+                    <main className="relative flex-1 w-full max-w-7xl mx-auto p-6 md:p-10 flex flex-col justify-center">
+                        {/* THE TRI-FOLD LANDING PAGE (3 FULL COLUMNS DISPLAYED TOGETHER) */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 rounded-3xl bg-[#F5F0E8] border border-[#E6DCD0] p-6 md:p-8 shadow-[0_15px_50px_rgba(122,62,34,0.08)] relative overflow-hidden">
+                            
+                            {/* COLUMN 1 (LEFT): FRESH DRINKS & GOOD MOOD */}
+                            <div className="flex flex-col justify-between items-center text-center p-5 rounded-2xl bg-white/70 border border-[#E6DCD0]/70 shadow-xs relative">
+                                <div className="w-full">
+                                    <span className="font-serif text-lg font-bold text-[#7A3E22] block mb-2">
+                                        Fresh Drinks, Good Mood ♥
+                                    </span>
+                                    <div className="relative w-44 h-44 mx-auto my-3 rounded-full overflow-hidden shadow-lg border-3 border-white">
+                                        <img src="/images/boba-drink.jpg" alt="Fresh Boba Drink" className="w-full h-full object-cover" />
+                                    </div>
+                                    <h3 className="font-serif text-xl font-bold text-[#5C2C16]">Boba Milk Tea</h3>
+                                    <p className="text-xs text-[#8C6D5B] mt-1">Rich brown sugar, tapioca pearls & fresh milk.</p>
+                                </div>
+
+                                <div className="w-full mt-6 pt-4 border-t border-[#E6DCD0] flex flex-col items-center">
+                                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#7A3E22] mb-1">LET'S BE FRIENDS!</span>
+                                    <div className="flex items-center gap-3 text-[#7A3E22] my-1">
+                                        <Instagram className="w-4 h-4 cursor-pointer hover:scale-110 transition-transform" />
+                                        <Facebook className="w-4 h-4 cursor-pointer hover:scale-110 transition-transform" />
+                                    </div>
+                                    <span className="text-[11px] font-semibold text-[#8C6D5B]">@MaMacofe</span>
+                                </div>
+                            </div>
+
+                            {/* COLUMN 2 (CENTER): MAMA CAFE MAIN BRAND & DRINKS */}
+                            <div className="flex flex-col justify-between items-center text-center p-6 rounded-2xl bg-white/90 border border-amber-900/10 shadow-sm relative">
+                                <div className="w-full flex flex-col items-center">
+                                    <div className="w-16 h-16 rounded-full overflow-hidden mb-3 border border-amber-900/15 p-0.5 bg-white shadow-xs">
+                                        <img src="/images/mama-cafe-logo.jpg" alt="Logo" className="w-full h-full object-cover rounded-full" />
+                                    </div>
+
+                                    <h2 className="font-serif text-3xl font-extrabold text-[#5C2C16]">MaMa Café</h2>
+                                    <p className="text-xs font-bold uppercase tracking-widest text-[#8C6D5B] mt-1 mb-4">
+                                        COFFEE • BOBA • ICE CHOCOLATE
+                                    </p>
+                                    <span className="text-xs italic text-amber-800 font-serif mb-4 block">Made with Love</span>
+
+                                    {/* Feature Drink Splashes */}
+                                    <div className="grid grid-cols-2 gap-3 w-full my-2">
+                                        <div className="p-2 rounded-xl bg-[#FAF7F2] border border-[#E6DCD0]">
+                                            <img src="/images/boba-drink.jpg" alt="Boba" className="w-full h-20 object-cover rounded-lg mb-1" />
+                                            <span className="text-[10px] font-bold text-[#5C2C16] block">Boba Special</span>
+                                        </div>
+                                        <div className="p-2 rounded-xl bg-[#FAF7F2] border border-[#E6DCD0]">
+                                            <img src="/images/iced-chocolate.jpg" alt="Iced Chocolate" className="w-full h-20 object-cover rounded-lg mb-1" />
+                                            <span className="text-[10px] font-bold text-[#5C2C16] block">Ice Chocolate</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Free Testing Emblem */}
+                                    <div className="w-full mt-4 p-3 rounded-xl bg-amber-100/90 border border-amber-300 text-center shadow-2xs">
+                                        <span className="font-serif text-xs font-bold text-[#7A3E22] block uppercase tracking-wider">
+                                            ✨ THE TESTING IS FREE ✨
+                                        </span>
+                                        <span className="text-[10px] text-[#8C6D5B]">For All Drinks</span>
+                                    </div>
+                                </div>
+
+                                <div className="w-full mt-4 pt-3 border-t border-[#E6DCD0] text-[11px] text-[#8C6D5B] flex flex-col gap-1">
+                                    <span className="flex items-center justify-center gap-1 font-semibold"><Phone className="w-3.5 h-3.5 text-[#7A3E22]" /> +252 61 3399977</span>
+                                    <span className="flex items-center justify-center gap-1"><MapPin className="w-3.5 h-3.5 text-[#7A3E22]" /> Dahablaha Bakaro, Mogadishu</span>
+                                </div>
+                            </div>
+
+                            {/* COLUMN 3 (RIGHT): WHY CHOOSE US? */}
+                            <div className="flex flex-col justify-between items-center text-center p-5 rounded-2xl bg-white/70 border border-[#E6DCD0]/70 shadow-xs relative">
+                                <div className="w-full">
+                                    <div className="inline-block px-4 py-1 rounded-full bg-[#7A3E22] text-white text-xs font-bold uppercase tracking-wider mb-4 shadow-xs">
+                                        Why Choose Us?
+                                    </div>
+
+                                    <div className="flex flex-col gap-3 text-left w-full mt-2">
+                                        <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-[#FAF7F2] border border-[#E6DCD0]">
+                                            <Coffee className="w-4 h-4 text-[#7A3E22] shrink-0 mt-0.5" />
+                                            <div>
+                                                <h4 className="font-bold text-[11px] text-[#5C2C16] uppercase">PREMIUM QUALITY</h4>
+                                                <p className="text-[10px] text-[#8C6D5B]">We use the best coffee beans and ingredients.</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-[#FAF7F2] border border-[#E6DCD0]">
+                                            <Sparkles className="w-4 h-4 text-[#7A3E22] shrink-0 mt-0.5" />
+                                            <div>
+                                                <h4 className="font-bold text-[11px] text-[#5C2C16] uppercase">FRESHLY MADE</h4>
+                                                <p className="text-[10px] text-[#8C6D5B]">Every drink is freshly prepared just for you.</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-[#FAF7F2] border border-[#E6DCD0]">
+                                            <Heart className="w-4 h-4 text-[#7A3E22] shrink-0 mt-0.5" />
+                                            <div>
+                                                <h4 className="font-bold text-[11px] text-[#5C2C16] uppercase">MADE WITH LOVE</h4>
+                                                <p className="text-[10px] text-[#8C6D5B]">We put love in every drink we make.</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-[#FAF7F2] border border-[#E6DCD0]">
+                                            <Smile className="w-4 h-4 text-[#7A3E22] shrink-0 mt-0.5" />
+                                            <div>
+                                                <h4 className="font-bold text-[11px] text-[#5C2C16] uppercase">GREAT TASTE</h4>
+                                                <p className="text-[10px] text-[#8C6D5B]">Delicious drinks that make your day better.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={() => setShowTabletLogin(true)}
+                                    className="w-full mt-5 py-2.5 px-4 rounded-xl bg-[#7A3E22] hover:bg-[#612F18] text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
+                                >
+                                    Access Portal Sign In ↑
+                                </button>
+                            </div>
+
+                        </div>
+                    </main>
+                )}
+
+                {/* TABLET / DESKTOP SLIDE-UP BOTTOM SHEET FOR LOGIN (SLIDES UP FROM BOTTOM) */}
+                {!isMobile && (
                     <div 
-                        className="flex h-full w-full transition-transform duration-500 ease-out"
-                        style={{
-                            transform: deviceType === 'tablet' 
-                                ? `translateX(-${Math.min(currentSlide, 2) * 100}%)` 
-                                : `translateX(-${currentSlide * 100}%)`
-                        }}
+                        className={`fixed inset-0 z-50 flex items-end justify-center transition-all duration-500 ${
+                            showTabletLogin ? 'bg-black/60 backdrop-blur-xs opacity-100 pointer-events-auto' : 'bg-transparent opacity-0 pointer-events-none'
+                        }`}
+                        onClick={() => setShowTabletLogin(false)}
                     >
-                        {/* SLIDE 1: WELCOME & BRAND HERO */}
-                        <div className="min-w-full h-full flex flex-col justify-between p-6 sm:p-10 lg:p-12 overflow-y-auto">
-                            <div className="max-w-2xl mx-auto text-center flex flex-col items-center justify-center my-auto">
-                                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-100/80 border border-amber-300/60 text-[#7A3E22] text-xs font-bold tracking-wider uppercase mb-6 animate-pulse">
-                                    <Sparkles className="w-4 h-4 text-amber-600" /> Made with Love
+                        <div 
+                            className={`w-full max-w-md bg-[#F5F0E8] rounded-t-3xl p-8 shadow-2xl border-t border-amber-900/20 transform transition-transform duration-500 ease-out relative ${
+                                showTabletLogin ? 'translate-y-0' : 'translate-y-full'
+                            }`}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Drag Handle Bar */}
+                            <div className="w-12 h-1.5 bg-[#D4C5B3] rounded-full mx-auto mb-6" />
+
+                            {/* Header */}
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-12 h-12 rounded-full overflow-hidden border border-amber-900/15 p-0.5 bg-white shadow-xs">
+                                        <img src="/images/mama-cafe-logo.jpg" alt="Logo" className="w-full h-full object-cover rounded-full" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-serif text-xl font-bold text-[#5C2C16]">MaMa Café Portal</h3>
+                                        <p className="text-xs text-[#8C6D5B]">Admin Sign In</p>
+                                    </div>
                                 </div>
+                                <button 
+                                    onClick={() => setShowTabletLogin(false)} 
+                                    className="p-2 rounded-full hover:bg-amber-200/50 text-[#7A3E22] transition-colors cursor-pointer"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
 
-                                <h2 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-extrabold text-[#5C2C16] tracking-tight leading-tight mb-4">
-                                    MaMa Café
-                                </h2>
-                                
-                                <p className="text-sm sm:text-base font-semibold text-[#8C6D5B] uppercase tracking-widest mb-6">
-                                    COFFEE • BOBA • ICE CHOCOLATE
-                                </p>
+                            {/* Integrated Login Form Component */}
+                            <InlineLoginForm />
+                        </div>
+                    </div>
+                )}
 
-                                {/* Feature Image Showcase */}
-                                <div className="relative my-4 w-48 sm:w-64 h-48 sm:h-64 rounded-full overflow-hidden shadow-2xl border-4 border-white">
-                                    <img src="/images/coffee-bg.jpg" alt="Coffee Pour" className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-700" />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                                    <span className="absolute bottom-4 left-0 right-0 text-center text-xs font-bold text-white tracking-widest uppercase">
-                                        Fresh Drinks • Good Mood
-                                    </span>
-                                </div>
-
-                                {/* Banner Badge */}
-                                <div className="mt-6 p-4 rounded-2xl bg-[#F5F0E8] border border-[#E6DCD0] shadow-sm max-w-md w-full">
-                                    <span className="block font-serif text-base font-bold text-[#7A3E22]">
-                                        ✨ THE TESTING IS FREE ✨
-                                    </span>
-                                    <span className="text-xs text-[#8C6D5B] font-medium">For All Drinks at Our Mogadishu Branch</span>
+                {/* ========================================================================= */}
+                {/* 2. MOBILE ONLY VIEW (3 Swipeable Onboarding Slides + Slide-Right Login)   */}
+                {/* ========================================================================= */}
+                {isMobile && (
+                    <main 
+                        className="relative flex-1 w-full overflow-hidden"
+                        onTouchStart={handleTouchStart}
+                        onTouchMove={handleTouchMove}
+                        onTouchEnd={handleTouchEnd}
+                    >
+                        {/* HORIZONTAL SWIPE TRACK (4 Panels: Slide 0, 1, 2, and 3=Login) */}
+                        <div 
+                            className="flex h-full w-[400%] transition-transform duration-500 ease-out"
+                            style={{ transform: `translateX(-${mobileSlide * 25}%)` }}
+                        >
+                            {/* MOBILE SLIDE 0: FRESH DRINKS & GOOD MOOD */}
+                            <div className="w-1/4 h-full flex flex-col justify-between p-6 overflow-y-auto">
+                                <div className="flex flex-col items-center text-center my-auto">
+                                    <span className="text-xs font-bold uppercase tracking-widest text-[#7A3E22] mb-2">Fresh Drinks, Good Mood ♥</span>
+                                    <div className="relative w-52 h-52 my-3 rounded-full overflow-hidden shadow-xl border-4 border-white">
+                                        <img src="/images/boba-drink.jpg" alt="Boba" className="w-full h-full object-cover" />
+                                    </div>
+                                    <h2 className="font-serif text-2xl font-bold text-[#5C2C16]">Signature Boba Tea</h2>
+                                    <p className="text-xs text-[#8C6D5B] mt-2 max-w-xs">Handcrafted boba tea topped with rich brown sugar, tapioca pearls, and fresh milk.</p>
+                                    <div className="mt-6 flex items-center gap-2 text-xs font-semibold text-[#7A3E22]">
+                                        <Instagram className="w-4 h-4" /> @MaMacofe
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* SLIDE 2: FRESH DRINKS & GOOD MOOD */}
-                        <div className="min-w-full h-full flex flex-col justify-between p-6 sm:p-10 lg:p-12 overflow-y-auto">
-                            <div className="max-w-2xl mx-auto text-center flex flex-col items-center justify-center my-auto">
-                                <span className="text-xs font-bold uppercase tracking-widest text-[#7A3E22] mb-2 flex items-center gap-1.5">
-                                    <Heart className="w-4 h-4 fill-amber-600 text-amber-600" /> Fresh Drinks, Good Mood
-                                </span>
-                                
-                                <h3 className="font-serif text-3xl sm:text-4xl font-bold text-[#5C2C16] mb-4">
-                                    Artisanal Boba & Iced Chocolate
-                                </h3>
-
-                                <div className="grid grid-cols-2 gap-4 my-4 max-w-md w-full">
-                                    <div className="flex flex-col items-center p-3 rounded-2xl bg-white shadow-md border border-amber-900/10">
-                                        <img src="/images/boba-drink.jpg" alt="Boba Tea" className="w-28 h-28 object-cover rounded-xl mb-2" />
-                                        <span className="font-bold text-xs text-[#5C2C16]">Boba Milk Tea</span>
-                                        <span className="text-[10px] text-[#8C6D5B]">Brown Sugar & Pearls</span>
+                            {/* MOBILE SLIDE 1: MAMA CAFE MAIN BRAND */}
+                            <div className="w-1/4 h-full flex flex-col justify-between p-6 overflow-y-auto">
+                                <div className="flex flex-col items-center text-center my-auto">
+                                    <div className="w-20 h-20 rounded-full overflow-hidden mb-3 border border-amber-900/15 p-0.5 bg-white shadow-xs">
+                                        <img src="/images/mama-cafe-logo.jpg" alt="Logo" className="w-full h-full object-cover rounded-full" />
                                     </div>
-                                    <div className="flex flex-col items-center p-3 rounded-2xl bg-white shadow-md border border-amber-900/10">
-                                        <img src="/images/iced-chocolate.jpg" alt="Iced Chocolate" className="w-28 h-28 object-cover rounded-xl mb-2" />
-                                        <span className="font-bold text-xs text-[#5C2C16]">Iced Chocolate</span>
-                                        <span className="text-[10px] text-[#8C6D5B]">Whipped Cream & Mallows</span>
+                                    <h2 className="font-serif text-3xl font-extrabold text-[#5C2C16]">MaMa Café</h2>
+                                    <p className="text-xs font-bold uppercase tracking-widest text-[#8C6D5B] mt-1 mb-3">COFFEE • BOBA • ICE CHOCOLATE</p>
+                                    
+                                    <div className="w-full p-4 rounded-2xl bg-amber-100/90 border border-amber-300 text-center my-3">
+                                        <span className="font-serif text-xs font-bold text-[#7A3E22] block uppercase tracking-wider">✨ THE TESTING IS FREE ✨</span>
+                                        <span className="text-[11px] text-[#8C6D5B]">For All Drinks at Mogadishu Branch</span>
                                     </div>
-                                </div>
 
-                                <p className="text-xs sm:text-sm text-[#8C6D5B] max-w-md leading-relaxed my-2">
-                                    Every single cup is crafted with premium coffee beans, fresh milk, and handcrafted toppings for the perfect taste.
-                                </p>
-
-                                <div className="mt-4 flex items-center gap-3 text-xs font-semibold text-[#7A3E22]">
-                                    <Instagram className="w-4 h-4" /> @MaMacofe — LET'S BE FRIENDS!
+                                    <div className="mt-4 text-xs text-[#8C6D5B] flex flex-col gap-1">
+                                        <span className="flex items-center justify-center gap-1 font-semibold"><Phone className="w-3.5 h-3.5 text-[#7A3E22]" /> +252 61 3399977</span>
+                                        <span className="flex items-center justify-center gap-1"><MapPin className="w-3.5 h-3.5 text-[#7A3E22]" /> Dahablaha Bakaro Mogadishu</span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* SLIDE 3: WHY CHOOSE US? */}
-                        <div className="min-w-full h-full flex flex-col justify-between p-6 sm:p-10 lg:p-12 overflow-y-auto">
-                            <div className="max-w-2xl mx-auto text-center flex flex-col items-center justify-center my-auto w-full">
-                                <span className="text-xs font-bold uppercase tracking-widest text-[#7A3E22] mb-1">Why Choose Us?</span>
-                                <h3 className="font-serif text-3xl sm:text-4xl font-bold text-[#5C2C16] mb-6">Built for Excellence</h3>
+                            {/* MOBILE SLIDE 2: WHY CHOOSE US? */}
+                            <div className="w-1/4 h-full flex flex-col justify-between p-6 overflow-y-auto">
+                                <div className="flex flex-col items-center text-center my-auto w-full">
+                                    <span className="text-xs font-bold uppercase tracking-widest text-[#7A3E22] mb-1">Why Choose Us?</span>
+                                    <h3 className="font-serif text-2xl font-bold text-[#5C2C16] mb-4">Crafted for Quality</h3>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 max-w-lg w-full text-left">
-                                    <div className="flex items-start gap-3 p-3.5 rounded-xl bg-white/90 border border-[#E6DCD0] shadow-2xs">
-                                        <div className="p-2 rounded-lg bg-amber-100 text-[#7A3E22] shrink-0">
-                                            <Coffee className="w-5 h-5" />
+                                    <div className="flex flex-col gap-2.5 w-full text-left max-w-xs">
+                                        <div className="flex items-center gap-3 p-3 rounded-xl bg-white border border-[#E6DCD0]">
+                                            <Coffee className="w-4 h-4 text-[#7A3E22] shrink-0" />
+                                            <div>
+                                                <h4 className="font-bold text-xs text-[#5C2C16]">PREMIUM QUALITY</h4>
+                                                <p className="text-[10px] text-[#8C6D5B]">Best coffee beans & ingredients.</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h4 className="font-bold text-xs text-[#5C2C16] uppercase">PREMIUM QUALITY</h4>
-                                            <p className="text-[11px] text-[#8C6D5B]">We use the best coffee beans and high-quality ingredients.</p>
+                                        <div className="flex items-center gap-3 p-3 rounded-xl bg-white border border-[#E6DCD0]">
+                                            <Sparkles className="w-4 h-4 text-[#7A3E22] shrink-0" />
+                                            <div>
+                                                <h4 className="font-bold text-xs text-[#5C2C16]">FRESHLY MADE</h4>
+                                                <p className="text-[10px] text-[#8C6D5B]">Freshly prepared just for you.</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3 p-3 rounded-xl bg-white border border-[#E6DCD0]">
+                                            <Heart className="w-4 h-4 text-[#7A3E22] shrink-0" />
+                                            <div>
+                                                <h4 className="font-bold text-xs text-[#5C2C16]">MADE WITH LOVE</h4>
+                                                <p className="text-[10px] text-[#8C6D5B]">We put love in every drink.</p>
+                                            </div>
                                         </div>
                                     </div>
-
-                                    <div className="flex items-start gap-3 p-3.5 rounded-xl bg-white/90 border border-[#E6DCD0] shadow-2xs">
-                                        <div className="p-2 rounded-lg bg-amber-100 text-[#7A3E22] shrink-0">
-                                            <Sparkles className="w-5 h-5" />
-                                        </div>
-                                        <div>
-                                            <h4 className="font-bold text-xs text-[#5C2C16] uppercase">FRESHLY MADE</h4>
-                                            <p className="text-[11px] text-[#8C6D5B]">Every drink is freshly prepared just for you.</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-start gap-3 p-3.5 rounded-xl bg-white/90 border border-[#E6DCD0] shadow-2xs">
-                                        <div className="p-2 rounded-lg bg-amber-100 text-[#7A3E22] shrink-0">
-                                            <Heart className="w-5 h-5" />
-                                        </div>
-                                        <div>
-                                            <h4 className="font-bold text-xs text-[#5C2C16] uppercase">MADE WITH LOVE</h4>
-                                            <p className="text-[11px] text-[#8C6D5B]">We put love in every drink we make.</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-start gap-3 p-3.5 rounded-xl bg-white/90 border border-[#E6DCD0] shadow-2xs">
-                                        <div className="p-2 rounded-lg bg-amber-100 text-[#7A3E22] shrink-0">
-                                            <Smile className="w-5 h-5" />
-                                        </div>
-                                        <div>
-                                            <h4 className="font-bold text-xs text-[#5C2C16] uppercase">GREAT TASTE</h4>
-                                            <p className="text-[11px] text-[#8C6D5B]">Delicious drinks that make your day better.</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Contact Footer Line */}
-                                <div className="mt-6 pt-4 border-t border-[#E6DCD0] flex flex-wrap items-center justify-center gap-4 text-[11px] text-[#8C6D5B] font-medium">
-                                    <span className="flex items-center gap-1"><Phone className="w-3.5 h-3.5 text-[#7A3E22]" /> +252 61 3399977</span>
-                                    <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-[#7A3E22]" /> Dahablaha Bakaro, Mogadishu</span>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* SLIDE 4: MOBILE HORIZONTAL LOGIN SLIDE (Seamless Slide from Right to Left) */}
-                        {deviceType !== 'tablet' && (
-                            <div className="min-w-full h-full flex flex-col justify-center items-center p-4 sm:p-8 overflow-y-auto bg-[#F9F6F0]">
-                                <div className="w-full max-w-[420px] rounded-2xl bg-[#F5F0E8] p-6 sm:p-8 shadow-[0_12px_40px_rgba(122,62,34,0.08)] border border-[#E6DCD0] flex flex-col items-center">
-                                    <div className="w-16 h-16 rounded-full overflow-hidden mb-3 shadow-sm border border-amber-900/10 p-0.5 bg-white flex items-center justify-center">
-                                        <img src="/images/mama-cafe-logo.jpg" alt="MaMa Café Logo" className="w-full h-full object-cover rounded-full" />
+                            {/* MOBILE SLIDE 3: LOGIN PAGE (SLIDES IN FROM THE RIGHT) */}
+                            <div className="w-1/4 h-full flex flex-col justify-center items-center p-6 overflow-y-auto bg-[#F9F6F0]">
+                                <div className="w-full max-w-[360px] rounded-2xl bg-[#F5F0E8] p-6 shadow-lg border border-[#E6DCD0] flex flex-col items-center">
+                                    <div className="w-16 h-16 rounded-full overflow-hidden mb-3 border border-amber-900/15 p-0.5 bg-white shadow-xs">
+                                        <img src="/images/mama-cafe-logo.jpg" alt="Logo" className="w-full h-full object-cover rounded-full" />
                                     </div>
+                                    <h3 className="font-serif text-xl font-bold text-[#5C2C16] text-center">MaMa Café Portal</h3>
+                                    <p className="text-xs text-[#8C6D5B] mt-0.5 mb-5 text-center">Sign in to access admin panel.</p>
 
-                                    <h2 className="font-serif text-2xl font-bold text-[#5C2C16] text-center">MaMa Café Portal</h2>
-                                    <p className="text-xs text-[#8C6D5B] mt-1 mb-6 text-center">Please sign in to access the admin panel.</p>
-
-                                    {/* Inline Login Form */}
                                     <InlineLoginForm />
                                 </div>
                             </div>
-                        )}
-                    </div>
+                        </div>
+                    </main>
+                )}
 
-                    {/* TABLET SLIDE-UP BOTTOM SHEET FOR LOGIN */}
-                    {deviceType === 'tablet' && (
-                        <div 
-                            className={`fixed inset-0 z-50 flex items-end justify-center transition-all duration-500 ${
-                                currentSlide === 3 ? 'bg-black/60 backdrop-blur-xs opacity-100 pointer-events-auto' : 'bg-transparent opacity-0 pointer-events-none'
+                {/* MOBILE BOTTOM CONTROLS (PAGINATION DOTS & NEXT BUTTON) */}
+                {isMobile && (
+                    <footer className="relative z-30 flex items-center justify-between px-6 py-4 border-t border-[#E6DCD0] bg-[#FAF7F2]/90 backdrop-blur-md">
+                        <button
+                            onClick={() => setMobileSlide((prev) => Math.max(0, prev - 1))}
+                            disabled={mobileSlide === 0}
+                            className={`inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider ${
+                                mobileSlide === 0 ? 'opacity-30 text-stone-400' : 'text-[#7A3E22]'
                             }`}
                         >
-                            <div 
-                                className={`w-full max-w-md bg-[#F5F0E8] rounded-t-3xl p-8 shadow-2xl border-t border-amber-900/20 transform transition-transform duration-500 ease-out ${
-                                    currentSlide === 3 ? 'translate-y-0' : 'translate-y-full'
-                                }`}
-                            >
-                                {/* Sheet Drag Handle */}
-                                <div className="w-12 h-1.5 bg-[#D4C5B3] rounded-full mx-auto mb-6" />
-
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-full overflow-hidden border border-amber-900/10 p-0.5 bg-white">
-                                            <img src="/images/mama-cafe-logo.jpg" alt="Logo" className="w-full h-full object-cover rounded-full" />
-                                        </div>
-                                        <div>
-                                            <h3 className="font-serif text-xl font-bold text-[#5C2C16]">MaMa Café Portal</h3>
-                                            <p className="text-xs text-[#8C6D5B]">Admin Sign In</p>
-                                        </div>
-                                    </div>
-                                    <button 
-                                        onClick={() => setCurrentSlide(2)} 
-                                        className="p-2 rounded-full hover:bg-amber-200/50 text-[#7A3E22]"
-                                    >
-                                        <X className="w-5 h-5" />
-                                    </button>
-                                </div>
-
-                                <InlineLoginForm />
-                            </div>
-                        </div>
-                    )}
-                </main>
-
-                {/* BOTTOM NAVIGATION BAR & SWIPE CONTROLS */}
-                <footer className="relative z-30 flex items-center justify-between px-6 py-4 border-t border-[#E6DCD0]/60 bg-[#F9F6F0]/90 backdrop-blur-md">
-                    {/* Previous Button */}
-                    <button
-                        onClick={prevSlide}
-                        disabled={currentSlide === 0}
-                        className={`inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider transition-all ${
-                            currentSlide === 0 ? 'opacity-30 cursor-not-allowed text-stone-400' : 'text-[#7A3E22] hover:text-[#58250F]'
-                        }`}
-                    >
-                        <ChevronLeft className="w-4 h-4" /> Back
-                    </button>
-
-                    {/* Pagination Dots */}
-                    <div className="flex items-center gap-2">
-                        {[0, 1, 2, 3].map((index) => (
-                            <button
-                                key={index}
-                                onClick={() => setCurrentSlide(index)}
-                                className={`transition-all duration-300 rounded-full ${
-                                    currentSlide === index 
-                                        ? 'w-6 h-2 bg-[#7A3E22]' 
-                                        : 'w-2 h-2 bg-[#D4C5B3] hover:bg-amber-800/40'
-                                }`}
-                                aria-label={`Go to slide ${index + 1}`}
-                            />
-                        ))}
-                    </div>
-
-                    {/* Next / Action Button */}
-                    {currentSlide < 3 ? (
-                        <button
-                            onClick={nextSlide}
-                            className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-[#7A3E22] hover:text-[#58250F] transition-all"
-                        >
-                            {currentSlide === 2 ? (deviceType === 'tablet' ? 'Sign In ↑' : 'Sign In →') : 'Next'} <ChevronRight className="w-4 h-4" />
+                            <ChevronLeft className="w-4 h-4" /> Back
                         </button>
-                    ) : (
-                        <span className="text-xs font-semibold text-[#8C6D5B]">Portal Active</span>
-                    )}
-                </footer>
+
+                        {/* Pagination Dots */}
+                        <div className="flex items-center gap-2">
+                            {[0, 1, 2, 3].map((index) => (
+                                <button
+                                    key={index}
+                                    onClick={() => setMobileSlide(index)}
+                                    className={`transition-all duration-300 rounded-full ${
+                                        mobileSlide === index 
+                                            ? 'w-6 h-2 bg-[#7A3E22]' 
+                                            : 'w-2 h-2 bg-[#D4C5B3]'
+                                    }`}
+                                />
+                            ))}
+                        </div>
+
+                        {mobileSlide < 3 ? (
+                            <button
+                                onClick={() => setMobileSlide((prev) => prev + 1)}
+                                className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-[#7A3E22]"
+                            >
+                                {mobileSlide === 2 ? 'Sign In →' : 'Next'} <ChevronRight className="w-4 h-4" />
+                            </button>
+                        ) : (
+                            <button
+                                onClick={() => setMobileSlide(0)}
+                                className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-[#7A3E22]"
+                            >
+                                Replay
+                            </button>
+                        )}
+                    </footer>
+                )}
+
             </div>
         </>
     );
 }
 
-// INLINE LOGIN FORM COMPONENT
+// INLINE LOGIN FORM COMPONENT (TypeScript, Inertia.js, Tailwind CSS, Shadcn UI)
 function InlineLoginForm() {
     return (
         <Form
@@ -490,7 +530,7 @@ function InlineLoginForm() {
                         )}
                     </Button>
 
-                    <div className="relative w-full my-4 flex items-center justify-center">
+                    <div className="relative w-full my-3 flex items-center justify-center">
                         <div className="absolute inset-0 flex items-center">
                             <div className="w-full border-t border-[#E6DCD0]" />
                         </div>

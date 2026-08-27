@@ -15,8 +15,7 @@ import {
     LogIn,
     X,
     Instagram,
-    Facebook,
-    CheckCircle2
+    Facebook
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,7 +26,7 @@ import InputError from '@/components/input-error';
 import { Spinner } from '@/components/ui/spinner';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
-import { dashboard } from '@/routes';
+import { dashboard, login } from '@/routes';
 
 export default function Welcome() {
     const { auth } = usePage().props as { auth: { user: any } };
@@ -35,7 +34,7 @@ export default function Welcome() {
     // Screen responsiveness: isMobile (< 768px) vs Tablet/Desktop (>= 768px)
     const [isMobile, setIsMobile] = useState<boolean>(false);
     
-    // Mobile Onboarding Slide Index: 0 = Fresh Drinks, 1 = MaMa Cafe Main, 2 = Why Choose Us, 3 = Login (Slide Right)
+    // Mobile Onboarding Slide Index: 0 = Fresh Drinks, 1 = MaMa Cafe Main, 2 = Why Choose Us, 3 = Login Slide Right
     const [mobileSlide, setMobileSlide] = useState<number>(0);
     
     // Tablet/Desktop Login Sheet State (Slide Up from Bottom)
@@ -49,6 +48,10 @@ export default function Welcome() {
         const checkMobile = () => {
             const mobile = window.innerWidth < 768;
             setIsMobile(mobile);
+            // Ensure mobile view always starts on Slide 0 (Landing Page)
+            if (mobile) {
+                setMobileSlide(0);
+            }
         };
         checkMobile();
         window.addEventListener('resize', checkMobile);
@@ -73,7 +76,7 @@ export default function Welcome() {
 
         if (Math.abs(deltaX) > minSwipeDistance) {
             if (deltaX > 0 && mobileSlide < 3) {
-                // Swipe Left -> Next Slide / Login
+                // Swipe Left -> Next Slide or Login
                 setMobileSlide((prev) => prev + 1);
             } else if (deltaX < 0 && mobileSlide > 0) {
                 // Swipe Right -> Prev Slide
@@ -112,28 +115,22 @@ export default function Welcome() {
                                 Dashboard <ArrowRight className="w-3.5 h-3.5" />
                             </Link>
                         ) : (
-                            <button
-                                onClick={() => {
-                                    if (isMobile) {
-                                        setMobileSlide(mobileSlide === 3 ? 0 : 3);
-                                    } else {
-                                        setShowTabletLogin(true);
-                                    }
-                                }}
+                            <Link
+                                href={login()}
                                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#7A3E22] text-white text-xs font-bold uppercase tracking-wider shadow-sm hover:bg-[#612F18] transition-all cursor-pointer"
                             >
                                 <LogIn className="w-3.5 h-3.5" /> Sign In to Portal
-                            </button>
+                            </Link>
                         )}
                     </div>
                 </header>
 
                 {/* ========================================================================= */}
-                {/* 1. TABLET & DESKTOP VIEW (Full 3-Panel Landing Page Layout, NO Sliders)   */}
+                {/* 1. TABLET & DESKTOP VIEW (Full 3-Panel Flyer Layout Displayed Together)    */}
                 {/* ========================================================================= */}
                 {!isMobile && (
                     <main className="relative flex-1 w-full max-w-7xl mx-auto p-6 md:p-10 flex flex-col justify-center">
-                        {/* THE TRI-FOLD LANDING PAGE (3 FULL COLUMNS DISPLAYED TOGETHER) */}
+                        {/* THE TRI-FOLD LANDING PAGE (3 FULL COLUMNS DISPLAYED TOGETHER AT ONCE) */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 rounded-3xl bg-[#F5F0E8] border border-[#E6DCD0] p-6 md:p-8 shadow-[0_15px_50px_rgba(122,62,34,0.08)] relative overflow-hidden">
                             
                             {/* COLUMN 1 (LEFT): FRESH DRINKS & GOOD MOOD */}
@@ -253,50 +250,70 @@ export default function Welcome() {
                     </main>
                 )}
 
-                {/* TABLET / DESKTOP SLIDE-UP BOTTOM SHEET FOR LOGIN (SLIDES UP FROM BOTTOM) */}
+                {/* TABLET / DESKTOP SLIDE-UP BOTTOM MODAL FOR LOGIN (SLIDES UP FROM BOTTOM WITH COFFEE HERO) */}
                 {!isMobile && (
                     <div 
                         className={`fixed inset-0 z-50 flex items-end justify-center transition-all duration-500 ${
-                            showTabletLogin ? 'bg-black/60 backdrop-blur-xs opacity-100 pointer-events-auto' : 'bg-transparent opacity-0 pointer-events-none'
+                            showTabletLogin ? 'bg-black/70 backdrop-blur-xs opacity-100 pointer-events-auto' : 'bg-transparent opacity-0 pointer-events-none'
                         }`}
                         onClick={() => setShowTabletLogin(false)}
                     >
                         <div 
-                            className={`w-full max-w-md bg-[#F5F0E8] rounded-t-3xl p-8 shadow-2xl border-t border-amber-900/20 transform transition-transform duration-500 ease-out relative ${
+                            className={`w-full max-w-3xl bg-[#F5F0E8] rounded-t-3xl overflow-hidden shadow-2xl border-t border-amber-900/20 transform transition-transform duration-500 ease-out relative ${
                                 showTabletLogin ? 'translate-y-0' : 'translate-y-full'
                             }`}
                             onClick={(e) => e.stopPropagation()}
                         >
                             {/* Drag Handle Bar */}
-                            <div className="w-12 h-1.5 bg-[#D4C5B3] rounded-full mx-auto mb-6" />
+                            <div className="w-12 h-1.5 bg-[#D4C5B3] rounded-full mx-auto my-3" />
 
-                            {/* Header */}
-                            <div className="flex items-center justify-between mb-6">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 rounded-full overflow-hidden border border-amber-900/15 p-0.5 bg-white shadow-xs">
-                                        <img src="/images/mama-cafe-logo.jpg" alt="Logo" className="w-full h-full object-cover rounded-full" />
+                            <div className="grid grid-cols-1 md:grid-cols-2">
+                                {/* Left Coffee Image Hero inside Modal */}
+                                <div className="relative hidden md:flex flex-col justify-between p-8 bg-stone-900 text-white min-h-[380px]">
+                                    <div
+                                        className="absolute inset-0 bg-cover bg-center opacity-90"
+                                        style={{ backgroundImage: `url('/images/coffee-bg.jpg')` }}
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/20" />
+                                    
+                                    <div className="relative z-10">
+                                        <span className="text-[10px] font-semibold uppercase tracking-widest text-amber-200 bg-black/40 px-3 py-1 rounded-full border border-amber-500/20">
+                                            MaMa Café Portal
+                                        </span>
                                     </div>
-                                    <div>
-                                        <h3 className="font-serif text-xl font-bold text-[#5C2C16]">MaMa Café Portal</h3>
-                                        <p className="text-xs text-[#8C6D5B]">Admin Sign In</p>
+
+                                    <div className="relative z-10">
+                                        <h3 className="font-serif text-2xl font-bold leading-tight">Elevate the Art of Coffee.</h3>
+                                        <p className="text-xs text-amber-100/80 mt-1 font-light">Streamlined operations for the modern coffee house.</p>
                                     </div>
                                 </div>
-                                <button 
-                                    onClick={() => setShowTabletLogin(false)} 
-                                    className="p-2 rounded-full hover:bg-amber-200/50 text-[#7A3E22] transition-colors cursor-pointer"
-                                >
-                                    <X className="w-5 h-5" />
-                                </button>
-                            </div>
 
-                            {/* Integrated Login Form Component */}
-                            <InlineLoginForm />
+                                {/* Right Login Form inside Modal */}
+                                <div className="p-6 md:p-8 flex flex-col justify-between relative bg-[#F5F0E8]">
+                                    <button 
+                                        onClick={() => setShowTabletLogin(false)} 
+                                        className="absolute top-4 right-4 p-2 rounded-full hover:bg-amber-200/50 text-[#7A3E22] transition-colors cursor-pointer"
+                                    >
+                                        <X className="w-5 h-5" />
+                                    </button>
+
+                                    <div className="flex flex-col items-center text-center mb-4">
+                                        <div className="w-14 h-14 rounded-full overflow-hidden border border-amber-900/15 p-0.5 bg-white shadow-xs mb-2">
+                                            <img src="/images/mama-cafe-logo.jpg" alt="Logo" className="w-full h-full object-cover rounded-full" />
+                                        </div>
+                                        <h3 className="font-serif text-xl font-bold text-[#5C2C16]">MaMa Café Portal</h3>
+                                        <p className="text-xs text-[#8C6D5B]">Sign in to access admin panel.</p>
+                                    </div>
+
+                                    <InlineLoginForm />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}
 
                 {/* ========================================================================= */}
-                {/* 2. MOBILE ONLY VIEW (3 Swipeable Onboarding Slides + Slide-Right Login)   */}
+                {/* 2. MOBILE ONLY VIEW (3 Onboarding Slides + Slide-Right Login Page)        */}
                 {/* ========================================================================= */}
                 {isMobile && (
                     <main 
@@ -305,7 +322,7 @@ export default function Welcome() {
                         onTouchMove={handleTouchMove}
                         onTouchEnd={handleTouchEnd}
                     >
-                        {/* HORIZONTAL SWIPE TRACK (4 Panels: Slide 0, 1, 2, and 3=Login) */}
+                        {/* HORIZONTAL SWIPE TRACK (4 Panels: Slide 0, 1, 2, and 3=Login with Coffee Hero) */}
                         <div 
                             className="flex h-full w-[400%] transition-transform duration-500 ease-out"
                             style={{ transform: `translateX(-${mobileSlide * 25}%)` }}
@@ -378,16 +395,24 @@ export default function Welcome() {
                                 </div>
                             </div>
 
-                            {/* MOBILE SLIDE 3: LOGIN PAGE (SLIDES IN FROM THE RIGHT) */}
-                            <div className="w-1/4 h-full flex flex-col justify-center items-center p-6 overflow-y-auto bg-[#F9F6F0]">
-                                <div className="w-full max-w-[360px] rounded-2xl bg-[#F5F0E8] p-6 shadow-lg border border-[#E6DCD0] flex flex-col items-center">
-                                    <div className="w-16 h-16 rounded-full overflow-hidden mb-3 border border-amber-900/15 p-0.5 bg-white shadow-xs">
-                                        <img src="/images/mama-cafe-logo.jpg" alt="Logo" className="w-full h-full object-cover rounded-full" />
+                            {/* MOBILE SLIDE 3: LOGIN PAGE (SLIDES IN FROM RIGHT WITH COFFEE HERO HEADER) */}
+                            <div className="w-1/4 h-full flex flex-col justify-center items-center p-4 overflow-y-auto bg-[#F9F6F0]">
+                                <div className="w-full max-w-[360px] rounded-2xl bg-[#F5F0E8] overflow-hidden shadow-lg border border-[#E6DCD0] flex flex-col items-center">
+                                    {/* Top Coffee Image Banner */}
+                                    <div className="relative w-full h-24 overflow-hidden bg-stone-900">
+                                        <img src="/images/coffee-bg.jpg" alt="Coffee Pour" className="w-full h-full object-cover opacity-85" />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-[#F5F0E8] via-black/40 to-transparent" />
                                     </div>
-                                    <h3 className="font-serif text-xl font-bold text-[#5C2C16] text-center">MaMa Café Portal</h3>
-                                    <p className="text-xs text-[#8C6D5B] mt-0.5 mb-5 text-center">Sign in to access admin panel.</p>
 
-                                    <InlineLoginForm />
+                                    <div className="p-6 pt-0 w-full -mt-6 relative z-10 flex flex-col items-center">
+                                        <div className="w-16 h-16 rounded-full overflow-hidden mb-2 border border-amber-900/15 p-0.5 bg-white shadow-md">
+                                            <img src="/images/mama-cafe-logo.jpg" alt="Logo" className="w-full h-full object-cover rounded-full" />
+                                        </div>
+                                        <h3 className="font-serif text-xl font-bold text-[#5C2C16] text-center">MaMa Café Portal</h3>
+                                        <p className="text-[11px] text-[#8C6D5B] mt-0.5 mb-4 text-center">Sign in to access admin panel.</p>
+
+                                        <InlineLoginForm />
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -407,7 +432,7 @@ export default function Welcome() {
                             <ChevronLeft className="w-4 h-4" /> Back
                         </button>
 
-                        {/* Pagination Dots */}
+                        {/* Pagination Dots (3 Onboarding Dots + 1 Login Dot) */}
                         <div className="flex items-center gap-2">
                             {[0, 1, 2, 3].map((index) => (
                                 <button
@@ -451,12 +476,12 @@ function InlineLoginForm() {
         <Form
             {...store.form()}
             resetOnSuccess={['password']}
-            className="flex flex-col gap-4 w-full"
+            className="flex flex-col gap-3.5 w-full"
         >
             {({ processing, errors }) => (
                 <>
                     {/* USERNAME FIELD */}
-                    <div className="grid gap-1.5 text-left w-full">
+                    <div className="grid gap-1 text-left w-full">
                         <Label htmlFor="email" className="text-[11px] font-bold uppercase tracking-wider text-[#7A5B49]">
                             USERNAME
                         </Label>
@@ -470,14 +495,14 @@ function InlineLoginForm() {
                                 autoFocus
                                 autoComplete="email"
                                 placeholder="Enter your username"
-                                className="pl-10 pr-4 py-2.5 h-11 bg-[#F5F0E8] border border-[#E0D5C5] focus:border-[#7A3E22] focus:ring-1 focus:ring-[#7A3E22] text-[#4A3225] placeholder:text-[#B5A499] rounded-lg text-sm transition-all w-full"
+                                className="pl-10 pr-4 py-2 h-10 bg-[#F5F0E8] border border-[#E0D5C5] focus:border-[#7A3E22] focus:ring-1 focus:ring-[#7A3E22] text-[#4A3225] placeholder:text-[#B5A499] rounded-lg text-sm transition-all w-full"
                             />
                         </div>
                         <InputError message={errors.email} />
                     </div>
 
                     {/* PASSWORD FIELD */}
-                    <div className="grid gap-1.5 text-left w-full">
+                    <div className="grid gap-1 text-left w-full">
                         <div className="flex items-center justify-between">
                             <Label htmlFor="password" className="text-[11px] font-bold uppercase tracking-wider text-[#7A5B49]">
                                 PASSWORD
@@ -497,14 +522,14 @@ function InlineLoginForm() {
                                 required
                                 autoComplete="current-password"
                                 placeholder="Enter your password"
-                                className="pl-10 pr-10 py-2.5 h-11 bg-[#F5F0E8] border border-[#E0D5C5] focus:border-[#7A3E22] focus:ring-1 focus:ring-[#7A3E22] text-[#4A3225] placeholder:text-[#B5A499] rounded-lg text-sm transition-all w-full"
+                                className="pl-10 pr-10 py-2 h-10 bg-[#F5F0E8] border border-[#E0D5C5] focus:border-[#7A3E22] focus:ring-1 focus:ring-[#7A3E22] text-[#4A3225] placeholder:text-[#B5A499] rounded-lg text-sm transition-all w-full"
                             />
                         </div>
                         <InputError message={errors.password} />
                     </div>
 
                     {/* REMEMBER ME OPTION */}
-                    <div className="flex items-center space-x-2.5 pt-1">
+                    <div className="flex items-center space-x-2.5 pt-0.5">
                         <Checkbox
                             id="remember"
                             name="remember"
@@ -519,7 +544,7 @@ function InlineLoginForm() {
                     <Button
                         type="submit"
                         disabled={processing}
-                        className="w-full mt-2 h-11 bg-[#7A3E22] hover:bg-[#612F18] text-white font-bold text-xs uppercase tracking-widest rounded-lg shadow-md hover:shadow-lg flex items-center justify-center gap-2 transition-all active:scale-[0.99] border-none cursor-pointer"
+                        className="w-full mt-1 h-10 bg-[#7A3E22] hover:bg-[#612F18] text-white font-bold text-xs uppercase tracking-widest rounded-lg shadow-md hover:shadow-lg flex items-center justify-center gap-2 transition-all active:scale-[0.99] border-none cursor-pointer"
                     >
                         {processing ? (
                             <Spinner className="w-4 h-4 text-white" />
@@ -530,7 +555,7 @@ function InlineLoginForm() {
                         )}
                     </Button>
 
-                    <div className="relative w-full my-3 flex items-center justify-center">
+                    <div className="relative w-full my-2 flex items-center justify-center">
                         <div className="absolute inset-0 flex items-center">
                             <div className="w-full border-t border-[#E6DCD0]" />
                         </div>

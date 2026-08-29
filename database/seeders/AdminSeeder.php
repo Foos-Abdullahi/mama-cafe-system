@@ -21,7 +21,7 @@ class AdminSeeder extends Seeder
             ['email' => 'admin@mamacafe.test'],
             [
                 'name' => 'Admin',
-                'password' => Hash::make('password'),
+                'password' => Hash::make('admin'),
                 'role' => 'admin',
                 'email_verified_at' => now(),
             ]

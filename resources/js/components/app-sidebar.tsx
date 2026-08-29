@@ -65,10 +65,10 @@ const sections: NavSection[] = [
         title: 'Management',
         icon: LayoutGrid,
         children: [
-            { title: 'Orders', href: '#', icon: ShoppingBag },
-            { title: 'Products', href: '#', icon: Package },
-            { title: 'Categories', href: '#', icon: Tag },
-            { title: 'Waitresses', href: '#', icon: Users },
+            { title: 'Orders', href: '/management/orders', icon: ShoppingBag },
+            { title: 'Products', href: '/management/products', icon: Package },
+            { title: 'Categories', href: '/management/categories', icon: Tag },
+            { title: 'Waitresses', href: '/management/waitresses', icon: Users },
         ],
     },
     {

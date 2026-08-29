@@ -74,6 +74,7 @@ class OrderController extends Controller
             'status' => 'required|in:draft,completed,cancelled,refunded',
             'payment_status' => 'required|in:paid,partial,unpaid,refunded',
             'payment_method' => 'nullable|in:cash,mobile_money,card,credit',
+            'amount_paid' => 'nullable|numeric|min:0',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
@@ -113,12 +114,16 @@ class OrderController extends Controller
             $order->items()->create($itemData);
         }
 
-        if ($validated['payment_status'] === 'paid' && ! empty($validated['payment_method'])) {
+        if (in_array($validated['payment_status'], ['paid', 'partial']) && ! empty($validated['payment_method'])) {
+            $paidAmount = $validated['payment_status'] === 'paid'
+                ? $subtotal
+                : ($validated['amount_paid'] ?? 0);
+
             Payment::create([
                 'order_id' => $order->id,
                 'method' => $validated['payment_method'],
-                'amount' => $subtotal,
-                'status' => 'paid',
+                'amount' => $paidAmount,
+                'status' => $validated['payment_status'],
                 'reference' => 'TXN-'.strtoupper(Str::random(8)),
                 'paid_at' => now(),
             ]);
@@ -130,18 +135,74 @@ class OrderController extends Controller
     public function update(Request $request, Order $order)
     {
         $validated = $request->validate([
+            'waitress_id' => 'nullable|exists:waitresses,id',
+            'fixed_number' => 'nullable|integer',
+            'order_type' => 'nullable|in:dine_in,takeaway',
             'status' => 'required|in:draft,completed,cancelled,refunded',
             'payment_status' => 'required|in:paid,partial,unpaid,refunded',
+            'payment_method' => 'nullable|in:cash,mobile_money,card,credit',
+            'amount_paid' => 'nullable|numeric|min:0',
+            'items' => 'nullable|array|min:1',
+            'items.*.product_id' => 'required_with:items|exists:products,id',
+            'items.*.quantity' => 'required_with:items|integer|min:1',
             'reason' => 'nullable|string',
         ]);
 
         $previousStatus = $order->status;
+        $subtotal = $order->subtotal;
+
+        // If items are provided in update, recalculate subtotal and refresh order items
+        if (! empty($validated['items'])) {
+            $subtotal = 0;
+            $itemsToInsert = [];
+
+            foreach ($validated['items'] as $item) {
+                $product = Product::findOrFail($item['product_id']);
+                $lineTotal = $product->price * $item['quantity'];
+                $subtotal += $lineTotal;
+
+                $itemsToInsert[] = [
+                    'product_id' => $product->id,
+                    'quantity' => $item['quantity'],
+                    'unit_price' => $product->price,
+                    'line_total' => $lineTotal,
+                ];
+            }
+
+            // Remove existing items and replace with updated items
+            $order->items()->delete();
+            foreach ($itemsToInsert as $itemData) {
+                $order->items()->create($itemData);
+            }
+        }
 
         $order->update([
+            'waitress_id' => $validated['waitress_id'] ?? $order->waitress_id,
+            'fixed_number' => $validated['fixed_number'] ?? $order->fixed_number,
+            'order_type' => $validated['order_type'] ?? $order->order_type,
+            'subtotal' => $subtotal,
+            'total' => $subtotal,
             'status' => $validated['status'],
             'payment_status' => $validated['payment_status'],
             'completed_at' => $validated['status'] === 'completed' ? now() : $order->completed_at,
         ]);
+
+        if (in_array($validated['payment_status'], ['paid', 'partial'])) {
+            $paidAmount = $validated['payment_status'] === 'paid'
+                ? $subtotal
+                : ($validated['amount_paid'] ?? 0);
+
+            Payment::updateOrCreate(
+                ['order_id' => $order->id],
+                [
+                    'method' => $validated['payment_method'] ?? 'cash',
+                    'amount' => $paidAmount,
+                    'status' => $validated['payment_status'],
+                    'reference' => 'TXN-'.strtoupper(Str::random(8)),
+                    'paid_at' => now(),
+                ]
+            );
+        }
 
         if ($validated['status'] === 'cancelled' && $previousStatus !== 'cancelled') {
             Cancellation::create([

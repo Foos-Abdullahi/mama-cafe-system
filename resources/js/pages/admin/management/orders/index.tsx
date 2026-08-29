@@ -1,6 +1,5 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
-import AppLayout from '@/layouts/app-layout';
 import { StatsCard, StatSection } from '@/components/tools/StatsCard';
 import { DataTable } from '@/components/tools/table/main-table';
 import { Button } from '@/components/ui/button';
@@ -38,6 +37,7 @@ import {
     CheckCircle,
     XCircle,
     RefreshCw,
+    DollarSign,
 } from 'lucide-react';
 
 interface Product {
@@ -60,6 +60,13 @@ interface OrderItem {
     line_total: number | string;
 }
 
+interface Payment {
+    id?: number;
+    amount: number | string;
+    method: string;
+    status: string;
+}
+
 interface Order {
     id: number;
     order_number: string;
@@ -74,6 +81,7 @@ interface Order {
     status: 'draft' | 'completed' | 'cancelled' | 'refunded';
     payment_status: 'paid' | 'partial' | 'unpaid' | 'refunded';
     items: OrderItem[];
+    payments?: Payment[];
     created_at?: string;
 }
 
@@ -89,10 +97,13 @@ export default function OrdersIndex({ orders, products, waitresses, stats }: Pro
     const [updatingOrder, setUpdatingOrder] = useState<Order | null>(null);
     const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
 
-    // Dynamic item list for new order creation
-    const [selectedItems, setSelectedItems] = useState<{ product_id: number; quantity: number }[]>([
+    // Create Order Item State
+    const [createItems, setCreateItems] = useState<{ product_id: number; quantity: number }[]>([
         { product_id: products[0]?.id || 1, quantity: 1 },
     ]);
+
+    // Edit Order Item State
+    const [editItems, setEditItems] = useState<{ product_id: number; quantity: number }[]>([]);
 
     // Create Form
     const createForm = useForm({
@@ -102,51 +113,115 @@ export default function OrdersIndex({ orders, products, waitresses, stats }: Pro
         status: 'completed' as any,
         payment_status: 'paid' as any,
         payment_method: 'cash' as any,
+        amount_paid: '',
         items: [] as any[],
     });
 
-    // Update Form
-    const updateForm = useForm({
+    // Edit Form
+    const editForm = useForm({
+        waitress_id: '',
+        fixed_number: '',
+        order_type: 'dine_in' as 'dine_in' | 'takeaway',
         status: 'completed' as any,
         payment_status: 'paid' as any,
+        payment_method: 'cash' as any,
+        amount_paid: '',
         reason: '',
+        items: [] as any[],
     });
 
-    const addItemRow = () => {
+    // Calculated Subtotal for Create
+    const createSubtotal = useMemo(() => {
+        return createItems.reduce((sum, item) => {
+            const p = products.find((prod) => prod.id === item.product_id);
+            return sum + (p ? Number(p.price) * item.quantity : 0);
+        }, 0);
+    }, [createItems, products]);
+
+    // Calculated Subtotal for Edit
+    const editSubtotal = useMemo(() => {
+        return editItems.reduce((sum, item) => {
+            const p = products.find((prod) => prod.id === item.product_id);
+            return sum + (p ? Number(p.price) * item.quantity : 0);
+        }, 0);
+    }, [editItems, products]);
+
+    // Create Item Handlers
+    const addCreateItemRow = () => {
         if (products.length === 0) return;
-        setSelectedItems([...selectedItems, { product_id: products[0].id, quantity: 1 }]);
+        setCreateItems([...createItems, { product_id: products[0].id, quantity: 1 }]);
     };
 
-    const removeItemRow = (index: number) => {
-        if (selectedItems.length <= 1) return;
-        setSelectedItems(selectedItems.filter((_, i) => i !== index));
+    const removeCreateItemRow = (index: number) => {
+        if (createItems.length <= 1) return;
+        setCreateItems(createItems.filter((_, i) => i !== index));
     };
 
-    const updateItemRow = (index: number, field: 'product_id' | 'quantity', value: number) => {
-        const updated = [...selectedItems];
+    const updateCreateItemRow = (index: number, field: 'product_id' | 'quantity', value: number) => {
+        const updated = [...createItems];
         updated[index][field] = value;
-        setSelectedItems(updated);
+        setCreateItems(updated);
+    };
+
+    // Edit Item Handlers
+    const addEditItemRow = () => {
+        if (products.length === 0) return;
+        setEditItems([...editItems, { product_id: products[0].id, quantity: 1 }]);
+    };
+
+    const removeEditItemRow = (index: number) => {
+        if (editItems.length <= 1) return;
+        setEditItems(editItems.filter((_, i) => i !== index));
+    };
+
+    const updateEditItemRow = (index: number, field: 'product_id' | 'quantity', value: number) => {
+        const updated = [...editItems];
+        updated[index][field] = value;
+        setEditItems(updated);
     };
 
     const handleCreateSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        createForm.setData('items', selectedItems);
+        createForm.setData('items', createItems);
         createForm.post('/management/orders', {
             onSuccess: () => {
                 setIsCreateOpen(false);
                 createForm.reset();
-                setSelectedItems([{ product_id: products[0]?.id || 1, quantity: 1 }]);
+                setCreateItems([{ product_id: products[0]?.id || 1, quantity: 1 }]);
             },
         });
     };
 
-    const handleUpdateSubmit = (e: React.FormEvent) => {
+    const handleEditSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!updatingOrder) return;
-        updateForm.put(`/management/orders/${updatingOrder.id}`, {
+        editForm.setData('items', editItems);
+        editForm.put(`/management/orders/${updatingOrder.id}`, {
             onSuccess: () => {
                 setUpdatingOrder(null);
             },
+        });
+    };
+
+    const openEditModal = (order: Order) => {
+        setUpdatingOrder(order);
+        const existingItems = order.items && order.items.length > 0
+            ? order.items.map((i) => ({ product_id: i.product_id, quantity: i.quantity }))
+            : [{ product_id: products[0]?.id || 1, quantity: 1 }];
+
+        setEditItems(existingItems);
+        const paidAmount = order.payments && order.payments.length > 0 ? String(order.payments[0].amount) : '';
+
+        editForm.setData({
+            waitress_id: order.waitress_id ? String(order.waitress_id) : '',
+            fixed_number: order.fixed_number ? String(order.fixed_number) : '',
+            order_type: order.order_type,
+            status: order.status,
+            payment_status: order.payment_status,
+            payment_method: order.payments?.[0]?.method || 'cash',
+            amount_paid: paidAmount,
+            reason: '',
+            items: existingItems,
         });
     };
 
@@ -197,11 +272,25 @@ export default function OrdersIndex({ orders, products, waitresses, stats }: Pro
         {
             accessorKey: 'total',
             header: 'Total Price',
-            cell: ({ row }) => (
-                <span className="font-mono font-bold text-sm text-foreground">
-                    ${Number(row.original.total).toFixed(2)}
-                </span>
-            ),
+            cell: ({ row }) => {
+                const total = Number(row.original.total);
+                const paid = row.original.payments?.[0]?.amount ? Number(row.original.payments[0].amount) : 0;
+                const balance = total - paid;
+                const isPartial = row.original.payment_status === 'partial';
+
+                return (
+                    <div>
+                        <span className="font-mono font-bold text-sm text-foreground block">
+                            ${total.toFixed(2)}
+                        </span>
+                        {isPartial && (
+                            <span className="font-mono text-[11px] text-amber-600 dark:text-amber-400 font-semibold">
+                                Paid: ${paid.toFixed(2)} (Rem: ${balance > 0 ? balance.toFixed(2) : '0.00'})
+                            </span>
+                        )}
+                    </div>
+                );
+            },
         },
         {
             accessorKey: 'payment_status',
@@ -256,18 +345,9 @@ export default function OrdersIndex({ orders, products, waitresses, stats }: Pro
                                     <Eye className="mr-2 h-4 w-4 text-blue-600" />
                                     View Receipt & Details
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onClick={() => {
-                                        setUpdatingOrder(order);
-                                        updateForm.setData({
-                                            status: order.status,
-                                            payment_status: order.payment_status,
-                                            reason: '',
-                                        });
-                                    }}
-                                >
+                                <DropdownMenuItem onClick={() => openEditModal(order)}>
                                     <Edit className="mr-2 h-4 w-4 text-amber-600" />
-                                    Update Status / Cancel
+                                    Edit Order & Products
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={() => handleDelete(order.id)}>
@@ -397,24 +477,52 @@ export default function OrdersIndex({ orders, products, waitresses, stats }: Pro
                                 </div>
                             </div>
 
+                            {/* Partial Payment Calculation */}
+                            {createForm.data.payment_status === 'partial' && (
+                                <div className="rounded-lg bg-amber-500/10 p-3.5 border border-amber-500/20 grid grid-cols-2 gap-4">
+                                    <div className="grid gap-1.5">
+                                        <Label htmlFor="create-amount-paid" className="text-amber-900 dark:text-amber-300 font-bold text-xs">
+                                            Amount Paid ($)
+                                        </Label>
+                                        <Input
+                                            id="create-amount-paid"
+                                            type="number"
+                                            step="0.01"
+                                            placeholder="0.00"
+                                            value={createForm.data.amount_paid}
+                                            onChange={(e) => createForm.setData('amount_paid', e.target.value)}
+                                            required
+                                        />
+                                    </div>
+                                    <div className="flex flex-col justify-center">
+                                        <span className="text-xs font-semibold text-amber-900 dark:text-amber-300 uppercase">
+                                            Remaining Unpaid Balance
+                                        </span>
+                                        <span className="text-lg font-mono font-bold text-red-600 dark:text-red-400">
+                                            ${Math.max(0, createSubtotal - Number(createForm.data.amount_paid || 0)).toFixed(2)}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Items Section */}
                             <div className="space-y-3 pt-2">
                                 <div className="flex items-center justify-between">
                                     <Label className="font-bold text-xs uppercase tracking-wide text-[#823d21]">
                                         Order Items Selection
                                     </Label>
-                                    <Button type="button" variant="outline" size="sm" onClick={addItemRow} className="h-7 text-xs">
+                                    <Button type="button" variant="outline" size="sm" onClick={addCreateItemRow} className="h-7 text-xs">
                                         + Add Item
                                     </Button>
                                 </div>
 
-                                {selectedItems.map((item, index) => (
+                                {createItems.map((item, index) => (
                                     <div key={index} className="flex items-center gap-3 bg-muted/40 p-2.5 rounded-lg border">
                                         <div className="flex-1">
                                             <select
                                                 className="flex h-9 w-full rounded-md border border-input bg-background px-2.5 py-1 text-xs"
                                                 value={item.product_id}
-                                                onChange={(e) => updateItemRow(index, 'product_id', Number(e.target.value))}
+                                                onChange={(e) => updateCreateItemRow(index, 'product_id', Number(e.target.value))}
                                             >
                                                 {products.map((p) => (
                                                     <option key={p.id} value={p.id}>
@@ -429,16 +537,21 @@ export default function OrdersIndex({ orders, products, waitresses, stats }: Pro
                                                 min="1"
                                                 className="h-9 text-xs"
                                                 value={item.quantity}
-                                                onChange={(e) => updateItemRow(index, 'quantity', Number(e.target.value))}
+                                                onChange={(e) => updateCreateItemRow(index, 'quantity', Number(e.target.value))}
                                             />
                                         </div>
-                                        {selectedItems.length > 1 && (
-                                            <Button type="button" variant="ghost" size="sm" onClick={() => removeItemRow(index)} className="h-8 w-8 p-0 text-red-600">
+                                        {createItems.length > 1 && (
+                                            <Button type="button" variant="ghost" size="sm" onClick={() => removeCreateItemRow(index)} className="h-8 w-8 p-0 text-red-600">
                                                 <Trash className="h-4 w-4" />
                                             </Button>
                                         )}
                                     </div>
                                 ))}
+
+                                <div className="flex justify-between items-center bg-muted/20 p-3 rounded-lg border font-bold text-sm text-foreground">
+                                    <span>Calculated Subtotal:</span>
+                                    <span className="font-mono text-[#823d21]">${createSubtotal.toFixed(2)}</span>
+                                </div>
                             </div>
 
                             <DialogFooter className="pt-3">
@@ -453,54 +566,178 @@ export default function OrdersIndex({ orders, products, waitresses, stats }: Pro
                     </DialogContent>
                 </Dialog>
 
-                {/* Update Status Modal */}
+                {/* Edit Order Modal */}
                 <Dialog open={!!updatingOrder} onOpenChange={(open) => !open && setUpdatingOrder(null)}>
-                    <DialogContent className="sm:max-w-[450px]">
+                    <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
                             <DialogTitle className="flex items-center gap-2 text-[#823d21]">
-                                <Edit className="h-5 w-5" /> Update Order Status
+                                <Edit className="h-5 w-5" /> Edit Order & Product Items
                             </DialogTitle>
-                            <DialogDescription>Update transaction status for order #{updatingOrder?.order_number}</DialogDescription>
+                            <DialogDescription>
+                                Modify items, products, waitress, or payment status for order #{updatingOrder?.order_number}
+                            </DialogDescription>
                         </DialogHeader>
-                        <form onSubmit={handleUpdateSubmit} className="space-y-4 py-2">
-                            <div className="grid gap-2">
-                                <Label htmlFor="update-status">Order Status</Label>
-                                <select
-                                    id="update-status"
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                    value={updateForm.data.status}
-                                    onChange={(e) => updateForm.setData('status', e.target.value as any)}
-                                >
-                                    <option value="completed">Completed</option>
-                                    <option value="draft">Draft</option>
-                                    <option value="cancelled">Cancelled</option>
-                                    <option value="refunded">Refunded</option>
-                                </select>
+                        <form onSubmit={handleEditSubmit} className="space-y-4 py-2">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="edit-waitress_id">Waitress</Label>
+                                    <select
+                                        id="edit-waitress_id"
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                        value={editForm.data.waitress_id}
+                                        onChange={(e) => editForm.setData('waitress_id', e.target.value)}
+                                    >
+                                        <option value="">-- Select Waitress --</option>
+                                        {waitresses.map((w) => (
+                                            <option key={w.id} value={w.id}>
+                                                {w.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="edit-fixed_number">Fixed Number</Label>
+                                    <Input
+                                        id="edit-fixed_number"
+                                        type="number"
+                                        value={editForm.data.fixed_number}
+                                        onChange={(e) => editForm.setData('fixed_number', e.target.value)}
+                                    />
+                                </div>
                             </div>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="update-payment-status">Payment Status</Label>
-                                <select
-                                    id="update-payment-status"
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                    value={updateForm.data.payment_status}
-                                    onChange={(e) => updateForm.setData('payment_status', e.target.value as any)}
-                                >
-                                    <option value="paid">Paid</option>
-                                    <option value="partial">Partial</option>
-                                    <option value="unpaid">Unpaid</option>
-                                    <option value="refunded">Refunded</option>
-                                </select>
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="edit-status">Order Status</Label>
+                                    <select
+                                        id="edit-status"
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                        value={editForm.data.status}
+                                        onChange={(e) => editForm.setData('status', e.target.value as any)}
+                                    >
+                                        <option value="completed">Completed</option>
+                                        <option value="draft">Draft</option>
+                                        <option value="cancelled">Cancelled</option>
+                                        <option value="refunded">Refunded</option>
+                                    </select>
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="edit-payment_status">Payment Status</Label>
+                                    <select
+                                        id="edit-payment_status"
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                        value={editForm.data.payment_status}
+                                        onChange={(e) => editForm.setData('payment_status', e.target.value as any)}
+                                    >
+                                        <option value="paid">Paid</option>
+                                        <option value="partial">Partial</option>
+                                        <option value="unpaid">Unpaid</option>
+                                        <option value="refunded">Refunded</option>
+                                    </select>
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="edit-payment_method">Payment Method</Label>
+                                    <select
+                                        id="edit-payment_method"
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                        value={editForm.data.payment_method}
+                                        onChange={(e) => editForm.setData('payment_method', e.target.value as any)}
+                                    >
+                                        <option value="cash">Cash</option>
+                                        <option value="mobile_money">Mobile Money</option>
+                                        <option value="card">Card</option>
+                                        <option value="credit">Credit</option>
+                                    </select>
+                                </div>
                             </div>
 
-                            {(updateForm.data.status === 'cancelled' || updateForm.data.status === 'refunded') && (
+                            {/* Edit Partial Payment Calculation */}
+                            {editForm.data.payment_status === 'partial' && (
+                                <div className="rounded-lg bg-amber-500/10 p-3.5 border border-amber-500/20 grid grid-cols-2 gap-4">
+                                    <div className="grid gap-1.5">
+                                        <Label htmlFor="edit-amount-paid" className="text-amber-900 dark:text-amber-300 font-bold text-xs">
+                                            Amount Paid ($)
+                                        </Label>
+                                        <Input
+                                            id="edit-amount-paid"
+                                            type="number"
+                                            step="0.01"
+                                            placeholder="0.00"
+                                            value={editForm.data.amount_paid}
+                                            onChange={(e) => editForm.setData('amount_paid', e.target.value)}
+                                            required
+                                        />
+                                    </div>
+                                    <div className="flex flex-col justify-center">
+                                        <span className="text-xs font-semibold text-amber-900 dark:text-amber-300 uppercase">
+                                            Remaining Unpaid Balance
+                                        </span>
+                                        <span className="text-lg font-mono font-bold text-red-600 dark:text-red-400">
+                                            ${Math.max(0, editSubtotal - Number(editForm.data.amount_paid || 0)).toFixed(2)}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Edit Items Section */}
+                            <div className="space-y-3 pt-2">
+                                <div className="flex items-center justify-between">
+                                    <Label className="font-bold text-xs uppercase tracking-wide text-[#823d21]">
+                                        Modify Order Products & Quantities
+                                    </Label>
+                                    <Button type="button" variant="outline" size="sm" onClick={addEditItemRow} className="h-7 text-xs">
+                                        + Add / Swap Product
+                                    </Button>
+                                </div>
+
+                                {editItems.map((item, index) => (
+                                    <div key={index} className="flex items-center gap-3 bg-muted/40 p-2.5 rounded-lg border">
+                                        <div className="flex-1">
+                                            <select
+                                                className="flex h-9 w-full rounded-md border border-input bg-background px-2.5 py-1 text-xs"
+                                                value={item.product_id}
+                                                onChange={(e) => updateEditItemRow(index, 'product_id', Number(e.target.value))}
+                                            >
+                                                {products.map((p) => (
+                                                    <option key={p.id} value={p.id}>
+                                                        {p.name} (${Number(p.price).toFixed(2)})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="w-24">
+                                            <Input
+                                                type="number"
+                                                min="1"
+                                                className="h-9 text-xs"
+                                                value={item.quantity}
+                                                onChange={(e) => updateEditItemRow(index, 'quantity', Number(e.target.value))}
+                                            />
+                                        </div>
+                                        {editItems.length > 1 && (
+                                            <Button type="button" variant="ghost" size="sm" onClick={() => removeEditItemRow(index)} className="h-8 w-8 p-0 text-red-600">
+                                                <Trash className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                ))}
+
+                                <div className="flex justify-between items-center bg-muted/20 p-3 rounded-lg border font-bold text-sm text-foreground">
+                                    <span>Recalculated Order Total:</span>
+                                    <span className="font-mono text-[#823d21]">${editSubtotal.toFixed(2)}</span>
+                                </div>
+                            </div>
+
+                            {(editForm.data.status === 'cancelled' || editForm.data.status === 'refunded') && (
                                 <div className="grid gap-2">
                                     <Label htmlFor="reason">Reason for Void/Refund</Label>
                                     <Textarea
                                         id="reason"
                                         placeholder="Reason for cancellation or refund..."
-                                        value={updateForm.data.reason}
-                                        onChange={(e) => updateForm.setData('reason', e.target.value)}
+                                        value={editForm.data.reason}
+                                        onChange={(e) => editForm.setData('reason', e.target.value)}
                                         required
                                     />
                                 </div>
@@ -510,8 +747,8 @@ export default function OrdersIndex({ orders, products, waitresses, stats }: Pro
                                 <Button type="button" variant="outline" onClick={() => setUpdatingOrder(null)}>
                                     Cancel
                                 </Button>
-                                <Button type="submit" disabled={updateForm.processing} className="bg-[#823d21] hover:bg-[#682e18]">
-                                    {updateForm.processing ? 'Saving...' : 'Update Status'}
+                                <Button type="submit" disabled={editForm.processing} className="bg-[#823d21] hover:bg-[#682e18]">
+                                    {editForm.processing ? 'Saving...' : 'Update & Recalculate Order'}
                                 </Button>
                             </DialogFooter>
                         </form>
@@ -563,14 +800,27 @@ export default function OrdersIndex({ orders, products, waitresses, stats }: Pro
                                         <span className="text-muted-foreground">Subtotal</span>
                                         <span className="font-mono">${Number(viewingOrder.subtotal).toFixed(2)}</span>
                                     </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Tax / Discount</span>
-                                        <span className="font-mono">$0.00</span>
-                                    </div>
                                     <div className="flex justify-between font-bold text-sm text-foreground pt-1 border-t">
                                         <span>Total Amount</span>
                                         <span className="font-mono text-[#823d21]">${Number(viewingOrder.total).toFixed(2)}</span>
                                     </div>
+
+                                    {viewingOrder.payment_status === 'partial' && (
+                                        <div className="flex justify-between text-xs font-semibold text-amber-700 dark:text-amber-400 pt-1">
+                                            <span>Amount Paid</span>
+                                            <span className="font-mono">
+                                                ${Number(viewingOrder.payments?.[0]?.amount || 0).toFixed(2)}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {viewingOrder.payment_status === 'partial' && (
+                                        <div className="flex justify-between text-xs font-bold text-red-600 dark:text-red-400 pt-0.5">
+                                            <span>Remaining Unpaid Balance</span>
+                                            <span className="font-mono">
+                                                ${Math.max(0, Number(viewingOrder.total) - Number(viewingOrder.payments?.[0]?.amount || 0)).toFixed(2)}
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <DialogFooter className="pt-2">

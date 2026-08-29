@@ -74,76 +74,101 @@ class WaitressController extends Controller
         ]);
     }
 
+    public function create(): Response
+    {
+        return Inertia::render('admin/management/waitresses/create');
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'phone' => 'nullable|string|max:50',
-            'commission_rate' => 'required|numeric|min:0|max:1',
+            'name' => 'required|string|min:2|max:255',
+            'phone' => 'required|string|min:5|max:50',
+            'commission_rate' => 'required|numeric|min:0.01|max:1',
             'status' => 'required|in:active,inactive',
-            'range_start' => 'nullable|integer',
-            'range_end' => 'nullable|integer',
+            'range_start' => 'required|integer|min:1',
+            'range_end' => 'required|integer|gte:range_start',
         ]);
 
         $waitress = Waitress::create([
             'name' => $validated['name'],
-            'phone' => $validated['phone'] ?? null,
+            'phone' => $validated['phone'],
             'commission_rate' => $validated['commission_rate'],
             'status' => $validated['status'],
         ]);
 
-        if (! empty($validated['range_start']) && ! empty($validated['range_end'])) {
-            FixedNumber::create([
-                'waitress_id' => $waitress->id,
-                'range_start' => $validated['range_start'],
-                'range_end' => $validated['range_end'],
-                'current_number' => $validated['range_start'],
-                'status' => 'active',
-                'assigned_at' => now(),
-            ]);
-        }
+        FixedNumber::create([
+            'waitress_id' => $waitress->id,
+            'range_start' => $validated['range_start'],
+            'range_end' => $validated['range_end'],
+            'current_number' => $validated['range_start'],
+            'status' => 'active',
+            'assigned_at' => now(),
+        ]);
 
-        return redirect()->back()->with('success', 'Waitress created successfully.');
+        return redirect()->route('management.waitresses.index')->with('success', 'Waitress created successfully.');
+    }
+
+    public function show(Waitress $waitress): Response
+    {
+        $waitress->load(['fixedNumbers', 'orders.items.product']);
+        $totalSales = $waitress->orders->where('status', 'completed')->sum('total');
+        $commissionEarned = $totalSales * $waitress->commission_rate;
+
+        return Inertia::render('admin/management/waitresses/show', [
+            'waitress' => array_merge($waitress->toArray(), [
+                'total_sales' => $totalSales,
+                'commission_earned' => $commissionEarned,
+                'orders_count' => $waitress->orders->count(),
+            ]),
+        ]);
+    }
+
+    public function edit(Waitress $waitress): Response
+    {
+        $waitress->load('fixedNumbers');
+
+        return Inertia::render('admin/management/waitresses/edit', [
+            'waitress' => $waitress,
+        ]);
     }
 
     public function update(Request $request, Waitress $waitress)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'phone' => 'nullable|string|max:50',
-            'commission_rate' => 'required|numeric|min:0|max:1',
+            'name' => 'required|string|min:2|max:255',
+            'phone' => 'required|string|min:5|max:50',
+            'commission_rate' => 'required|numeric|min:0.01|max:1',
             'status' => 'required|in:active,inactive',
-            'range_start' => 'nullable|integer',
-            'range_end' => 'nullable|integer',
+            'range_start' => 'required|integer|min:1',
+            'range_end' => 'required|integer|gte:range_start',
         ]);
 
         $waitress->update([
             'name' => $validated['name'],
-            'phone' => $validated['phone'] ?? null,
+            'phone' => $validated['phone'],
             'commission_rate' => $validated['commission_rate'],
             'status' => $validated['status'],
         ]);
 
-        if (! empty($validated['range_start']) && ! empty($validated['range_end'])) {
-            FixedNumber::updateOrCreate(
-                ['waitress_id' => $waitress->id],
-                [
-                    'range_start' => $validated['range_start'],
-                    'range_end' => $validated['range_end'],
-                    'current_number' => $validated['range_start'],
-                    'status' => 'active',
-                    'assigned_at' => now(),
-                ]
-            );
-        }
+        FixedNumber::updateOrCreate(
+            ['waitress_id' => $waitress->id],
+            [
+                'range_start' => $validated['range_start'],
+                'range_end' => $validated['range_end'],
+                'current_number' => $validated['range_start'],
+                'status' => 'active',
+                'assigned_at' => now(),
+            ]
+        );
 
-        return redirect()->back()->with('success', 'Waitress updated successfully.');
+        return redirect()->route('management.waitresses.index')->with('success', 'Waitress updated successfully.');
     }
 
     public function destroy(Waitress $waitress)
     {
         $waitress->delete();
 
-        return redirect()->back()->with('success', 'Waitress deleted successfully.');
+        return redirect()->route('management.waitresses.index')->with('success', 'Waitress deleted successfully.');
     }
 }

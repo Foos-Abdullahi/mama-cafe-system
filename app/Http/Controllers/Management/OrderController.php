@@ -65,6 +65,17 @@ class OrderController extends Controller
         ]);
     }
 
+    public function create(): Response
+    {
+        $products = Product::where('status', 'active')->get();
+        $waitresses = Waitress::where('status', 'active')->get();
+
+        return Inertia::render('admin/management/orders/create', [
+            'products' => $products,
+            'waitresses' => $waitresses,
+        ]);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -129,7 +140,29 @@ class OrderController extends Controller
             ]);
         }
 
-        return redirect()->back()->with('success', 'Order created successfully.');
+        return redirect()->route('management.orders.index')->with('success', 'Order created successfully.');
+    }
+
+    public function show(Order $order): Response
+    {
+        $order->load(['waitress', 'items.product', 'payments', 'refund', 'cancellation']);
+
+        return Inertia::render('admin/management/orders/show', [
+            'order' => $order,
+        ]);
+    }
+
+    public function edit(Order $order): Response
+    {
+        $order->load(['waitress', 'items.product', 'payments']);
+        $products = Product::where('status', 'active')->get();
+        $waitresses = Waitress::where('status', 'active')->get();
+
+        return Inertia::render('admin/management/orders/edit', [
+            'order' => $order,
+            'products' => $products,
+            'waitresses' => $waitresses,
+        ]);
     }
 
     public function update(Request $request, Order $order)
@@ -151,7 +184,6 @@ class OrderController extends Controller
         $previousStatus = $order->status;
         $subtotal = $order->subtotal;
 
-        // If items are provided in update, recalculate subtotal and refresh order items
         if (! empty($validated['items'])) {
             $subtotal = 0;
             $itemsToInsert = [];
@@ -169,7 +201,6 @@ class OrderController extends Controller
                 ];
             }
 
-            // Remove existing items and replace with updated items
             $order->items()->delete();
             foreach ($itemsToInsert as $itemData) {
                 $order->items()->create($itemData);
@@ -221,13 +252,13 @@ class OrderController extends Controller
             ]);
         }
 
-        return redirect()->back()->with('success', 'Order updated successfully.');
+        return redirect()->route('management.orders.index')->with('success', 'Order updated successfully.');
     }
 
     public function destroy(Order $order)
     {
         $order->delete();
 
-        return redirect()->back()->with('success', 'Order deleted successfully.');
+        return redirect()->route('management.orders.index')->with('success', 'Order deleted successfully.');
     }
 }

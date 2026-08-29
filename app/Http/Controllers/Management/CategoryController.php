@@ -57,36 +57,58 @@ class CategoryController extends Controller
         ]);
     }
 
+    public function create(): Response
+    {
+        return Inertia::render('admin/management/categories/create');
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'name' => 'required|string|min:2|max:255',
+            'description' => 'required|string|min:3|max:1000',
             'status' => 'required|in:active,inactive',
         ]);
 
         Category::create($validated);
 
-        return redirect()->back()->with('success', 'Category created successfully.');
+        return redirect()->route('management.categories.index')->with('success', 'Category created successfully.');
+    }
+
+    public function show(Category $category): Response
+    {
+        $category->loadCount('products');
+        $category->load('products');
+
+        return Inertia::render('admin/management/categories/show', [
+            'category' => $category,
+        ]);
+    }
+
+    public function edit(Category $category): Response
+    {
+        return Inertia::render('admin/management/categories/edit', [
+            'category' => $category,
+        ]);
     }
 
     public function update(Request $request, Category $category)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'name' => 'required|string|min:2|max:255',
+            'description' => 'required|string|min:3|max:1000',
             'status' => 'required|in:active,inactive',
         ]);
 
         $category->update($validated);
 
-        return redirect()->back()->with('success', 'Category updated successfully.');
+        return redirect()->route('management.categories.index')->with('success', 'Category updated successfully.');
     }
 
     public function destroy(Category $category)
     {
         $category->delete();
 
-        return redirect()->back()->with('success', 'Category deleted successfully.');
+        return redirect()->route('management.categories.index')->with('success', 'Category deleted successfully.');
     }
 }

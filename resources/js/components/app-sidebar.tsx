@@ -6,6 +6,7 @@ import {
     ChevronDown,
     CreditCard,
     LayoutGrid,
+    Monitor,
     Package,
     Settings,
     ShoppingBag,
@@ -35,7 +36,6 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
-    SidebarSeparator,
 } from '@/components/ui/sidebar';
 
 import { dashboard } from '@/routes';
@@ -58,6 +58,11 @@ const overview: NavItem[] = [
         href: dashboard(),
         icon: LayoutGrid,
     },
+    {
+        title: 'POS Terminal',
+        href: '/pos',
+        icon: Monitor,
+    },
 ];
 
 const sections: NavSection[] = [
@@ -75,31 +80,69 @@ const sections: NavSection[] = [
         title: 'Finance & Reports',
         icon: BarChart3,
         children: [
-            { title: 'Payments', href: '#', icon: CreditCard },
-            { title: 'Payroll', href: '#', icon: Wallet },
-            { title: 'Reports', href: '#', icon: BarChart3 },
-            { title: 'Daily Closing', href: '#', icon: CalendarCheck },
+            { title: 'Payments', href: '/finance/payments', icon: CreditCard },
+            { title: 'Payroll', href: '/finance/payroll', icon: Wallet },
+            { title: 'Reports', href: '/finance/reports', icon: BarChart3 },
+            { title: 'Daily Closing', href: '/finance/daily-closing', icon: CalendarCheck },
         ],
     },
     {
         title: 'System',
         icon: Settings,
         children: [
-            { title: 'General Settings', href: '#', icon: Settings },
-            { title: 'Users', href: '#', icon: UserCog },
-            { title: 'Activity Logs', href: '#', icon: Activity },
+            { title: 'General Settings', href: '/system/settings', icon: Settings },
+            { title: 'Users', href: '/system/users', icon: UserCog },
+            { title: 'Activity Logs', href: '/system/activity-logs', icon: Activity },
         ],
     },
 ];
 
 export function AppSidebar() {
-    const { url } = usePage();
+    const { url, props } = usePage();
+    const user = (props.auth as any)?.user as { name: string; email: string; role?: string } | undefined;
+    const role = user?.role || 'admin';
 
     const isActive = (href: string) => {
         if (href === '#') return false;
         if (href === dashboard()) return url === href;
         return url.startsWith(href);
     };
+
+    // Filter overview based on user role
+    const filteredOverview = overview.filter((item) => {
+        if (item.title === 'Dashboard') {
+            return role === 'admin' || role === 'manager' || role === 'operations';
+        }
+        if (item.title === 'POS Terminal') {
+            return true; // Available to all roles
+        }
+        return true;
+    });
+
+    // Filter sections based on user role
+    const filteredSections = sections
+        .map((section) => {
+            const children = section.children.filter((item) => {
+                if (role === 'admin') return true;
+
+                if (role === 'manager') {
+                    return section.title !== 'System';
+                }
+
+                if (role === 'operations') {
+                    return item.title === 'Orders';
+                }
+
+                if (role === 'waitress') {
+                    return item.title === 'Orders';
+                }
+
+                return false;
+            });
+
+            return { ...section, children };
+        })
+        .filter((section) => section.children.length > 0);
 
     return (
         <Sidebar collapsible="icon" variant="inset">
@@ -108,7 +151,7 @@ export function AppSidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild className="hover:bg-transparent">
-                            <Link href={dashboard()} prefetch>
+                            <Link href={role === 'waitress' ? '/pos' : dashboard()} prefetch>
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>
@@ -119,40 +162,41 @@ export function AppSidebar() {
             {/* Navigation */}
             <SidebarContent className="overflow-hidden px-2 py-2">
                 {/* Overview */}
-                <SidebarGroup className="px-0 py-0">
-                    <SidebarGroupLabel className="px-2.5 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60">
-                        Overview
-                    </SidebarGroupLabel>
-                    <SidebarMenu className="mt-1 space-y-0.5">
-                        {overview.map((item) => {
-                            const active = isActive(item.href);
-                            return (
-                                <SidebarMenuItem key={item.title}>
-                                    <SidebarMenuButton
-                                        asChild
-                                        isActive={active}
-                                        tooltip={{ children: item.title }}
-                                        className={cn(
-                                            'flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-all duration-200',
-                                            active
-                                                ? 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-xs'
-                                                : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'
-                                        )}
-                                    >
-                                        <Link href={item.href} prefetch>
-                                            <item.icon className="size-4 shrink-0" />
-                                            <span className="truncate">{item.title}</span>
-                                        </Link>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                            );
-                        })}
-                    </SidebarMenu>
-                </SidebarGroup>
-
+                {filteredOverview.length > 0 && (
+                    <SidebarGroup className="px-0 py-0">
+                        <SidebarGroupLabel className="px-2.5 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60">
+                            Overview
+                        </SidebarGroupLabel>
+                        <SidebarMenu className="mt-1 space-y-0.5">
+                            {filteredOverview.map((item) => {
+                                const active = isActive(item.href);
+                                return (
+                                    <SidebarMenuItem key={item.title}>
+                                        <SidebarMenuButton
+                                            asChild
+                                            isActive={active}
+                                            tooltip={{ children: item.title }}
+                                            className={cn(
+                                                'flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-all duration-200',
+                                                active
+                                                    ? 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-xs'
+                                                    : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'
+                                            )}
+                                        >
+                                            <Link href={item.href} prefetch>
+                                                <item.icon className="size-4 shrink-0" />
+                                                <span className="truncate">{item.title}</span>
+                                            </Link>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                );
+                            })}
+                        </SidebarMenu>
+                    </SidebarGroup>
+                )}
 
                 {/* Main Sections */}
-                {sections.map((section) => {
+                {filteredSections.map((section) => {
                     return (
                         <Collapsible
                             key={section.title}

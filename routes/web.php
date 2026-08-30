@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Finance\DailyClosingController;
 use App\Http\Controllers\Finance\PaymentController;
 use App\Http\Controllers\Finance\PayrollController;
@@ -17,7 +18,7 @@ use Illuminate\Support\Facades\Route;
 Route::inertia('/', 'welcome')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Operations POS routes
     Route::get('/pos', [PosController::class, 'index'])->name('pos.index');

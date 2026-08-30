@@ -14,23 +14,16 @@ import {
     Tooltip,
     BarChart,
     Bar,
-    PieChart,
-    Pie,
-    Cell,
-    Legend,
 } from 'recharts';
 import {
     Monitor,
     ShoppingBag,
     Package,
-    Wallet,
-    CalendarCheck,
     Clock,
     Activity,
     ArrowUpRight,
     TrendingUp,
     Users,
-    PieChart as PieChartIcon,
     Plus,
 } from 'lucide-react';
 import { dashboard } from '@/routes';
@@ -100,8 +93,6 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function Dashboard({ stats, paymentBreakdown, salesTrend, waitressPerformance, recentOrders, recentActivities }: Props) {
-    const totalRevenue = paymentBreakdown.reduce((s, i) => s + i.value, 0);
-
     return (
         <>
             <Head title="Executive Dashboard - MaMa Café" />
@@ -123,30 +114,7 @@ export default function Dashboard({ stats, paymentBreakdown, salesTrend, waitres
                 {/* KPI Stats */}
                 <StatsCard sections={stats} />
 
-                {/* Quick Actions */}
-                <div className="rounded-xl border bg-card p-5 shadow-sm space-y-3">
-                    <h2 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                        <Plus className="h-4 w-4 text-[#823d21]" /> Fast Launch Quick Actions
-                    </h2>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                        {[
-                            { href: '/pos', icon: Monitor, label: 'POS Terminal', color: 'bg-[#823d21]' },
-                            { href: '/management/orders/create', icon: ShoppingBag, label: 'New Order', color: 'bg-blue-600' },
-                            { href: '/management/products/create', icon: Package, label: 'Add Product', color: 'bg-amber-600' },
-                            { href: '/finance/payroll/create', icon: Wallet, label: 'Process Payout', color: 'bg-emerald-600' },
-                            { href: '/finance/daily-closing', icon: CalendarCheck, label: 'EOD Closing', color: 'bg-purple-600' },
-                        ].map((action) => (
-                            <Link key={action.href} href={action.href} className="group col-span-1">
-                                <div className="flex flex-col items-center justify-center p-3.5 rounded-xl border bg-muted/20 hover:bg-[#823d21]/10 hover:border-[#823d21] transition-all text-center space-y-1.5 cursor-pointer h-full">
-                                    <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${action.color} text-white group-hover:scale-105 transition-transform`}>
-                                        <action.icon className="h-5 w-5" />
-                                    </div>
-                                    <span className="font-semibold text-xs text-foreground group-hover:text-[#823d21]">{action.label}</span>
-                                </div>
-                            </Link>
-                        ))}
-                    </div>
-                </div>
+
 
                 {/* ── CHARTS ROW 1: 7-Day Sales Trend (Area) + Payment Breakdown (Pie) ── */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -187,46 +155,34 @@ export default function Dashboard({ stats, paymentBreakdown, salesTrend, waitres
                         </ResponsiveContainer>
                     </div>
 
-                    {/* Payment Breakdown Donut/Pie Chart */}
+                    {/* Quick Actions — vertical list */}
                     <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
                         <div>
                             <h2 className="font-semibold text-base flex items-center gap-2">
-                                <PieChartIcon className="h-5 w-5 text-[#823d21]" /> Payment Methods
+                                <Plus className="h-5 w-5 text-[#823d21]" /> Quick Actions
                             </h2>
-                            <p className="text-xs text-muted-foreground">All-time revenue by tender type.</p>
+                            <p className="text-xs text-muted-foreground">Fast-launch frequently used actions.</p>
                         </div>
-                        {totalRevenue === 0 ? (
-                            <div className="flex h-[230px] items-center justify-center text-muted-foreground text-xs">
-                                No payment data yet.
-                            </div>
-                        ) : (
-                            <ResponsiveContainer width="100%" height={230}>
-                                <PieChart>
-                                    <Pie
-                                        data={paymentBreakdown}
-                                        cx="50%"
-                                        cy="45%"
-                                        innerRadius={55}
-                                        outerRadius={85}
-                                        paddingAngle={3}
-                                        dataKey="value"
-                                    >
-                                        {paymentBreakdown.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={entry.color} strokeWidth={0} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip
-                                        formatter={(value: number, name: string) => [`$${value.toFixed(2)}`, name]}
-                                        contentStyle={{ borderRadius: '0.75rem', border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))' }}
-                                    />
-                                    <Legend
-                                        iconType="circle"
-                                        iconSize={8}
-                                        formatter={(value) => <span className="text-xs font-medium text-foreground">{value}</span>}
-                                    />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        )}
+                        <div className="flex flex-col gap-3">
+                            {[
+                                { href: '/pos', icon: Monitor, label: 'POS Terminal', desc: 'Open cashier terminal', color: 'bg-[#823d21]' },
+                                { href: '/management/orders/create', icon: ShoppingBag, label: 'New Order', desc: 'Create a customer order', color: 'bg-blue-600' },
+                                { href: '/management/products/create', icon: Package, label: 'Add Product', desc: 'Add a menu item', color: 'bg-amber-600' },
+                            ].map((action) => (
+                                <Link key={action.href} href={action.href} className="group">
+                                    <div className="flex items-center gap-4 p-3.5 rounded-xl border bg-muted/20 hover:bg-[#823d21]/10 hover:border-[#823d21] transition-all cursor-pointer">
+                                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${action.color} text-white group-hover:scale-105 transition-transform`}>
+                                            <action.icon className="h-5 w-5" />
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="font-semibold text-sm text-foreground group-hover:text-[#823d21]">{action.label}</p>
+                                            <p className="text-xs text-muted-foreground">{action.desc}</p>
+                                        </div>
+                                        <ArrowUpRight className="ml-auto h-4 w-4 text-muted-foreground group-hover:text-[#823d21] shrink-0" />
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
                     </div>
                 </div>
 

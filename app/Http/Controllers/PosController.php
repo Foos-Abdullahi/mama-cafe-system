@@ -73,6 +73,39 @@ class PosController extends Controller
         ]);
     }
 
+    public function orders(): Response
+    {
+        $today = now()->format('Y-m-d');
+
+        $orders = Order::with(['waitress', 'payments', 'items'])
+            ->whereDate('created_at', $today)
+            ->latest()
+            ->get()
+            ->map(function ($o) {
+                return [
+                    'id' => $o->id,
+                    'order_number' => $o->order_number,
+                    'fixed_number' => $o->fixed_number,
+                    'waitress_name' => $o->waitress->name ?? 'Walk-in',
+                    'order_type' => $o->order_type,
+                    'total' => (float) $o->total,
+                    'payment_status' => $o->payment_status,
+                    'payment_method' => $o->payments->first()->method ?? 'cash',
+                    'created_at' => $o->created_at->format('H:i'),
+                    'items_count' => $o->items->sum('quantity'),
+                ];
+            });
+
+        $todayTotal = $orders->where('payment_status', 'paid')->sum('total');
+        $todayCount = $orders->count();
+
+        return Inertia::render('pos/orders', [
+            'orders' => $orders->values(),
+            'todayTotal' => (float) round($todayTotal, 2),
+            'todayCount' => (int) $todayCount,
+        ]);
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([

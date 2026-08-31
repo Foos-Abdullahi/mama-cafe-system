@@ -11,6 +11,7 @@ use App\Http\Controllers\Management\ProductController;
 use App\Http\Controllers\Management\WaitressController;
 use App\Http\Controllers\PosController;
 use App\Http\Controllers\System\ActivityLogController;
+use App\Http\Controllers\System\RolePermissionController;
 use App\Http\Controllers\System\SettingController;
 use App\Http\Controllers\System\UserController;
 use Illuminate\Support\Facades\Route;
@@ -18,22 +19,28 @@ use Illuminate\Support\Facades\Route;
 Route::inertia('/', 'welcome')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('dashboard', [DashboardController::class, 'index'])
+        ->middleware('role:admin,manager,operations')
+        ->name('dashboard');
 
     // Operations POS routes
     Route::get('/pos', [PosController::class, 'index'])->name('pos.index');
+    Route::get('/pos/orders', [PosController::class, 'orders'])->name('pos.orders');
     Route::post('/pos/orders', [PosController::class, 'store'])->name('pos.store');
 
     // Management routes
     Route::prefix('management')->name('management.')->group(function () {
-        Route::resource('categories', CategoryController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
-        Route::resource('products', ProductController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
-        Route::resource('waitresses', WaitressController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
-        Route::resource('orders', OrderController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
+        Route::resource('orders', OrderController::class)->only(['index', 'create', 'store', 'show']);
+
+        Route::middleware('role:admin,manager')->group(function () {
+            Route::resource('categories', CategoryController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
+            Route::resource('products', ProductController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
+            Route::resource('waitresses', WaitressController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
+        });
     });
 
-    // Finance & Reports routes
-    Route::prefix('finance')->name('finance.')->group(function () {
+    // Finance & Reports routes (Admin & Manager)
+    Route::prefix('finance')->name('finance.')->middleware('role:admin,manager')->group(function () {
         Route::get('payments', [PaymentController::class, 'index'])->name('payments.index');
 
         Route::get('payroll', [PayrollController::class, 'index'])->name('payroll.index');
@@ -47,10 +54,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('daily-closing', [DailyClosingController::class, 'store'])->name('daily-closing.store');
     });
 
-    // System routes
-    Route::prefix('system')->name('system.')->group(function () {
+    // System routes (Admin only)
+    Route::prefix('system')->name('system.')->middleware('role:admin')->group(function () {
         Route::get('settings', [SettingController::class, 'index'])->name('settings.index');
         Route::put('settings', [SettingController::class, 'update'])->name('settings.update');
+
+        Route::get('roles', [RolePermissionController::class, 'index'])->name('roles.index');
+        Route::put('roles', [RolePermissionController::class, 'update'])->name('roles.update');
 
         Route::resource('users', UserController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
 

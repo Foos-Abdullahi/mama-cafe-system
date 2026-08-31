@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Head, useForm, Link } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -22,9 +22,7 @@ import {
     Trash2,
     CreditCard,
     Coffee,
-    ArrowLeft,
     CheckCircle2,
-    Printer,
     DollarSign,
     Smartphone,
     UserCheck,
@@ -187,30 +185,7 @@ export default function PosIndex({ categories, products, waitresses, recentOrder
         <>
             <Head title="POS Terminal - MaMa Café" />
 
-            <div className="space-y-6 p-6">
-                {/* POS Header Bar */}
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b pb-4">
-                    <div className="flex items-center gap-3">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#823d21] text-white shadow-sm">
-                            <ShoppingBag className="h-6 w-6" />
-                        </div>
-                        <div>
-                            <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                                Point of Sale Terminal
-                            </h1>
-                            <p className="text-xs text-muted-foreground">Fast cashier counter ordering & receipt checkout</p>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                        <Link href="/dashboard">
-                            <Button variant="outline" size="sm" className="gap-2">
-                                <ArrowLeft className="h-4 w-4" /> Back to Dashboard
-                            </Button>
-                        </Link>
-                    </div>
-                </div>
-
+            <div className="space-y-5 p-4">
                 {/* Main POS Interface Grid (Left Menu Catalog + Right Live Cart) */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                     {/* Left & Middle Area: Product Catalog (Cols 7/12) */}
@@ -607,11 +582,7 @@ export default function PosIndex({ categories, products, waitresses, recentOrder
 }
 
 PosIndex.layout = (page: React.ReactNode) => (
-    <AppLayout
-        breadcrumbs={[
-            { title: 'POS Terminal', href: '/pos' },
-        ]}
-    >
+    <AppLayout breadcrumbs={[{ title: 'POS Terminal', href: '/pos' }]}>
         {page}
     </AppLayout>
 );

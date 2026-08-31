@@ -10,6 +10,7 @@ import {
     Monitor,
     Package,
     Settings,
+    Shield,
     ShoppingBag,
     Tag,
     UserCog,
@@ -93,6 +94,7 @@ const sections: NavSection[] = [
         icon: Settings,
         children: [
             { title: 'General Settings', href: '/system/settings', icon: Settings },
+            { title: 'Role Permissions', href: '/system/roles', icon: Shield },
             { title: 'Users', href: '/system/users', icon: UserCog },
             { title: 'Activity Logs', href: '/system/activity-logs', icon: Activity },
         ],

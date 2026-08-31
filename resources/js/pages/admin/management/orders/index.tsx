@@ -1,5 +1,5 @@
 import React from 'react';
-import { Head, router, Link } from '@inertiajs/react';
+import { Head, router, Link, usePage } from '@inertiajs/react';
 import { StatsCard, StatSection } from '@/components/tools/StatsCard';
 import { DataTable } from '@/components/tools/table/main-table';
 import { Button } from '@/components/ui/button';
@@ -78,6 +78,9 @@ interface Props {
 }
 
 export default function OrdersIndex({ orders, stats }: Props) {
+    const { auth } = usePage<{ auth: { user: { role?: string } } }>().props;
+    const canEditDelete = auth?.user?.role === 'admin' || auth?.user?.role === 'manager';
+
     const handleDelete = (id: number) => {
         if (confirm('Are you sure you want to delete this order record?')) {
             router.delete(`/management/orders/${id}`);
@@ -200,17 +203,21 @@ export default function OrdersIndex({ orders, stats }: Props) {
                                         View Receipt & Details
                                     </Link>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem asChild>
-                                    <Link href={`/management/orders/${order.id}/edit`} className="flex items-center cursor-pointer">
-                                        <Edit className="mr-2 h-4 w-4 text-amber-600" />
-                                        Edit Order & Products
-                                    </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => handleDelete(order.id)} className="text-red-600 focus:text-red-600">
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Delete Order
-                                </DropdownMenuItem>
+                                {canEditDelete && (
+                                    <>
+                                        <DropdownMenuItem asChild>
+                                            <Link href={`/management/orders/${order.id}/edit`} className="flex items-center cursor-pointer">
+                                                <Edit className="mr-2 h-4 w-4 text-amber-600" />
+                                                Edit Order & Products
+                                            </Link>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem onClick={() => handleDelete(order.id)} className="text-red-600 focus:text-red-600">
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            Delete Order
+                                        </DropdownMenuItem>
+                                    </>
+                                )}
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>

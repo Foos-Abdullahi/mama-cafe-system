@@ -6,7 +6,7 @@ use App\Models\User;
 use App\Models\Waitress;
 
 test('authenticated user can view POS terminal and submit order', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->create(['role' => 'admin']);
 
     $category = Category::create([
         'name' => 'Hot Beverages',
@@ -69,4 +69,50 @@ test('authenticated user can view POS terminal and submit order', function () {
         'amount' => 7.00,
         'status' => 'paid',
     ]);
+});
+
+test('authenticated user can view POS order history page', function () {
+    $user = User::factory()->create(['role' => 'operations']);
+
+    $response = $this->actingAs($user)->get(route('pos.orders'));
+
+    $response->assertOk();
+});
+
+test('operations and waitress roles redirect to POS after login', function () {
+    $operationsUser = User::factory()->create([
+        'email' => 'ops@mamacafe.test',
+        'password' => bcrypt('password'),
+        'role' => 'operations',
+    ]);
+
+    $response = $this->post('/login', [
+        'email' => 'ops@mamacafe.test',
+        'password' => 'password',
+    ]);
+
+    $response->assertRedirect(route('pos.index'));
+});
+
+test('admin role redirects to dashboard after login', function () {
+    $adminUser = User::factory()->create([
+        'email' => 'admin@mamacafe.test',
+        'password' => bcrypt('password'),
+        'role' => 'admin',
+    ]);
+
+    $response = $this->post('/login', [
+        'email' => 'admin@mamacafe.test',
+        'password' => 'password',
+    ]);
+
+    $response->assertRedirect(route('dashboard'));
+});
+
+test('waitress user role is restricted from system user administration', function () {
+    $waitressUser = User::factory()->create(['role' => 'waitress']);
+
+    $response = $this->actingAs($waitressUser)->get(route('system.users.index'));
+
+    $response->assertRedirect(route('pos.index'));
 });

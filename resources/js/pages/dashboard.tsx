@@ -99,7 +99,7 @@ export default function Dashboard({ stats, paymentBreakdown, salesTrend, waitres
 
             <div className="space-y-6 p-6">
                 {/* Welcome Banner */}
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-xl bg-gradient-to-r from-[#823d21] to-[#4a1f10] p-6 text-white shadow-md">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-xl bg-primary p-6 text-white shadow-md">
                     <div className="space-y-1">
                         <h1 className="text-2xl font-bold tracking-tight">Welcome back to MaMa Café Dashboard</h1>
                         <p className="text-sm text-white/80">Real-time cafe operations, daily sales trends, and floor staff performance.</p>

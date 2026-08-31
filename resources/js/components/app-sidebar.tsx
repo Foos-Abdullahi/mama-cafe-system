@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import {
     Activity,
@@ -36,6 +37,7 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    useSidebar,
 } from '@/components/ui/sidebar';
 
 import { dashboard } from '@/routes';
@@ -55,7 +57,7 @@ type NavSection = {
 const overview: NavItem[] = [
     {
         title: 'Dashboard',
-        href: dashboard(),
+        href: dashboard.url(),
         icon: LayoutGrid,
     },
     {
@@ -99,13 +101,20 @@ const sections: NavSection[] = [
 
 export function AppSidebar() {
     const { url, props } = usePage();
+    const { state } = useSidebar();
     const user = (props.auth as any)?.user as { name: string; email: string; role?: string } | undefined;
     const role = user?.role || 'admin';
 
     const isActive = (href: string) => {
-        if (href === '#') return false;
-        if (href === dashboard()) return url === href;
-        return url.startsWith(href);
+        if (!href || href === '#') return false;
+        const currentPath = (url.split('?')[0] || '').replace(/\/$/, '') || '/';
+        const targetPath = (href.split('?')[0] || '').replace(/\/$/, '') || '/';
+
+        if (targetPath === '/dashboard' || targetPath === '/' || targetPath === '/pos') {
+            return currentPath === targetPath;
+        }
+
+        return currentPath === targetPath || currentPath.startsWith(`${targetPath}/`);
     };
 
     // Filter overview based on user role
@@ -144,6 +153,27 @@ export function AppSidebar() {
         })
         .filter((section) => section.children.length > 0);
 
+    // Track open state of sections in expanded mode
+    const [openSections, setOpenSections] = React.useState<Record<string, boolean>>(() => {
+        const initial: Record<string, boolean> = {};
+        sections.forEach((section) => {
+            initial[section.title] = true;
+        });
+        return initial;
+    });
+
+    // Automatically expand section when current route matches any child
+    React.useEffect(() => {
+        filteredSections.forEach((section) => {
+            if (section.children.some((child) => isActive(child.href))) {
+                setOpenSections((prev) => ({
+                    ...prev,
+                    [section.title]: true,
+                }));
+            }
+        });
+    }, [url]);
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             {/* Header */}
@@ -151,7 +181,7 @@ export function AppSidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild className="hover:bg-transparent">
-                            <Link href={role === 'waitress' ? '/pos' : dashboard()} prefetch>
+                            <Link href={role === 'waitress' ? '/pos' : dashboard.url()} prefetch>
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>
@@ -159,15 +189,15 @@ export function AppSidebar() {
                 </SidebarMenu>
             </SidebarHeader>
 
-            {/* Navigation */}
-            <SidebarContent className="overflow-hidden px-2 py-2">
+            {/* Navigation with hidden scrollbar */}
+            <SidebarContent className="overflow-y-auto overflow-x-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden [&::-webkit-scrollbar]:w-0 [&::-webkit-scrollbar]:h-0 px-2 py-2 space-y-1">
                 {/* Overview */}
                 {filteredOverview.length > 0 && (
                     <SidebarGroup className="px-0 py-0">
                         <SidebarGroupLabel className="px-2.5 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60">
                             Overview
                         </SidebarGroupLabel>
-                        <SidebarMenu className="mt-1 space-y-0.5">
+                        <SidebarMenu className="mt-1 space-y-0.5 group-data-[collapsible=icon]:mt-0 group-data-[collapsible=icon]:space-y-1">
                             {filteredOverview.map((item) => {
                                 const active = isActive(item.href);
                                 return (
@@ -178,14 +208,15 @@ export function AppSidebar() {
                                             tooltip={{ children: item.title }}
                                             className={cn(
                                                 'flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-all duration-200',
+                                                'group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:size-8',
                                                 active
                                                     ? 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-xs'
                                                     : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'
                                             )}
                                         >
-                                            <Link href={item.href} prefetch>
+                                            <Link href={item.href} prefetch className="flex items-center gap-2.5 w-full group-data-[collapsible=icon]:justify-center">
                                                 <item.icon className="size-4 shrink-0" />
-                                                <span className="truncate">{item.title}</span>
+                                                <span className="truncate group-data-[collapsible=icon]:hidden">{item.title}</span>
                                             </Link>
                                         </SidebarMenuButton>
                                     </SidebarMenuItem>
@@ -197,23 +228,41 @@ export function AppSidebar() {
 
                 {/* Main Sections */}
                 {filteredSections.map((section) => {
+                    const isSectionHasActiveChild = section.children.some((child) => isActive(child.href));
+                    const isSectionOpen = state === 'collapsed' ? true : (openSections[section.title] ?? true);
+
                     return (
                         <Collapsible
                             key={section.title}
-                            defaultOpen={true}
+                            open={isSectionOpen}
+                            onOpenChange={(isOpen) => {
+                                if (state !== 'collapsed') {
+                                    setOpenSections((prev) => ({
+                                        ...prev,
+                                        [section.title]: isOpen,
+                                    }));
+                                }
+                            }}
                             className="group/section"
                         >
                             <SidebarGroup className="px-0 py-0">
                                 <SidebarGroupLabel asChild className="hover:bg-transparent">
-                                    <CollapsibleTrigger className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/60 transition-all duration-200 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground">
-                                        <section.icon className="size-4 shrink-0" />
+                                    <CollapsibleTrigger
+                                        className={cn(
+                                            'flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs font-semibold uppercase tracking-wider transition-all duration-200 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground',
+                                            isSectionHasActiveChild
+                                                ? 'text-sidebar-foreground font-bold'
+                                                : 'text-sidebar-foreground/60'
+                                        )}
+                                    >
+                                        <section.icon className={cn('size-4 shrink-0', isSectionHasActiveChild && 'text-sidebar-primary')} />
                                         <span className="flex-1 text-left">{section.title}</span>
                                         <ChevronDown className="size-3.5 transition-transform duration-200 group-data-[state=open]/section:rotate-180" />
                                     </CollapsibleTrigger>
                                 </SidebarGroupLabel>
 
                                 <CollapsibleContent className="overflow-hidden transition-all data-[state=closed]:animate-collapse-up data-[state=open]:animate-collapse-down">
-                                    <SidebarMenu className="mt-1 ml-2 border-l border-sidebar-border/40 pl-2 space-y-0.5">
+                                    <SidebarMenu className="mt-1 ml-2 border-l border-sidebar-border/40 pl-2 space-y-0.5 group-data-[collapsible=icon]:ml-0 group-data-[collapsible=icon]:border-l-0 group-data-[collapsible=icon]:pl-0 group-data-[collapsible=icon]:mt-0 group-data-[collapsible=icon]:space-y-1">
                                         {section.children.map((item) => {
                                             const active = isActive(item.href);
                                             return (
@@ -223,15 +272,16 @@ export function AppSidebar() {
                                                         isActive={active}
                                                         tooltip={{ children: item.title }}
                                                         className={cn(
-                                                            'flex w-full items-center gap-2.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-200',
+                                                            'flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-all duration-200',
+                                                            'group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:size-8',
                                                             active
                                                                 ? 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-xs'
                                                                 : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'
                                                         )}
                                                     >
-                                                        <Link href={item.href} prefetch>
+                                                        <Link href={item.href} prefetch className="flex items-center gap-2.5 w-full group-data-[collapsible=icon]:justify-center">
                                                             <item.icon className="size-4 shrink-0" />
-                                                            <span className="truncate">{item.title}</span>
+                                                            <span className="truncate group-data-[collapsible=icon]:hidden">{item.title}</span>
                                                         </Link>
                                                     </SidebarMenuButton>
                                                 </SidebarMenuItem>

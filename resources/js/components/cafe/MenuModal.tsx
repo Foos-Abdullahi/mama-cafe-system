@@ -220,7 +220,7 @@ export const MenuModal: React.FC<MenuModalProps> = ({ isOpen, onClose, onOrderCl
                             className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-6 py-2 rounded-full text-xs font-extrabold bg-[#D4AF37] hover:bg-[#C5A059] text-[#2B1B17] shadow-md transition-all active:scale-95"
                         >
                             <ShoppingBag className="w-3.5 h-3.5" />
-                            <span>Order / Sign In</span>
+                            <span>Sign In</span>
                         </button>
                     </div>
                 </div>

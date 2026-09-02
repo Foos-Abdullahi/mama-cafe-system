@@ -59,8 +59,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('settings', [SettingController::class, 'index'])->name('settings.index');
         Route::put('settings', [SettingController::class, 'update'])->name('settings.update');
 
-        Route::get('roles', [RolePermissionController::class, 'index'])->name('roles.index');
-        Route::put('roles', [RolePermissionController::class, 'update'])->name('roles.update');
+        Route::resource('roles', RolePermissionController::class)->names('roles');
 
         Route::resource('users', UserController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
 

@@ -147,29 +147,33 @@ export default function ProductsIndex({ products, stats }: Props) {
         <>
             <Head title="Products Management - MaMa Café" />
 
-            <div className="space-y-6 p-6">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="p-6">
+                <div className="flex items-start justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-foreground">Products Management</h1>
-                        <p className="text-sm text-muted-foreground">
+                        <h1 className="text-lg font-semibold">Products Management</h1>
+                        <p className="text-xs text-muted-foreground">
                             Manage your café menu items, prices and availability.
                         </p>
                     </div>
-                    <Link href="/management/products/create">
-                        <Button className="bg-[#823d21] hover:bg-[#682e18] text-white font-semibold flex items-center gap-2 shadow-sm">
-                            <Plus className="h-4 w-4" /> Add New Product
-                        </Button>
-                    </Link>
+                    <Button asChild size={'sm'}>
+                        <Link href="/management/products/create">
+                            <Plus className="h-4 w-4" />
+                            Add
+                            <span className="hidden sm:inline">Product</span>
+                        </Link>
+                    </Button>
                 </div>
 
                 <StatsCard sections={stats} />
 
-                <DataTable
-                    title="Menu Products"
-                    searchTitle="Filter products by name..."
-                    columns={columns}
-                    data={products}
-                />
+                <div className="mt-6 animate-in fade-in slide-in-from-bottom-6 duration-1000 ease-in-out">
+                    <DataTable
+                        title="Menu Products"
+                        searchTitle="Filter products by name..."
+                        columns={columns}
+                        data={products}
+                    />
+                </div>
             </div>
         </>
     );

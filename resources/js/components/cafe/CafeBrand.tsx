@@ -1,58 +1,49 @@
-import React from 'react';
-import { Coffee, Heart } from 'lucide-react';
+import type React from "react";
+import { Coffee } from "lucide-react";
 
 export const CafeBrand: React.FC = () => {
-    return (
-        <div className="animate-fade-up flex flex-col items-center text-center select-none">
-            {/* Top Coffee Cup Icon with Steam & Heart */}
-            <div className="relative mb-1 flex flex-col items-center">
-                {/* Gentle animated steam lines */}
-                <div className="animate-float-cup mb-1 flex gap-1 opacity-80">
-                    <span className="h-3 w-1 -rotate-12 transform animate-pulse rounded-full bg-[#F7F0E5]"></span>
-                    <span className="h-4 w-1 rounded-full bg-[#F7F0E5]"></span>
-                    <span className="h-3 w-1 rotate-12 transform animate-pulse rounded-full bg-[#F7F0E5]"></span>
-                </div>
+  return (
+    <div className="flex flex-col items-center text-center select-none">
+      <div
+        className="group flex h-14 w-14 items-center justify-center rounded-2xl border border-gold/40 bg-cream/5 text-gold shadow-glow rise-in transition-transform duration-500 hover:rotate-12 hover:scale-110"
+        style={{ animationDelay: "0.05s" }}
+      >
+        <Coffee className="h-7 w-7 drift-slow" />
+      </div>
 
-                {/* Coffee Cup outline icon with heart */}
-                <div className="relative transform rounded-2xl border-2 border-[#F7F0E5] bg-[#B98A35] p-2.5 shadow-xs transition-transform duration-300 hover:scale-105">
-                    <Coffee
-                        className="h-7 w-7 text-[#2B1A16]"
-                        strokeWidth={2.2}
-                    />
-                    <Heart className="absolute top-4 left-4 h-3 w-3 fill-[#2B1A16] text-[#2B1A16]" />
-                </div>
-            </div>
+      <h1
+        className="mt-5 font-display text-6xl leading-[0.9] font-black tracking-tight text-cream rise-in sm:text-7xl lg:text-8xl"
+        style={{ animationDelay: "0.15s" }}
+      >
+        MaMa
+        <span
+          className="mt-1 block font-script text-6xl font-bold text-gold rise-in sm:text-7xl lg:text-8xl"
+          style={{ animationDelay: "0.3s" }}
+        >
+          Café
+        </span>
+      </h1>
 
-            {/* Main Brand Title - MaMa Café */}
-            <div className="relative my-0.5">
-                <h1 className="font-script text-7xl leading-[0.85] font-normal tracking-tight text-[#F7F0E5] drop-shadow-xs sm:text-8xl lg:text-9xl">
-                    MaMa
-                </h1>
-                <div className="-mt-2 flex items-center justify-center gap-1.5 sm:-mt-4">
-                    <span className="font-script text-6xl leading-[0.85] text-[#F7F0E5] sm:text-7xl lg:text-8xl">
-                        Café
-                    </span>
-                    <Heart className="-mt-3 inline-block h-6 w-6 rotate-12 transform fill-[#F7F0E5] text-[#F7F0E5]" />
-                </div>
-            </div>
+      <div
+        className="mt-5 inline-flex items-center gap-3 rounded-full border border-gold/45 bg-espresso-deep/70 px-5 py-2 rise-in shine"
+        style={{ animationDelay: "0.45s" }}
+      >
+        {["Coffee", "Boba", "Ice Chocolate"].map((item, i) => (
+          <span key={item} className="flex items-center gap-3">
+            {i > 0 && <span className="h-1 w-1 rounded-full bg-gold" />}
+            <span className="text-[0.65rem] font-bold tracking-[0.2em] text-cream uppercase transition-colors duration-300 hover:text-gold sm:text-xs">
+              {item}
+            </span>
+          </span>
+        ))}
+      </div>
 
-            {/* Dark Roasted Ribbon Banner - COFFEE • BOBA • ICE CHOCOLATE */}
-            <div className="relative mt-2 mb-1.5 w-full max-w-sm sm:max-w-md">
-                <div className="flex -rotate-1 transform items-center justify-center gap-2 rounded-full border border-[#F7F0E5] bg-[#B98A35] px-6 py-1.5 text-[#2B1A16] shadow-md transition-transform duration-300 hover:rotate-0 sm:px-8 sm:py-2">
-                    <p className="text-center font-sans text-xs font-extrabold tracking-[0.2em] text-[#2B1A16] uppercase sm:text-sm">
-                        COFFEE • BOBA • ICE CHOCOLATE
-                    </p>
-                </div>
-            </div>
-
-            {/* Subtext - Made with Love with Flourish lines */}
-            <div className="mt-1 flex items-center justify-center gap-3">
-                <span className="h-[1.5px] w-10 bg-gradient-to-r from-transparent to-[#F7F0E5]/50"></span>
-                <p className="font-handwriting text-2xl font-bold tracking-wide text-[#F7F0E5] italic sm:text-3xl lg:text-4xl">
-                    Made with Love
-                </p>
-                <span className="h-[1.5px] w-10 bg-gradient-to-l from-transparent to-[#F7F0E5]/50"></span>
-            </div>
-        </div>
-    );
+      <p
+        className="mt-4 font-script text-2xl font-semibold text-cream-soft/85 rise-in sm:text-3xl"
+        style={{ animationDelay: "0.6s" }}
+      >
+        Made with Love
+      </p>
+    </div>
+  );
 };

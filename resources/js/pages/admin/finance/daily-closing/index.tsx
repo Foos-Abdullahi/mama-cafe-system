@@ -124,15 +124,12 @@ export default function DailyClosingIndex({ todaySummary, pastClosings, stats }:
         <>
             <Head title="Daily Closing & EOD Reconciliation - MaMa Café" />
 
-            <div className="space-y-6 p-6">
+            <div className="p-6">
                 {/* Header */}
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                            <CalendarCheck className="h-6 w-6 text-[#823d21]" />
-                            Daily EOD Closing & Cash Reconciliation
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
+                        <h1 className="text-lg font-semibold">Daily EOD Closing & Cash Reconciliation</h1>
+                        <p className="text-xs text-muted-foreground">
                             Perform End-of-Day cash drawer balancing, track drawer variances, and review historical closings.
                         </p>
                     </div>
@@ -141,113 +138,116 @@ export default function DailyClosingIndex({ todaySummary, pastClosings, stats }:
                 {/* Stats */}
                 <StatsCard sections={stats} />
 
-                {/* Today's EOD Form Card */}
-                <div className="rounded-xl border bg-card p-6 shadow-sm space-y-6">
-                    <div className="flex items-center justify-between border-b pb-4">
-                        <div>
-                            <h2 className="font-semibold text-lg flex items-center gap-2">
-                                <DollarSign className="h-5 w-5 text-[#823d21]" />
-                                Today's EOD Drawer Closing ({todaySummary.date})
-                            </h2>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                                Reconcile drawer cash against recorded system transactions.
-                            </p>
+                {/* EOD Form & Historical Closings */}
+                <div className="mt-6 space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-1000 ease-in-out">
+                    {/* Today's EOD Form Card */}
+                    <div className="rounded-xl border bg-card p-6 shadow-sm space-y-6">
+                        <div className="flex items-center justify-between border-b pb-4">
+                            <div>
+                                <h2 className="font-semibold text-lg flex items-center gap-2">
+                                    <DollarSign className="h-5 w-5 text-[#823d21]" />
+                                    Today's EOD Drawer Closing ({todaySummary.date})
+                                </h2>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                    Reconcile drawer cash against recorded system transactions.
+                                </p>
+                            </div>
+                            <Badge className={todaySummary.is_closed ? 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20' : 'bg-amber-500/10 text-amber-700'}>
+                                {todaySummary.is_closed ? 'Reconciled & Closed' : 'Open (Pending EOD)'}
+                            </Badge>
                         </div>
-                        <Badge className={todaySummary.is_closed ? 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20' : 'bg-amber-500/10 text-amber-700'}>
-                            {todaySummary.is_closed ? 'Reconciled & Closed' : 'Open (Pending EOD)'}
-                        </Badge>
+
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            {/* Summary Numbers */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 rounded-xl bg-muted/20 border">
+                                <div>
+                                    <p className="text-xs text-muted-foreground uppercase font-semibold">Today's Orders</p>
+                                    <p className="text-lg font-bold text-foreground mt-1">{todaySummary.total_orders} Orders</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-muted-foreground uppercase font-semibold">Total Revenue</p>
+                                    <p className="text-lg font-bold text-foreground mt-1 font-mono">${todaySummary.total_sales.toFixed(2)}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-muted-foreground uppercase font-semibold">Expected Cash</p>
+                                    <p className="text-lg font-bold text-emerald-600 mt-1 font-mono">${todaySummary.cash_expected.toFixed(2)}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-muted-foreground uppercase font-semibold">Digital & Credit</p>
+                                    <p className="text-lg font-bold text-blue-600 mt-1 font-mono">
+                                        ${(todaySummary.mobile_money_total + todaySummary.card_total + todaySummary.credit_total).toFixed(2)}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Actual Cash Input */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="cash_actual">
+                                        Actual Cash Counted in Drawer ($) <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Input
+                                        id="cash_actual"
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        placeholder="0.00"
+                                        value={form.data.cash_actual}
+                                        onChange={(e) => form.setData('cash_actual', e.target.value)}
+                                        required
+                                    />
+                                    <InputError message={form.errors.cash_actual} />
+                                </div>
+
+                                {/* Calculated Variance Preview */}
+                                <div className="rounded-lg border p-4 bg-background space-y-1">
+                                    <p className="text-xs text-muted-foreground uppercase font-semibold">Calculated Cash Variance</p>
+                                    <div className="flex items-center gap-2">
+                                        {variance === 0 ? (
+                                            <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                                        ) : (
+                                            <AlertTriangle className="h-5 w-5 text-amber-600" />
+                                        )}
+                                        <span className={`text-xl font-bold font-mono ${variance === 0 ? 'text-emerald-600' : variance > 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                                            ${variance.toFixed(2)}
+                                        </span>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        {variance === 0 ? 'Cash drawer matches perfectly!' : variance > 0 ? 'Over cash in drawer.' : 'Shortage recorded.'}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Notes */}
+                            <div className="grid gap-2">
+                                <Label htmlFor="notes">Closing Notes / Discrepancy Reason</Label>
+                                <Textarea
+                                    id="notes"
+                                    placeholder="Add notes regarding any cash drawer variance or shift observations..."
+                                    value={form.data.notes}
+                                    onChange={(e) => form.setData('notes', e.target.value)}
+                                    rows={3}
+                                />
+                                <InputError message={form.errors.notes} />
+                            </div>
+
+                            <div className="flex justify-end border-t pt-4">
+                                <Button type="submit" disabled={form.processing} className="bg-[#823d21] hover:bg-[#682e18] min-w-[180px]">
+                                    {form.processing ? 'Reconciling...' : 'Submit EOD Closing'}
+                                </Button>
+                            </div>
+                        </form>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* Summary Numbers */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 rounded-xl bg-muted/20 border">
-                            <div>
-                                <p className="text-xs text-muted-foreground uppercase font-semibold">Today's Orders</p>
-                                <p className="text-lg font-bold text-foreground mt-1">{todaySummary.total_orders} Orders</p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-muted-foreground uppercase font-semibold">Total Revenue</p>
-                                <p className="text-lg font-bold text-foreground mt-1 font-mono">${todaySummary.total_sales.toFixed(2)}</p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-muted-foreground uppercase font-semibold">Expected Cash</p>
-                                <p className="text-lg font-bold text-emerald-600 mt-1 font-mono">${todaySummary.cash_expected.toFixed(2)}</p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-muted-foreground uppercase font-semibold">Digital & Credit</p>
-                                <p className="text-lg font-bold text-blue-600 mt-1 font-mono">
-                                    ${(todaySummary.mobile_money_total + todaySummary.card_total + todaySummary.credit_total).toFixed(2)}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Actual Cash Input */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="grid gap-2">
-                                <Label htmlFor="cash_actual">
-                                    Actual Cash Counted in Drawer ($) <span className="text-red-500">*</span>
-                                </Label>
-                                <Input
-                                    id="cash_actual"
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    placeholder="0.00"
-                                    value={form.data.cash_actual}
-                                    onChange={(e) => form.setData('cash_actual', e.target.value)}
-                                    required
-                                />
-                                <InputError message={form.errors.cash_actual} />
-                            </div>
-
-                            {/* Calculated Variance Preview */}
-                            <div className="rounded-lg border p-4 bg-background space-y-1">
-                                <p className="text-xs text-muted-foreground uppercase font-semibold">Calculated Cash Variance</p>
-                                <div className="flex items-center gap-2">
-                                    {variance === 0 ? (
-                                        <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                                    ) : (
-                                        <AlertTriangle className="h-5 w-5 text-amber-600" />
-                                    )}
-                                    <span className={`text-xl font-bold font-mono ${variance === 0 ? 'text-emerald-600' : variance > 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                                        ${variance.toFixed(2)}
-                                    </span>
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                    {variance === 0 ? 'Cash drawer matches perfectly!' : variance > 0 ? 'Over cash in drawer.' : 'Shortage recorded.'}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Notes */}
-                        <div className="grid gap-2">
-                            <Label htmlFor="notes">Closing Notes / Discrepancy Reason</Label>
-                            <Textarea
-                                id="notes"
-                                placeholder="Add notes regarding any cash drawer variance or shift observations..."
-                                value={form.data.notes}
-                                onChange={(e) => form.setData('notes', e.target.value)}
-                                rows={3}
-                            />
-                            <InputError message={form.errors.notes} />
-                        </div>
-
-                        <div className="flex justify-end border-t pt-4">
-                            <Button type="submit" disabled={form.processing} className="bg-[#823d21] hover:bg-[#682e18] min-w-[180px]">
-                                {form.processing ? 'Reconciling...' : 'Submit EOD Closing'}
-                            </Button>
-                        </div>
-                    </form>
-                </div>
-
-                {/* Historical Closings Table */}
-                <div className="pt-2">
-                    <DataTable
-                        title="Historical Daily EOD Closings"
-                        searchTitle="Filter closings by date..."
-                        columns={columns}
-                        data={pastClosings}
-                    />
+                    {/* Historical Closings Table */}
+                    <div className="pt-2">
+                        <DataTable
+                            title="Historical Daily EOD Closings"
+                            searchTitle="Filter closings by date..."
+                            columns={columns}
+                            data={pastClosings}
+                        />
+                    </div>
                 </div>
             </div>
         </>

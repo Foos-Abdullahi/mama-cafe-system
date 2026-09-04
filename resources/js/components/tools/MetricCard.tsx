@@ -68,12 +68,7 @@ export function MetricCard({
             <h3 className="text-xl font-medium tracking-tight text-foreground tabular-nums ">
               {value}
             </h3>
-            {trend && (
-              <div className={cn("flex items-center gap-1 text-[11px] text-muted-foreground" )}>
-                <TrendingUp className={cn("h-3 w-3", styles.text)} />
-                <span>{trend}</span>
-              </div>
-            )}
+          
           </div>
           <div className={cn("flex h-7 w-7 items-center justify-center rounded-xs shrink-0 shadow-xs border", styles.bg, styles.border)}>
             <Icon className={cn("h-3.5 w-3.5", styles.text)} />

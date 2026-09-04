@@ -78,14 +78,11 @@ export default function ActivityLogsIndex({ logs, stats, filters }: Props) {
         <>
             <Head title="Activity Logs & Audit Trail - MaMa Café" />
 
-            <div className="space-y-6 p-6">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="p-6">
+                <div className="flex items-start justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                            <Activity className="h-6 w-6 text-[#823d21]" />
-                            System Activity Logs & Audit Trail
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
+                        <h1 className="text-lg font-semibold">System Activity Logs & Audit Trail</h1>
+                        <p className="text-xs text-muted-foreground">
                             Audit trail recording staff actions, order modifications, settings changes, and security events.
                         </p>
                     </div>
@@ -93,35 +90,16 @@ export default function ActivityLogsIndex({ logs, stats, filters }: Props) {
 
                 <StatsCard sections={stats} />
 
-                <div className="flex items-center gap-3 bg-card p-4 rounded-xl border shadow-sm">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground mr-2">
-                        <Filter className="h-4 w-4" /> Filter Action:
-                    </div>
-                    <select
-                        className="h-9 rounded-md border border-input bg-background px-3 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        value={selectedAction}
-                        onChange={(e) => handleFilterChange(e.target.value)}
-                    >
-                        <option value="">All Action Events</option>
-                        <option value="user_create">User Create</option>
-                        <option value="user_update">User Update</option>
-                        <option value="user_delete">User Delete</option>
-                        <option value="settings_update">Settings Update</option>
-                    </select>
+                <div className="mt-6 space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-1000 ease-in-out">
+                
 
-                    {selectedAction && (
-                        <Button variant="ghost" size="sm" className="h-9 text-xs" onClick={() => handleFilterChange('')}>
-                            Reset Filter
-                        </Button>
-                    )}
+                    <DataTable
+                        title="System Audit Trail"
+                        searchTitle="Filter logs by description or user..."
+                        columns={columns}
+                        data={logs}
+                    />
                 </div>
-
-                <DataTable
-                    title="System Audit Trail"
-                    searchTitle="Filter logs by description or user..."
-                    columns={columns}
-                    data={logs}
-                />
             </div>
         </>
     );

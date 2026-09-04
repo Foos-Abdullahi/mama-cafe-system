@@ -43,147 +43,146 @@ export default function SystemSettingsIndex({ settings }: Props) {
         <>
             <Head title="General Settings - MaMa Café" />
 
-            <div className="space-y-6 p-6">
+            <div className="p-6">
                 {/* Header */}
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                            <Settings className="h-6 w-6 text-[#823d21]" />
-                            General System Settings
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
+                        <h1 className="text-lg font-semibold">General System Settings</h1>
+                        <p className="text-xs text-muted-foreground">
                             Configure cafe identity, fixed-number table ranges, currency, and default commission rules.
                         </p>
                     </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* Cafe Branding & Contact Information */}
-                    <div className="rounded-xl border bg-card p-6 shadow-sm space-y-6">
-                        <div className="flex items-center gap-2 border-b pb-3">
-                            <Store className="h-5 w-5 text-[#823d21]" />
-                            <h2 className="font-semibold text-lg">Cafe Identity & Contact Details</h2>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="grid gap-2">
-                                <Label htmlFor="cafe_name">
-                                    Cafe Name <span className="text-red-500">*</span>
-                                </Label>
-                                <Input
-                                    id="cafe_name"
-                                    value={form.data.cafe_name}
-                                    onChange={(e) => form.setData('cafe_name', e.target.value)}
-                                    required
-                                />
-                                <InputError message={form.errors.cafe_name} />
+                <div className="mt-6 animate-in fade-in slide-in-from-bottom-6 duration-1000 ease-in-out">
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        {/* Cafe Branding & Contact Information */}
+                        <div className="rounded-xl border bg-card p-6 shadow-sm space-y-6">
+                            <div className="flex items-center gap-2 border-b pb-3">
+                                <Store className="h-5 w-5 text-[#823d21]" />
+                                <h2 className="font-semibold text-lg">Cafe Identity & Contact Details</h2>
                             </div>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="cafe_phone">
-                                    Phone Number <span className="text-red-500">*</span>
-                                </Label>
-                                <Input
-                                    id="cafe_phone"
-                                    value={form.data.cafe_phone}
-                                    onChange={(e) => form.setData('cafe_phone', e.target.value)}
-                                    required
-                                />
-                                <InputError message={form.errors.cafe_phone} />
-                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="cafe_name">
+                                        Cafe Name <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Input
+                                        id="cafe_name"
+                                        value={form.data.cafe_name}
+                                        onChange={(e) => form.setData('cafe_name', e.target.value)}
+                                        required
+                                    />
+                                    <InputError message={form.errors.cafe_name} />
+                                </div>
 
-                            <div className="grid gap-2 md:col-span-2">
-                                <Label htmlFor="cafe_address">
-                                    Physical Address <span className="text-red-500">*</span>
-                                </Label>
-                                <Input
-                                    id="cafe_address"
-                                    value={form.data.cafe_address}
-                                    onChange={(e) => form.setData('cafe_address', e.target.value)}
-                                    required
-                                />
-                                <InputError message={form.errors.cafe_address} />
-                            </div>
-                        </div>
-                    </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="cafe_phone">
+                                        Phone Number <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Input
+                                        id="cafe_phone"
+                                        value={form.data.cafe_phone}
+                                        onChange={(e) => form.setData('cafe_phone', e.target.value)}
+                                        required
+                                    />
+                                    <InputError message={form.errors.cafe_phone} />
+                                </div>
 
-                    {/* Financial Rules & Fixed Number Ranges */}
-                    <div className="rounded-xl border bg-card p-6 shadow-sm space-y-6">
-                        <div className="flex items-center gap-2 border-b pb-3">
-                            <Hash className="h-5 w-5 text-[#823d21]" />
-                            <h2 className="font-semibold text-lg">Fixed Numbers & Commission Configuration</h2>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="grid gap-2">
-                                <Label htmlFor="fixed_number_start">
-                                    Global Fixed Number Range Start <span className="text-red-500">*</span>
-                                </Label>
-                                <Input
-                                    id="fixed_number_start"
-                                    type="number"
-                                    value={form.data.fixed_number_start}
-                                    onChange={(e) => form.setData('fixed_number_start', e.target.value)}
-                                    required
-                                />
-                                <InputError message={form.errors.fixed_number_start} />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="fixed_number_end">
-                                    Global Fixed Number Range End <span className="text-red-500">*</span>
-                                </Label>
-                                <Input
-                                    id="fixed_number_end"
-                                    type="number"
-                                    value={form.data.fixed_number_end}
-                                    onChange={(e) => form.setData('fixed_number_end', e.target.value)}
-                                    required
-                                />
-                                <InputError message={form.errors.fixed_number_end} />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="default_commission_rate">
-                                    Default Waitress Commission Rate (%) <span className="text-red-500">*</span>
-                                </Label>
-                                <Input
-                                    id="default_commission_rate"
-                                    type="number"
-                                    step="0.1"
-                                    value={form.data.default_commission_rate}
-                                    onChange={(e) => form.setData('default_commission_rate', e.target.value)}
-                                    required
-                                />
-                                <InputError message={form.errors.default_commission_rate} />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="currency">
-                                    Operating Currency <span className="text-red-500">*</span>
-                                </Label>
-                                <Input
-                                    id="currency"
-                                    value={form.data.currency}
-                                    onChange={(e) => form.setData('currency', e.target.value)}
-                                    required
-                                />
-                                <InputError message={form.errors.currency} />
+                                <div className="grid gap-2 md:col-span-2">
+                                    <Label htmlFor="cafe_address">
+                                        Physical Address <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Input
+                                        id="cafe_address"
+                                        value={form.data.cafe_address}
+                                        onChange={(e) => form.setData('cafe_address', e.target.value)}
+                                        required
+                                    />
+                                    <InputError message={form.errors.cafe_address} />
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div className="flex items-center justify-end border-t pt-4">
-                        <Button
-                            type="submit"
-                            disabled={form.processing}
-                            className="bg-[#823d21] hover:bg-[#682e18] min-w-[160px] gap-2"
-                        >
-                            <Save className="h-4 w-4" />
-                            {form.processing ? 'Saving...' : 'Save Settings'}
-                        </Button>
-                    </div>
-                </form>
+                        {/* Financial Rules & Fixed Number Ranges */}
+                        <div className="rounded-xl border bg-card p-6 shadow-sm space-y-6">
+                            <div className="flex items-center gap-2 border-b pb-3">
+                                <Hash className="h-5 w-5 text-[#823d21]" />
+                                <h2 className="font-semibold text-lg">Fixed Numbers & Commission Configuration</h2>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="fixed_number_start">
+                                        Global Fixed Number Range Start <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Input
+                                        id="fixed_number_start"
+                                        type="number"
+                                        value={form.data.fixed_number_start}
+                                        onChange={(e) => form.setData('fixed_number_start', e.target.value)}
+                                        required
+                                    />
+                                    <InputError message={form.errors.fixed_number_start} />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="fixed_number_end">
+                                        Global Fixed Number Range End <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Input
+                                        id="fixed_number_end"
+                                        type="number"
+                                        value={form.data.fixed_number_end}
+                                        onChange={(e) => form.setData('fixed_number_end', e.target.value)}
+                                        required
+                                    />
+                                    <InputError message={form.errors.fixed_number_end} />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="default_commission_rate">
+                                        Default Waitress Commission Rate (%) <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Input
+                                        id="default_commission_rate"
+                                        type="number"
+                                        step="0.1"
+                                        value={form.data.default_commission_rate}
+                                        onChange={(e) => form.setData('default_commission_rate', e.target.value)}
+                                        required
+                                    />
+                                    <InputError message={form.errors.default_commission_rate} />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="currency">
+                                        Operating Currency <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Input
+                                        id="currency"
+                                        value={form.data.currency}
+                                        onChange={(e) => form.setData('currency', e.target.value)}
+                                        required
+                                    />
+                                    <InputError message={form.errors.currency} />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-end border-t pt-4">
+                            <Button
+                                type="submit"
+                                disabled={form.processing}
+                                className="bg-[#823d21] hover:bg-[#682e18] min-w-[160px] gap-2"
+                            >
+                                <Save className="h-4 w-4" />
+                                {form.processing ? 'Saving...' : 'Save Settings'}
+                            </Button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </>
     );

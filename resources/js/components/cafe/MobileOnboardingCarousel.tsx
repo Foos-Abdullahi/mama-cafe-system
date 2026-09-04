@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { router } from '@inertiajs/react';
 import { ChevronLeft, ArrowRight, Sparkles } from 'lucide-react';
 import { CafeBrand } from './CafeBrand';
-import { DrinkShowcase } from './DrinkShowcase';
-import { WhyChooseUs } from './WhyChooseUs';
+import { DualDrinks, HeroDrink } from './DrinkShowcase';
 import { FreeTastingCard } from './FreeTastingCard';
 import { ContactInfo } from './ContactInfo';
 import { SocialLinks } from './SocialLinks';
+import { WhyChooseUs } from './WhyChooseUs';
 
 interface MobileOnboardingCarouselProps {
     loginUrl: string;
@@ -102,7 +102,7 @@ export const MobileOnboardingCarousel: React.FC<MobileOnboardingCarouselProps> =
                         <CafeBrand />
 
                         <div className="mt-3 w-full">
-                            <DrinkShowcase type="hero-dual" />
+                            <DualDrinks />
                         </div>
 
                         <p className="font-handwriting text-xl text-[#2B1A16] font-bold mt-3">
@@ -114,7 +114,7 @@ export const MobileOnboardingCarousel: React.FC<MobileOnboardingCarouselProps> =
                 {/* STEP 1: Signature Boba Drink Showcase */}
                 {currentStep === 1 && (
                     <div className="flex flex-col items-center justify-center animate-fade-up w-full py-2">
-                        <DrinkShowcase type="hero-main" />
+                        <HeroDrink />
 
                         <div className="mt-6 text-center max-w-xs">
                             <h3 className="font-serif-title text-xl font-bold text-[#2B1A16]">

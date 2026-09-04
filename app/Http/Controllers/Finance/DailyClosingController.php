@@ -78,9 +78,11 @@ class DailyClosingController extends Controller
             ],
             [
                 'title' => 'EOD Status',
-                'value' => $todayClosing ? 'Closed & Reconciled' : 'Open (Pending EOD)',
+                'value' => $todayClosing ? 'Closed' : 'Pending',
                 'change' => $todayClosing ? 'Reconciliation complete' : 'Awaiting cashier check',
                 'trend' => $todayClosing ? 'up' : 'down',
+                'badge' => ['text' => $todayClosing ? 'Closed' : 'Pending EOD', 'variant' => $todayClosing ? 'emerald' : 'amber'],
+                'color' => $todayClosing ? 'success' : 'warning',
             ],
         ];
 

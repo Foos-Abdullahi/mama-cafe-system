@@ -167,44 +167,44 @@ export default function PayrollIndex({ waitresses, payoutHistory, stats }: Props
         <>
             <Head title="Payroll & Commissions - MaMa Café" />
 
-            <div className="space-y-6 p-6">
+            <div className="p-6">
                 {/* Header */}
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                            <Wallet className="h-6 w-6 text-[#823d21]" />
-                            Payroll & Staff Commissions
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
+                        <h1 className="text-lg font-semibold">Payroll & Staff Commissions</h1>
+                        <p className="text-xs text-muted-foreground">
                             Calculate automatic 15% waitress commissions, process staff payouts, and log commission history.
                         </p>
                     </div>
-                    <Link href="/finance/payroll/create">
-                        <Button className="bg-[#823d21] hover:bg-[#682e18] text-white font-semibold flex items-center gap-2 shadow-sm">
-                            <Plus className="h-4 w-4" /> Process Payout
-                        </Button>
-                    </Link>
+                    <Button asChild size={'sm'}>
+                        <Link href="/finance/payroll/create">
+                            <Plus className="h-4 w-4" />
+                            Process
+                            <span className="hidden sm:inline">Payout</span>
+                        </Link>
+                    </Button>
                 </div>
 
                 {/* KPI Stats */}
                 <StatsCard sections={stats} />
 
-                {/* Active Waitress Table */}
-                <DataTable
-                    title="Staff Commission Ledger (15% Rate)"
-                    searchTitle="Filter waitress by name..."
-                    columns={columns}
-                    data={waitresses}
-                />
-
-                {/* Historical Payout Logs */}
-                <div className="pt-4">
+                {/* Tables Container */}
+                <div className="mt-6 space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-1000 ease-in-out">
                     <DataTable
-                        title="Historical Payout Records"
-                        searchTitle="Filter payout logs..."
-                        columns={historyColumns}
-                        data={payoutHistory}
+                        title="Staff Commission Ledger (15% Rate)"
+                        searchTitle="Filter waitress by name..."
+                        columns={columns}
+                        data={waitresses}
                     />
+
+                    <div className="pt-2">
+                        <DataTable
+                            title="Historical Payout Records"
+                            searchTitle="Filter payout logs..."
+                            columns={historyColumns}
+                            data={payoutHistory}
+                        />
+                    </div>
                 </div>
             </div>
         </>

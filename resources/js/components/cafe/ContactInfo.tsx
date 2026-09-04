@@ -1,54 +1,51 @@
-import React from 'react';
-import { MapPin, Phone } from 'lucide-react';
+import type React from "react";
+import { MapPin, Phone } from "lucide-react";
+import MamaCup from "@/images/mama-cup-cutout.png";
 
 export const ContactInfo: React.FC = () => {
-    return (
-        <div className="flex w-full flex-col items-center justify-between gap-4 select-none sm:flex-row sm:items-center">
-            {/* Contact details */}
-            <div className="flex flex-col items-center text-center sm:items-start sm:text-left">
-                <h3 className="mb-1.5 font-sans text-xs font-extrabold tracking-[0.2em] text-[#FAF6EE] uppercase sm:text-sm">
-                    CONTACT US
-                </h3>
+  return (
+    <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-5">
+      <div className="min-w-0">
+        <h3 className="text-xs font-extrabold tracking-[0.22em] text-cream uppercase">
+          Contact us
+        </h3>
 
-                <div className="space-y-1 text-xs font-medium text-[#E6C280] sm:text-sm">
-                    {/* Phone / WhatsApp */}
-                    <a
-                        href="tel:+252613399977"
-                        className="group flex items-center justify-center gap-2.5 transition-colors hover:text-[#FAF6EE] sm:justify-start"
-                    >
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full border border-[#A67C52] bg-[#3C2A21] text-[#E6C280] transition-transform group-hover:scale-110">
-                            <Phone className="h-3.5 w-3.5" />
-                        </div>
-                        <span className="text-xs font-semibold tracking-wide text-[#FAF6EE] sm:text-sm">
-                            +252 61 3399977
-                        </span>
-                    </a>
+        <div className="mt-4 space-y-2.5">
+          <a
+            href="tel:+252613399977"
+            className="group flex items-center gap-3 rounded-2xl border border-cream/10 bg-cream/5 px-3.5 py-2.5 shine transition-all duration-300 hover:-translate-y-0.5 hover:border-gold/45"
+          >
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gold/15 text-gold transition-all duration-300 group-hover:scale-110 group-hover:bg-gold group-hover:text-espresso">
+              <Phone className="h-4 w-4" />
+            </span>
+            <span className="truncate text-sm font-semibold text-cream">
+              +252 61 3399977
+            </span>
+          </a>
 
-                    {/* Location */}
-                    <div className="flex max-w-xs items-center justify-center gap-2.5 sm:justify-start">
-                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#A67C52] bg-[#3C2A21] text-[#E6C280]">
-                            <MapPin className="h-3.5 w-3.5" />
-                        </div>
-                        <span className="text-xs font-medium text-[#E6C280]/90 sm:text-sm">
-                            Dahablaha Bakaro Mogadishu
-                        </span>
-                    </div>
-                </div>
-
-                {/* Thank you note */}
-                <p className="mt-1.5 font-handwriting text-lg font-bold tracking-wide text-[#FAF6EE] italic sm:text-xl">
-                    Thank you for supporting us!
-                </p>
-            </div>
-
-            {/* Takeaway Coffee Cup Artwork with Leaf Accent */}
-            <div className="relative w-20 shrink-0 transform transition-transform duration-300 hover:scale-105 sm:w-28 lg:w-36">
-                <img
-                    src="/images/cup.png"
-                    alt="MaMa Café Branded Takeaway Cup"
-                    className="h-auto w-full object-contain drop-shadow-2xl filter"
-                />
-            </div>
+          <div className="group flex items-center gap-3 rounded-2xl border border-cream/10 bg-cream/5 px-3.5 py-2.5 transition-all duration-300 hover:-translate-y-0.5 hover:border-gold/45">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gold/15 text-gold transition-all duration-300 group-hover:scale-110">
+              <MapPin className="h-4 w-4" />
+            </span>
+            <span className="truncate text-sm font-medium text-cream-soft/85">
+              Dahablaha Bakaro, Mogadishu
+            </span>
+          </div>
         </div>
-    );
+
+        <p className="mt-4 font-script text-xl font-bold text-cream-soft/90">
+          Thank you for supporting us!
+        </p>
+      </div>
+
+      <img
+        src={MamaCup}
+        alt="MaMa Café branded takeaway cup"
+        width={700}
+        height={900}
+        loading="lazy"
+        className="hidden w-24 shrink-0 drop-shadow-2xl drift-slower transition-transform duration-500 hover:scale-110 sm:block lg:w-32"
+      />
+    </div>
+  );
 };

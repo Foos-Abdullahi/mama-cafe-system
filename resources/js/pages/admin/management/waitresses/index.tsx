@@ -182,29 +182,33 @@ export default function WaitressesIndex({ waitresses, stats }: Props) {
         <>
             <Head title="Waitresses Management - MaMa Café" />
 
-            <div className="space-y-6 p-6">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="p-6">
+                <div className="flex items-start justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-foreground">Waitresses Management</h1>
-                        <p className="text-sm text-muted-foreground">
+                        <h1 className="text-lg font-semibold">Waitresses Management</h1>
+                        <p className="text-xs text-muted-foreground">
                             Manage floor staff, their fixed number ranges and commissions.
                         </p>
                     </div>
-                    <Link href="/management/waitresses/create">
-                        <Button className="bg-[#823d21] hover:bg-[#682e18] text-white font-semibold flex items-center gap-2 shadow-sm">
-                            <Plus className="h-4 w-4" /> Add Waitress
-                        </Button>
-                    </Link>
+                    <Button asChild size={'sm'}>
+                        <Link href="/management/waitresses/create">
+                            <Plus className="h-4 w-4" />
+                            Add
+                            <span className="hidden sm:inline">Waitress</span>
+                        </Link>
+                    </Button>
                 </div>
 
                 <StatsCard sections={stats} />
 
-                <DataTable
-                    title="Floor Staff"
-                    searchTitle="Filter waitresses by name..."
-                    columns={columns}
-                    data={waitresses}
-                />
+                <div className="mt-6 animate-in fade-in slide-in-from-bottom-6 duration-1000 ease-in-out">
+                    <DataTable
+                        title="Floor Staff"
+                        searchTitle="Filter waitresses by name..."
+                        columns={columns}
+                        data={waitresses}
+                    />
+                </div>
             </div>
         </>
     );

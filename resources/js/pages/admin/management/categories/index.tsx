@@ -135,32 +135,36 @@ export default function CategoriesIndex({ categories, stats }: Props) {
         <>
             <Head title="Category Management - MaMa Café" />
 
-            <div className="space-y-6 p-6">
+            <div className="p-6">
                 {/* Header */}
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-foreground">Categories Management</h1>
-                        <p className="text-sm text-muted-foreground">
+                        <h1 className="text-lg font-semibold">Categories Management</h1>
+                        <p className="text-xs text-muted-foreground">
                             Organize menu items into intuitive categories for POS and online orders.
                         </p>
                     </div>
-                    <Link href="/management/categories/create">
-                        <Button className="bg-[#823d21] hover:bg-[#682e18] text-white font-semibold flex items-center gap-2 shadow-sm">
-                            <Plus className="h-4 w-4" /> Add New Category
-                        </Button>
-                    </Link>
+                    <Button asChild size={'sm'}>
+                        <Link href="/management/categories/create">
+                            <Plus className="h-4 w-4" />
+                            Add
+                            <span className="hidden sm:inline">Category</span>
+                        </Link>
+                    </Button>
                 </div>
 
                 {/* Stats Section */}
                 <StatsCard sections={stats} />
 
                 {/* Main Data Table */}
-                <DataTable
-                    title="Menu Categories"
-                    searchTitle="Filter categories by name..."
-                    columns={columns}
-                    data={categories}
-                />
+                <div className="mt-6 animate-in fade-in slide-in-from-bottom-6 duration-1000 ease-in-out">
+                    <DataTable
+                        title="Menu Categories"
+                        searchTitle="Filter categories by name..."
+                        columns={columns}
+                        data={categories}
+                    />
+                </div>
             </div>
         </>
     );

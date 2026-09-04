@@ -126,15 +126,12 @@ export default function PaymentsIndex({ payments, stats, filters }: Props) {
         <>
             <Head title="Payments Tracking - MaMa Café" />
 
-            <div className="space-y-6 p-6">
+            <div className="p-6">
                 {/* Header */}
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                            <CreditCard className="h-6 w-6 text-[#823d21]" />
-                            Payments Tracking
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
+                        <h1 className="text-lg font-semibold">Payments Tracking</h1>
+                        <p className="text-xs text-muted-foreground">
                             Monitor transactions, payment methods, digital money receipts, and customer credit.
                         </p>
                     </div>
@@ -143,48 +140,16 @@ export default function PaymentsIndex({ payments, stats, filters }: Props) {
                 {/* KPI Stats */}
                 <StatsCard sections={stats} />
 
-                {/* Filter Toolbar */}
-                <div className="flex flex-wrap items-center gap-3 bg-card p-4 rounded-xl border shadow-sm">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground mr-2">
-                        <Filter className="h-4 w-4" /> Filter Payments:
-                    </div>
-                    <select
-                        className="h-9 rounded-md border border-input bg-background px-3 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        value={selectedMethod}
-                        onChange={(e) => handleFilterChange(e.target.value, selectedStatus)}
-                    >
-                        <option value="">All Payment Methods</option>
-                        <option value="cash">Cash</option>
-                        <option value="mobile_money">Mobile Money</option>
-                        <option value="card">Card</option>
-                        <option value="credit">Credit</option>
-                    </select>
-
-                    <select
-                        className="h-9 rounded-md border border-input bg-background px-3 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        value={selectedStatus}
-                        onChange={(e) => handleFilterChange(selectedMethod, e.target.value)}
-                    >
-                        <option value="">All Statuses</option>
-                        <option value="paid">Paid</option>
-                        <option value="partial">Partial</option>
-                        <option value="unpaid">Unpaid</option>
-                    </select>
-
-                    {(selectedMethod || selectedStatus) && (
-                        <Button variant="ghost" size="sm" className="h-9 text-xs" onClick={() => handleFilterChange('', '')}>
-                            Reset Filters
-                        </Button>
-                    )}
+                {/* Filter Toolbar & DataTable */}
+                <div className="mt-6 space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-1000 ease-in-out">
+                  
+                    <DataTable
+                        title="Payment Transactions"
+                        searchTitle="Filter by order # or waitress..."
+                        columns={columns}
+                        data={payments}
+                    />
                 </div>
-
-                {/* DataTable */}
-                <DataTable
-                    title="Payment Transactions"
-                    searchTitle="Filter by order # or waitress..."
-                    columns={columns}
-                    data={payments}
-                />
             </div>
         </>
     );

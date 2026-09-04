@@ -7,6 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import {
     Dialog,
     DialogContent,
     DialogDescription,
@@ -78,8 +85,15 @@ interface CartItem {
     quantity: number;
 }
 
-export default function PosIndex({ categories, products, waitresses, recentOrders }: Props) {
-    const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+export default function PosIndex({
+    categories,
+    products,
+    waitresses,
+    recentOrders,
+}: Props) {
+    const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(
+        null,
+    );
     const [searchQuery, setSearchQuery] = useState('');
     const [cart, setCart] = useState<CartItem[]>([]);
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -99,17 +113,24 @@ export default function PosIndex({ categories, products, waitresses, recentOrder
     // Filter Products
     const filteredProducts = useMemo(() => {
         return products.filter((p) => {
-            const matchesCategory = selectedCategoryId === null || p.category_id === selectedCategoryId;
+            const matchesCategory =
+                selectedCategoryId === null ||
+                p.category_id === selectedCategoryId;
             const matchesSearch =
                 p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                p.category_name.toLowerCase().includes(searchQuery.toLowerCase());
+                p.category_name
+                    .toLowerCase()
+                    .includes(searchQuery.toLowerCase());
             return matchesCategory && matchesSearch;
         });
     }, [products, selectedCategoryId, searchQuery]);
 
     // Cart calculations
     const subtotal = useMemo(() => {
-        return cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+        return cart.reduce(
+            (sum, item) => sum + item.product.price * item.quantity,
+            0,
+        );
     }, [cart]);
 
     const discountAmount = Number(form.data.discount || 0);
@@ -123,10 +144,14 @@ export default function PosIndex({ categories, products, waitresses, recentOrder
     // Cart Handlers
     const addToCart = (product: Product) => {
         setCart((prev) => {
-            const existing = prev.find((item) => item.product.id === product.id);
+            const existing = prev.find(
+                (item) => item.product.id === product.id,
+            );
             if (existing) {
                 return prev.map((item) =>
-                    item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+                    item.product.id === product.id
+                        ? { ...item, quantity: item.quantity + 1 }
+                        : item,
                 );
             }
             return [...prev, { product, quantity: 1 }];
@@ -134,16 +159,19 @@ export default function PosIndex({ categories, products, waitresses, recentOrder
     };
 
     const updateQuantity = (productId: number, delta: number) => {
-        setCart((prev) =>
-            prev
-                .map((item) => {
-                    if (item.product.id === productId) {
-                        const newQty = item.quantity + delta;
-                        return newQty > 0 ? { ...item, quantity: newQty } : null;
-                    }
-                    return item;
-                })
-                .filter(Boolean) as CartItem[]
+        setCart(
+            (prev) =>
+                prev
+                    .map((item) => {
+                        if (item.product.id === productId) {
+                            const newQty = item.quantity + delta;
+                            return newQty > 0
+                                ? { ...item, quantity: newQty }
+                                : null;
+                        }
+                        return item;
+                    })
+                    .filter(Boolean) as CartItem[],
         );
     };
 
@@ -169,7 +197,10 @@ export default function PosIndex({ categories, products, waitresses, recentOrder
         form.transform((data) => ({
             ...data,
             items: itemsPayload,
-            amount_paid: data.payment_status === 'paid' ? grandTotal.toString() : data.amount_paid,
+            amount_paid:
+                data.payment_status === 'paid'
+                    ? grandTotal.toString()
+                    : data.amount_paid,
         }));
 
         form.post('/pos/orders', {
@@ -185,30 +216,38 @@ export default function PosIndex({ categories, products, waitresses, recentOrder
         <>
             <Head title="POS Terminal - MaMa Café" />
 
-            <div className="space-y-5 p-4">
+            <div className="animate-in p-6 duration-1000 ease-in-out fade-in slide-in-from-bottom-6">
                 {/* Main POS Interface Grid (Left Menu Catalog + Right Live Cart) */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
                     {/* Left & Middle Area: Product Catalog (Cols 7/12) */}
-                    <div className="lg:col-span-7 space-y-5">
+                    <div className="space-y-5 lg:col-span-7">
                         {/* Search & Category Pills */}
                         <div className="space-y-3">
                             <div className="relative">
-                                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Search className="absolute top-2.5 left-3 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     placeholder="Search beverages, coffee, snacks..."
-                                    className="pl-9 h-10 bg-card"
+                                    className="h-10 bg-card pl-9"
                                     value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    onChange={(e) =>
+                                        setSearchQuery(e.target.value)
+                                    }
                                 />
                             </div>
 
                             {/* Category Filter Tabs */}
-                            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                            <div className="flex scrollbar-none items-center gap-2 overflow-x-auto pb-1">
                                 <Button
-                                    variant={selectedCategoryId === null ? 'default' : 'outline'}
+                                    variant={
+                                        selectedCategoryId === null
+                                            ? 'default'
+                                            : 'outline'
+                                    }
                                     size="sm"
-                                    className={`h-8 text-xs font-semibold rounded-full shrink-0 ${
-                                        selectedCategoryId === null ? 'bg-[#823d21] hover:bg-[#682e18] text-white' : ''
+                                    className={`h-8 shrink-0 rounded-full text-xs font-semibold ${
+                                        selectedCategoryId === null
+                                            ? 'bg-[#823d21] text-white shadow-sm hover:bg-[#682e18]'
+                                            : 'shadow-xs'
                                     }`}
                                     onClick={() => setSelectedCategoryId(null)}
                                 >
@@ -217,12 +256,20 @@ export default function PosIndex({ categories, products, waitresses, recentOrder
                                 {categories.map((cat) => (
                                     <Button
                                         key={cat.id}
-                                        variant={selectedCategoryId === cat.id ? 'default' : 'outline'}
+                                        variant={
+                                            selectedCategoryId === cat.id
+                                                ? 'default'
+                                                : 'outline'
+                                        }
                                         size="sm"
-                                        className={`h-8 text-xs font-semibold rounded-full shrink-0 ${
-                                            selectedCategoryId === cat.id ? 'bg-[#823d21] hover:bg-[#682e18] text-white' : ''
+                                        className={`h-8 shrink-0 rounded-full text-xs font-semibold ${
+                                            selectedCategoryId === cat.id
+                                                ? 'bg-[#823d21] text-white shadow-sm hover:bg-[#682e18]'
+                                                : 'shadow-xs'
                                         }`}
-                                        onClick={() => setSelectedCategoryId(cat.id)}
+                                        onClick={() =>
+                                            setSelectedCategoryId(cat.id)
+                                        }
                                     >
                                         {cat.name} ({cat.products_count})
                                     </Button>
@@ -231,42 +278,68 @@ export default function PosIndex({ categories, products, waitresses, recentOrder
                         </div>
 
                         {/* Product Cards Grid */}
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                             {filteredProducts.length === 0 ? (
-                                <div className="col-span-full py-12 text-center text-muted-foreground border rounded-xl bg-card">
-                                    <Coffee className="h-10 w-10 mx-auto mb-2 text-[#823d21]/40" />
-                                    <p className="font-semibold text-sm">No products found</p>
-                                    <p className="text-xs">Try selecting a different category or search term.</p>
+                                <div className="col-span-full rounded-xl border bg-card py-12 text-center text-muted-foreground">
+                                    <Coffee className="mx-auto mb-2 h-10 w-10 text-[#823d21]/40" />
+                                    <p className="text-sm font-semibold">
+                                        No products found
+                                    </p>
+                                    <p className="text-xs">
+                                        Try selecting a different category or
+                                        search term.
+                                    </p>
                                 </div>
                             ) : (
                                 filteredProducts.map((product) => (
                                     <div
                                         key={product.id}
                                         onClick={() => addToCart(product)}
-                                        className="group relative flex flex-col justify-between rounded-xl border bg-card p-3.5 shadow-xs transition-all duration-200 hover:border-[#823d21] hover:shadow-md cursor-pointer select-none"
+                                        className="group relative flex cursor-pointer flex-col justify-between overflow-hidden rounded-xl border bg-card p-3 shadow-xs transition-all duration-200 select-none hover:border-[#823d21] hover:shadow-md"
                                     >
-                                        <div className="space-y-1.5">
-                                            <div className="flex items-center justify-between">
-                                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-secondary/50 font-normal">
+                                        <div>
+                                            {/* Product Image Container / Placeholder */}
+                                            <div className="relative mb-2.5 flex h-28 w-full items-center justify-center overflow-hidden rounded-lg border bg-gradient-to-br from-[#823d21]/5 to-amber-500/10">
+                                                {product.image_url ? (
+                                                    <img
+                                                        src={product.image_url}
+                                                        alt={product.name}
+                                                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                                    />
+                                                ) : (
+                                                    <div className="flex flex-col items-center justify-center text-[#823d21]/40 transition-colors group-hover:text-[#823d21]/60">
+                                                        <Coffee className="h-8 w-8" />
+                                                    </div>
+                                                )}
+                                                <Badge
+                                                    variant="outline"
+                                                    className="absolute top-2 left-2 border-border bg-background/90 px-1.5 py-0 text-[10px] font-medium shadow-xs backdrop-blur-sm"
+                                                >
                                                     {product.category_name}
                                                 </Badge>
-                                                <span className="font-mono font-bold text-sm text-[#823d21]">
-                                                    ${product.price.toFixed(2)}
+                                                <span className="absolute right-2 bottom-2 rounded-md bg-[#823d21] px-2 py-0.5 font-mono text-xs font-bold text-white shadow-xs">
+                                                    $
+                                                    {Number(
+                                                        product.price,
+                                                    ).toFixed(2)}
                                                 </span>
                                             </div>
-                                            <h3 className="font-semibold text-sm text-foreground line-clamp-1 group-hover:text-[#823d21] transition-colors">
-                                                {product.name}
-                                            </h3>
-                                            {product.description && (
-                                                <p className="text-[11px] text-muted-foreground line-clamp-2">
-                                                    {product.description}
-                                                </p>
-                                            )}
+
+                                            <div className="space-y-1">
+                                                <h3 className="line-clamp-1 text-sm font-semibold text-foreground transition-colors group-hover:text-[#823d21]">
+                                                    {product.name}
+                                                </h3>
+                                                {product.description && (
+                                                    <p className="line-clamp-2 text-[11px] text-muted-foreground">
+                                                        {product.description}
+                                                    </p>
+                                                )}
+                                            </div>
                                         </div>
 
-                                        <div className="mt-3 flex items-center justify-between pt-2 border-t text-xs font-semibold text-muted-foreground group-hover:text-[#823d21]">
+                                        <div className="mt-3 flex items-center justify-between border-t pt-2 text-xs font-semibold text-muted-foreground group-hover:text-[#823d21]">
                                             <span>Add to order</span>
-                                            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#823d21]/10 group-hover:bg-[#823d21] group-hover:text-white transition-colors">
+                                            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#823d21]/10 transition-colors group-hover:bg-[#823d21] group-hover:text-white">
                                                 <Plus className="h-3.5 w-3.5" />
                                             </div>
                                         </div>
@@ -277,21 +350,28 @@ export default function PosIndex({ categories, products, waitresses, recentOrder
                     </div>
 
                     {/* Right Area: Live Order & Cart Panel (Cols 5/12) */}
-                    <div className="lg:col-span-5 space-y-4">
-                        <div className="rounded-xl border bg-card p-5 shadow-sm space-y-5">
+                    <div className="space-y-4 lg:col-span-5">
+                        <div className="space-y-5 rounded-xl border bg-card p-5 shadow-sm">
                             {/* Order Customer Settings */}
                             <div className="space-y-4 border-b pb-4">
                                 <div className="flex items-center justify-between">
-                                    <h2 className="font-semibold text-base flex items-center gap-2">
-                                        <Receipt className="h-4 w-4 text-[#823d21]" /> Current Order
+                                    <h2 className="flex items-center gap-2 text-base font-semibold">
+                                        <Receipt className="h-4 w-4 text-[#823d21]" />{' '}
+                                        Current Order
                                     </h2>
-                                    <div className="flex rounded-lg bg-muted p-1 gap-1">
+                                    <div className="flex gap-1 rounded-lg bg-muted p-1">
                                         <button
                                             type="button"
-                                            onClick={() => form.setData('order_type', 'dine_in')}
-                                            className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
-                                                form.data.order_type === 'dine_in'
-                                                    ? 'bg-background text-foreground shadow-xs'
+                                            onClick={() =>
+                                                form.setData(
+                                                    'order_type',
+                                                    'dine_in',
+                                                )
+                                            }
+                                            className={`rounded-md px-3 py-1 text-xs font-semibold transition-all ${
+                                                form.data.order_type ===
+                                                'dine_in'
+                                                    ? 'bg-background text-foreground shadow-sm'
                                                     : 'text-muted-foreground hover:text-foreground'
                                             }`}
                                         >
@@ -299,10 +379,16 @@ export default function PosIndex({ categories, products, waitresses, recentOrder
                                         </button>
                                         <button
                                             type="button"
-                                            onClick={() => form.setData('order_type', 'takeaway')}
-                                            className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
-                                                form.data.order_type === 'takeaway'
-                                                    ? 'bg-background text-foreground shadow-xs'
+                                            onClick={() =>
+                                                form.setData(
+                                                    'order_type',
+                                                    'takeaway',
+                                                )
+                                            }
+                                            className={`rounded-md px-3 py-1 text-xs font-semibold transition-all ${
+                                                form.data.order_type ===
+                                                'takeaway'
+                                                    ? 'bg-background text-foreground shadow-sm'
                                                     : 'text-muted-foreground hover:text-foreground'
                                             }`}
                                         >
@@ -313,98 +399,167 @@ export default function PosIndex({ categories, products, waitresses, recentOrder
 
                                 <div className="grid grid-cols-2 gap-3">
                                     <div>
-                                        <Label htmlFor="waitress" className="text-xs flex items-center gap-1">
-                                            <UserCheck className="h-3 w-3 text-[#823d21]" /> Waitress
+                                        <Label
+                                            htmlFor="waitress"
+                                            className="flex items-center gap-1 text-xs"
+                                        >
+                                            <UserCheck className="h-3 w-3 text-[#823d21]" />{' '}
+                                            Waitress
                                         </Label>
-                                        <select
-                                            id="waitress"
-                                            className="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-2.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                            value={form.data.waitress_id}
-                                            onChange={(e) => {
-                                                const wId = e.target.value;
-                                                const w = waitresses.find((item) => String(item.id) === wId);
+                                        <Select
+                                            value={
+                                                form.data.waitress_id || 'none'
+                                            }
+                                            onValueChange={(value) => {
+                                                const wId =
+                                                    value === 'none'
+                                                        ? ''
+                                                        : value;
+                                                const w = waitresses.find(
+                                                    (item) =>
+                                                        String(item.id) === wId,
+                                                );
                                                 form.setData((prev) => ({
                                                     ...prev,
                                                     waitress_id: wId,
-                                                    fixed_number: w?.current_number ? String(w.current_number) : prev.fixed_number,
+                                                    fixed_number:
+                                                        w?.current_number
+                                                            ? String(
+                                                                  w.current_number,
+                                                              )
+                                                            : prev.fixed_number,
                                                 }));
                                             }}
                                         >
-                                            <option value="">— Walk-in / None —</option>
-                                            {waitresses.map((w) => (
-                                                <option key={w.id} value={w.id}>
-                                                    {w.name} {w.range_start ? `(#${w.range_start}-${w.range_end})` : ''}
-                                                </option>
-                                            ))}
-                                        </select>
+                                            <SelectTrigger
+                                                id="waitress"
+                                                className="mt-1 h-9 w-full text-xs"
+                                            >
+                                                <SelectValue placeholder="Walk-in / None" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="none">
+                                                    Walk-in / None
+                                                </SelectItem>
+                                                {waitresses.map((w) => (
+                                                    <SelectItem
+                                                        key={w.id}
+                                                        value={String(w.id)}
+                                                    >
+                                                        {w.name}{' '}
+                                                        {w.range_start
+                                                            ? `(#${w.range_start}-${w.range_end})`
+                                                            : ''}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                     </div>
 
                                     <div>
-                                        <Label htmlFor="fixed_no" className="text-xs flex items-center gap-1">
-                                            <Hash className="h-3 w-3 text-amber-600" /> Table / Fixed #
+                                        <Label
+                                            htmlFor="fixed_no"
+                                            className="flex items-center gap-1 text-xs"
+                                        >
+                                            <Hash className="h-3 w-3 text-amber-600" />{' '}
+                                            Table / Fixed #
                                         </Label>
                                         <Input
                                             id="fixed_no"
                                             type="number"
                                             placeholder="e.g. 101"
-                                            className="mt-1 h-9 text-xs font-mono"
+                                            className="mt-1 h-9 font-mono text-xs shadow-sm"
                                             value={form.data.fixed_number}
-                                            onChange={(e) => form.setData('fixed_number', e.target.value)}
+                                            onChange={(e) =>
+                                                form.setData(
+                                                    'fixed_number',
+                                                    e.target.value,
+                                                )
+                                            }
                                         />
                                     </div>
                                 </div>
                             </div>
 
                             {/* Cart Items List */}
-                            <div className="space-y-3 min-h-[200px] max-h-[320px] overflow-y-auto pr-1">
+                            <div className="max-h-[320px] min-h-[200px] space-y-3 overflow-y-auto pr-1">
                                 {cart.length === 0 ? (
-                                    <div className="py-12 text-center text-muted-foreground space-y-2">
-                                        <ShoppingBag className="h-8 w-8 mx-auto text-muted-foreground/40" />
-                                        <p className="text-xs font-medium">Cart is currently empty</p>
-                                        <p className="text-[11px] text-muted-foreground">Select products from the menu to build order.</p>
+                                    <div className="space-y-2 py-12 text-center text-muted-foreground">
+                                        <ShoppingBag className="mx-auto h-8 w-8 text-muted-foreground/40" />
+                                        <p className="text-xs font-medium">
+                                            Cart is currently empty
+                                        </p>
+                                        <p className="text-[11px] text-muted-foreground">
+                                            Select products from the menu to
+                                            build order.
+                                        </p>
                                     </div>
                                 ) : (
                                     cart.map((item) => (
                                         <div
                                             key={item.product.id}
-                                            className="flex items-center justify-between gap-3 p-2.5 rounded-lg border bg-muted/20"
+                                            className="flex items-center justify-between gap-3 rounded-lg border bg-card p-2.5 shadow-sm transition-shadow hover:shadow-md"
                                         >
-                                            <div className="flex-1 min-w-0">
-                                                <p className="font-semibold text-xs text-foreground truncate">{item.product.name}</p>
-                                                <p className="text-[11px] font-mono text-muted-foreground">
-                                                    ${item.product.price.toFixed(2)} × {item.quantity}
+                                            <div className="min-w-0 flex-1">
+                                                <p className="truncate text-xs font-semibold text-foreground">
+                                                    {item.product.name}
+                                                </p>
+                                                <p className="font-mono text-[11px] text-muted-foreground">
+                                                    $
+                                                    {item.product.price.toFixed(
+                                                        2,
+                                                    )}{' '}
+                                                    × {item.quantity}
                                                 </p>
                                             </div>
 
                                             <div className="flex items-center gap-2">
-                                                <div className="flex items-center rounded-md border bg-background">
+                                                <div className="flex items-center rounded-md border bg-background shadow-xs">
                                                     <button
                                                         type="button"
-                                                        onClick={() => updateQuantity(item.product.id, -1)}
-                                                        className="p-1 hover:bg-muted text-muted-foreground rounded-l-md"
+                                                        onClick={() =>
+                                                            updateQuantity(
+                                                                item.product.id,
+                                                                -1,
+                                                            )
+                                                        }
+                                                        className="rounded-l-md p-1 text-muted-foreground hover:bg-muted"
                                                     >
                                                         <Minus className="h-3 w-3" />
                                                     </button>
-                                                    <span className="w-7 text-center text-xs font-semibold font-mono">
+                                                    <span className="w-7 text-center font-mono text-xs font-semibold">
                                                         {item.quantity}
                                                     </span>
                                                     <button
                                                         type="button"
-                                                        onClick={() => updateQuantity(item.product.id, 1)}
-                                                        className="p-1 hover:bg-muted text-muted-foreground rounded-r-md"
+                                                        onClick={() =>
+                                                            updateQuantity(
+                                                                item.product.id,
+                                                                1,
+                                                            )
+                                                        }
+                                                        className="rounded-r-md p-1 text-muted-foreground hover:bg-muted"
                                                     >
                                                         <Plus className="h-3 w-3" />
                                                     </button>
                                                 </div>
 
-                                                <span className="w-16 text-right font-mono font-bold text-xs">
-                                                    ${(item.product.price * item.quantity).toFixed(2)}
+                                                <span className="w-16 text-right font-mono text-xs font-bold">
+                                                    $
+                                                    {(
+                                                        item.product.price *
+                                                        item.quantity
+                                                    ).toFixed(2)}
                                                 </span>
 
                                                 <button
                                                     type="button"
-                                                    onClick={() => removeFromCart(item.product.id)}
-                                                    className="text-red-500 hover:text-red-700 p-1"
+                                                    onClick={() =>
+                                                        removeFromCart(
+                                                            item.product.id,
+                                                        )
+                                                    }
+                                                    className="p-1 text-red-500 hover:text-red-700"
                                                 >
                                                     <Trash2 className="h-3.5 w-3.5" />
                                                 </button>
@@ -415,25 +570,34 @@ export default function PosIndex({ categories, products, waitresses, recentOrder
                             </div>
 
                             {/* Cart Totals Summary */}
-                            <div className="border-t pt-4 space-y-2 text-xs">
+                            <div className="space-y-2 border-t pt-4 text-xs">
                                 <div className="flex justify-between text-muted-foreground">
                                     <span>Subtotal</span>
-                                    <span className="font-mono font-medium">${subtotal.toFixed(2)}</span>
+                                    <span className="font-mono font-medium">
+                                        ${subtotal.toFixed(2)}
+                                    </span>
                                 </div>
-                                <div className="flex justify-between items-center text-muted-foreground">
+                                <div className="flex items-center justify-between text-muted-foreground">
                                     <span>Discount ($)</span>
                                     <Input
                                         type="number"
                                         step="0.50"
                                         min="0"
-                                        className="w-20 h-7 text-xs text-right font-mono p-1"
+                                        className="h-7 w-20 p-1 text-right font-mono text-xs shadow-sm"
                                         value={form.data.discount}
-                                        onChange={(e) => form.setData('discount', e.target.value)}
+                                        onChange={(e) =>
+                                            form.setData(
+                                                'discount',
+                                                e.target.value,
+                                            )
+                                        }
                                     />
                                 </div>
-                                <div className="flex justify-between text-base font-bold text-foreground border-t pt-2">
+                                <div className="flex justify-between border-t pt-2 text-base font-bold text-foreground">
                                     <span>Total Payable</span>
-                                    <span className="font-mono text-[#823d21] text-lg">${grandTotal.toFixed(2)}</span>
+                                    <span className="font-mono text-lg text-[#823d21]">
+                                        ${grandTotal.toFixed(2)}
+                                    </span>
                                 </div>
                             </div>
 
@@ -454,9 +618,10 @@ export default function PosIndex({ categories, products, waitresses, recentOrder
                                     size="sm"
                                     disabled={cart.length === 0}
                                     onClick={() => setIsCheckoutOpen(true)}
-                                    className="flex-2 bg-[#823d21] hover:bg-[#682e18] text-white font-semibold text-xs gap-1.5 shadow-sm"
+                                    className="flex-2 gap-1.5 bg-[#823d21] text-xs font-semibold text-white shadow-sm hover:bg-[#682e18]"
                                 >
-                                    <CreditCard className="h-4 w-4" /> Checkout & Pay (${grandTotal.toFixed(2)})
+                                    <CreditCard className="h-4 w-4" /> Checkout
+                                    & Pay (${grandTotal.toFixed(2)})
                                 </Button>
                             </div>
                         </div>
@@ -468,38 +633,71 @@ export default function PosIndex({ categories, products, waitresses, recentOrder
                     <DialogContent className="sm:max-w-[500px]">
                         <DialogHeader>
                             <DialogTitle className="flex items-center gap-2 text-[#823d21]">
-                                <CreditCard className="h-5 w-5" /> Complete POS Sale
+                                <CreditCard className="h-5 w-5" /> Complete POS
+                                Sale
                             </DialogTitle>
                             <DialogDescription>
-                                Select payment method and confirm customer transaction.
+                                Select payment method and confirm customer
+                                transaction.
                             </DialogDescription>
                         </DialogHeader>
 
-                        <form onSubmit={handleCheckoutSubmit} className="space-y-5 py-2">
+                        <form
+                            onSubmit={handleCheckoutSubmit}
+                            className="space-y-5 py-2"
+                        >
                             {/* Amount Payable Banner */}
-                            <div className="rounded-xl bg-[#823d21]/10 border border-[#823d21]/20 p-4 text-center">
-                                <p className="text-xs uppercase font-semibold text-muted-foreground">Total Amount Due</p>
-                                <p className="text-3xl font-bold font-mono text-[#823d21] mt-1">${grandTotal.toFixed(2)}</p>
+                            <div className="rounded-xl border border-[#823d21]/20 bg-[#823d21]/10 p-4 text-center">
+                                <p className="text-xs font-semibold text-muted-foreground uppercase">
+                                    Total Amount Due
+                                </p>
+                                <p className="mt-1 font-mono text-3xl font-bold text-[#823d21]">
+                                    ${grandTotal.toFixed(2)}
+                                </p>
                             </div>
 
                             {/* Payment Method Selector */}
                             <div className="space-y-2">
-                                <Label className="text-xs">Payment Method</Label>
+                                <Label className="text-xs">
+                                    Payment Method
+                                </Label>
                                 <div className="grid grid-cols-2 gap-2">
                                     {[
-                                        { id: 'cash', label: 'Cash', icon: DollarSign },
-                                        { id: 'mobile_money', label: 'Mobile Money', icon: Smartphone },
-                                        { id: 'card', label: 'Card', icon: CreditCard },
-                                        { id: 'credit', label: 'Customer Credit', icon: Receipt },
+                                        {
+                                            id: 'cash',
+                                            label: 'Cash',
+                                            icon: DollarSign,
+                                        },
+                                        {
+                                            id: 'mobile_money',
+                                            label: 'Mobile Money',
+                                            icon: Smartphone,
+                                        },
+                                        {
+                                            id: 'card',
+                                            label: 'Card',
+                                            icon: CreditCard,
+                                        },
+                                        {
+                                            id: 'credit',
+                                            label: 'Customer Credit',
+                                            icon: Receipt,
+                                        },
                                     ].map((m) => (
                                         <button
                                             key={m.id}
                                             type="button"
-                                            onClick={() => form.setData('payment_method', m.id as any)}
-                                            className={`flex items-center gap-2 p-3 rounded-lg border text-xs font-semibold transition-all ${
-                                                form.data.payment_method === m.id
-                                                    ? 'border-[#823d21] bg-[#823d21]/10 text-[#823d21] ring-1 ring-[#823d21]'
-                                                    : 'bg-background hover:bg-muted text-muted-foreground'
+                                            onClick={() =>
+                                                form.setData(
+                                                    'payment_method',
+                                                    m.id as any,
+                                                )
+                                            }
+                                            className={`flex items-center gap-2 rounded-lg border p-3 text-xs font-semibold transition-all ${
+                                                form.data.payment_method ===
+                                                m.id
+                                                    ? 'border-[#823d21] bg-[#823d21]/10 text-[#823d21] shadow-sm ring-1 ring-[#823d21]'
+                                                    : 'bg-background text-muted-foreground shadow-xs hover:bg-muted hover:shadow-sm'
                                             }`}
                                         >
                                             <m.icon className="h-4 w-4 shrink-0" />
@@ -511,66 +709,117 @@ export default function PosIndex({ categories, products, waitresses, recentOrder
 
                             {/* Cash Change Calculator */}
                             {form.data.payment_method === 'cash' && (
-                                <div className="rounded-lg border bg-muted/20 p-4 space-y-3">
+                                <div className="space-y-3 rounded-lg border bg-muted/20 p-4">
                                     <div className="grid gap-2">
-                                        <Label htmlFor="tendered" className="text-xs">Cash Tendered ($)</Label>
+                                        <Label
+                                            htmlFor="tendered"
+                                            className="text-xs"
+                                        >
+                                            Cash Tendered ($)
+                                        </Label>
                                         <Input
                                             id="tendered"
                                             type="number"
                                             step="0.50"
                                             placeholder="e.g. 20.00"
-                                            className="font-mono text-sm"
+                                            className="font-mono text-sm shadow-sm"
                                             value={cashTendered}
-                                            onChange={(e) => setCashTendered(e.target.value)}
+                                            onChange={(e) =>
+                                                setCashTendered(e.target.value)
+                                            }
                                         />
                                     </div>
-                                    <div className="flex justify-between text-xs font-semibold pt-1 border-t">
-                                        <span className="text-muted-foreground">Change Due to Customer:</span>
-                                        <span className="font-mono text-emerald-600 text-sm">${cashChange.toFixed(2)}</span>
+                                    <div className="flex justify-between border-t pt-1 text-xs font-semibold">
+                                        <span className="text-muted-foreground">
+                                            Change Due to Customer:
+                                        </span>
+                                        <span className="font-mono text-sm text-emerald-600">
+                                            ${cashChange.toFixed(2)}
+                                        </span>
                                     </div>
                                 </div>
                             )}
 
                             {/* Payment Status Selector */}
                             <div className="grid gap-2">
-                                <Label htmlFor="payment_status" className="text-xs">Payment Settlement</Label>
-                                <select
-                                    id="payment_status"
-                                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-xs"
-                                    value={form.data.payment_status}
-                                    onChange={(e) => form.setData('payment_status', e.target.value as any)}
+                                <Label
+                                    htmlFor="payment_status"
+                                    className="text-xs"
                                 >
-                                    <option value="paid">Full Payment Received</option>
-                                    <option value="partial">Partial Payment</option>
-                                    <option value="unpaid">Unpaid / Deferred</option>
-                                </select>
+                                    Payment Settlement
+                                </Label>
+                                <Select
+                                    value={form.data.payment_status}
+                                    onValueChange={(value) =>
+                                        form.setData(
+                                            'payment_status',
+                                            value as
+                                                'paid' | 'partial' | 'unpaid',
+                                        )
+                                    }
+                                >
+                                    <SelectTrigger
+                                        id="payment_status"
+                                        className="h-9 w-full text-xs"
+                                    >
+                                        <SelectValue placeholder="Select payment status" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="paid">
+                                            Full Payment Received
+                                        </SelectItem>
+                                        <SelectItem value="partial">
+                                            Partial Payment
+                                        </SelectItem>
+                                        <SelectItem value="unpaid">
+                                            Unpaid / Deferred
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
 
                             {form.data.payment_status === 'partial' && (
                                 <div className="grid gap-2">
-                                    <Label htmlFor="amount_paid" className="text-xs">Amount Paid ($)</Label>
+                                    <Label
+                                        htmlFor="amount_paid"
+                                        className="text-xs"
+                                    >
+                                        Amount Paid ($)
+                                    </Label>
                                     <Input
                                         id="amount_paid"
                                         type="number"
                                         step="0.01"
+                                        className="shadow-sm"
                                         value={form.data.amount_paid}
-                                        onChange={(e) => form.setData('amount_paid', e.target.value)}
+                                        onChange={(e) =>
+                                            form.setData(
+                                                'amount_paid',
+                                                e.target.value,
+                                            )
+                                        }
                                         required
                                     />
                                 </div>
                             )}
 
                             <DialogFooter className="pt-2">
-                                <Button type="button" variant="outline" onClick={() => setIsCheckoutOpen(false)}>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setIsCheckoutOpen(false)}
+                                >
                                     Cancel
                                 </Button>
                                 <Button
                                     type="submit"
                                     disabled={form.processing}
-                                    className="bg-[#823d21] hover:bg-[#682e18] text-white gap-2 font-semibold"
+                                    className="gap-2 bg-[#823d21] font-semibold text-white hover:bg-[#682e18]"
                                 >
                                     <CheckCircle2 className="h-4 w-4" />
-                                    {form.processing ? 'Processing...' : 'Complete Sale & Print Receipt'}
+                                    {form.processing
+                                        ? 'Processing...'
+                                        : 'Complete Sale & Print Receipt'}
                                 </Button>
                             </DialogFooter>
                         </form>

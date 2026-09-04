@@ -34,9 +34,10 @@ export default function PosOrders({ orders, todayTotal, todayCount }: Props) {
         <>
             <Head title="Order History - MaMa Café POS" />
 
-            <div className="space-y-5 p-4">
-                {/* Summary Bar */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="p-6">
+                <div className="space-y-5 animate-in fade-in slide-in-from-bottom-6 duration-1000 ease-in-out">
+                    {/* Summary Bar */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     <div className="rounded-xl border bg-card p-4 shadow-sm">
                         <p className="text-xs text-muted-foreground uppercase tracking-wider">Today's Orders</p>
                         <p className="text-2xl font-bold font-mono mt-1">{todayCount}</p>
@@ -106,6 +107,7 @@ export default function PosOrders({ orders, todayTotal, todayCount }: Props) {
                             </table>
                         </div>
                     )}
+                    </div>
                 </div>
             </div>
         </>

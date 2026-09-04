@@ -121,32 +121,34 @@ export default function UsersIndex({ users, stats }: Props) {
         <>
             <Head title="Users Management - MaMa Café" />
 
-            <div className="space-y-6 p-6">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="p-6">
+                {/* Header */}
+                <div className="flex items-start justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                            <UserCog className="h-6 w-6 text-[#823d21]" />
-                            Users & Role Management
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
+                        <h1 className="text-lg font-semibold">Users & Role Management</h1>
+                        <p className="text-xs text-muted-foreground">
                             Manage staff login credentials, roles (*Admin*, *Manager*, *Operations*, *Waitress*), and permissions.
                         </p>
                     </div>
-                    <Link href="/system/users/create">
-                        <Button className="bg-[#823d21] hover:bg-[#682e18] text-white font-semibold flex items-center gap-2 shadow-sm">
-                            <Plus className="h-4 w-4" /> Add User Account
-                        </Button>
-                    </Link>
+                    <Button asChild size={'sm'}>
+                        <Link href="/system/users/create">
+                            <Plus className="h-4 w-4" />
+                            Add
+                            <span className="hidden sm:inline">User</span>
+                        </Link>
+                    </Button>
                 </div>
 
                 <StatsCard sections={stats} />
 
-                <DataTable
-                    title="System User Accounts"
-                    searchTitle="Filter users by name or email..."
-                    columns={columns}
-                    data={users}
-                />
+                <div className="mt-6 animate-in fade-in slide-in-from-bottom-6 duration-1000 ease-in-out">
+                    <DataTable
+                        title="System User Accounts"
+                        searchTitle="Filter users by name or email..."
+                        columns={columns}
+                        data={users}
+                    />
+                </div>
             </div>
         </>
     );

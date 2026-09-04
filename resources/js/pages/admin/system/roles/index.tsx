@@ -28,6 +28,8 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog';
 
+import { StatsCard, StatSection } from '@/components/tools/StatsCard';
+
 interface RoleRow {
     id: number;
     name: string;
@@ -51,31 +53,36 @@ interface Props {
     stats: Stats;
 }
 
-const statCards = (stats: Stats) => [
+const statCards = (stats: Stats): StatSection[] => [
     {
-        label: 'TOTAL ROLES',
+        title: 'Total Roles',
         value: stats.total_roles,
-        icon: <Layers className="h-5 w-5 text-muted-foreground" />,
+        icon: Layers,
+        color: 'primary',
     },
     {
-        label: 'SYSTEM CORE ROLES',
+        title: 'System Core Roles',
         value: stats.system_roles,
-        icon: <Lock className="h-5 w-5 text-muted-foreground" />,
+        icon: Lock,
+        color: 'info',
     },
     {
-        label: 'CUSTOM ROLES',
+        title: 'Custom Roles',
         value: stats.custom_roles,
-        icon: <Shield className="h-5 w-5 text-muted-foreground" />,
+        icon: Shield,
+        color: 'warning',
     },
     {
-        label: 'DEFINED PRIVILEGES',
+        title: 'Defined Privileges',
         value: stats.total_permissions,
-        icon: <Key className="h-5 w-5 text-muted-foreground" />,
+        icon: Key,
+        color: 'accent',
     },
     {
-        label: 'ASSIGNED USERS',
+        title: 'Assigned Users',
         value: stats.assigned_users,
-        icon: <UserCheck className="h-5 w-5 text-muted-foreground" />,
+        icon: UserCheck,
+        color: 'success',
     },
 ];
 
@@ -97,48 +104,36 @@ export default function RolesIndex({ roles, stats }: Props) {
         <>
             <Head title="Roles & Permissions — MaMa Café" />
 
-            <div className="space-y-6 p-6">
+            <div className="p-6">
                 {/* Page Header */}
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex items-start justify-between">
                     <div>
-                        <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-foreground">
-                            <Shield className="h-6 w-6 text-[#823d21]" />
-                            Roles &amp; Access Permissions
-                        </h1>
-                        <p className="mt-1 text-sm text-muted-foreground">
+                        <h1 className="text-lg font-semibold">Roles &amp; Access Permissions</h1>
+                        <p className="text-xs text-muted-foreground">
                             Manage role hierarchies, configure fine-grained module privileges, and audit assigned user accounts.
                         </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                        <Button variant="outline" asChild className="gap-2 text-sm">
+                        <Button variant="outline" size="sm" asChild>
                             <Link href="/system/users">
-                                <Users className="h-4 w-4" />
+                                <Users className="h-4 w-4 mr-1" />
                                 Users Roster
                             </Link>
                         </Button>
-                        <Button asChild className="gap-2 bg-[#823d21] text-sm text-white hover:bg-[#682e18]">
+                        <Button size="sm" asChild>
                             <Link href="/system/roles/create">
                                 <Plus className="h-4 w-4" />
-                                Create Role
+                                Create
+                                <span className="hidden sm:inline">Role</span>
                             </Link>
                         </Button>
                     </div>
                 </div>
 
                 {/* Stats Cards */}
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-                    {statCards(stats).map((card) => (
-                        <div key={card.label} className="rounded-xl border bg-card p-4 shadow-xs">
-                            <div className="mb-2 flex items-center justify-between">
-                                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                                    {card.label}
-                                </p>
-                                {card.icon}
-                            </div>
-                            <p className="text-3xl font-bold text-foreground">{card.value}</p>
-                        </div>
-                    ))}
-                </div>
+                <StatsCard sections={statCards(stats)} />
+
+                <div className="mt-6 space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-1000 ease-in-out">
 
                 {/* Search */}
                 <div className="relative w-full max-w-sm">
@@ -287,7 +282,8 @@ export default function RolesIndex({ roles, stats }: Props) {
                     </div>
                 </div>
             </div>
-        </>
+        </div>
+    </>
     );
 }
 

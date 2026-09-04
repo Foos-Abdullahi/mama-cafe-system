@@ -5,6 +5,13 @@ import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { ArrowLeft, UserPlus } from 'lucide-react';
 
 export default function WaitressCreate() {
@@ -24,105 +31,130 @@ export default function WaitressCreate() {
 
     return (
         <>
-            <Head title="Add Waitress - MaMa Café" />
+            <Head title="Add Waitress — MaMa Café" />
 
-            <div className="space-y-6 p-6">
-                <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-6 p-4 md:p-6 animate-in fade-in slide-in-from-bottom-3 duration-300">
+                {/* Header with Title and Actions */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
                     <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#823d21]/10 text-[#823d21]">
                             <UserPlus className="h-5 w-5" />
                         </div>
                         <div>
-                            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                            <h1 className="text-lg md:text-xl font-semibold text-foreground tracking-tight">
                                 Add Waitress
                             </h1>
-                            <p className="text-sm text-muted-foreground">Register a new floor staff member.</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">Register a new floor staff member and assigned tables.</p>
                         </div>
                     </div>
                     <Link href="/management/waitresses">
-                        <Button variant="outline" size="sm" className="gap-2">
-                            <ArrowLeft className="h-4 w-4" />
+                        <Button variant="outline" size="sm" className="gap-1.5 text-xs shadow-xs">
+                            <ArrowLeft className="h-3.5 w-3.5" />
                             Back to Waitresses
                         </Button>
                     </Link>
                 </div>
 
-                <div className="rounded-xl border bg-card p-6 shadow-sm">
+                {/* Form Card */}
+                <div className="rounded-xl border border-border bg-card p-5 md:p-6 shadow-xs">
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Full Name */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="name">Full Name <span className="text-red-500">*</span></Label>
-                                <Input
-                                    id="name"
-                                    placeholder="e.g. Fatima Ali"
-                                    value={form.data.name}
-                                    onChange={(e) => form.setData('name', e.target.value)}
-                                    required
-                                    autoFocus
-                                />
-                                <InputError message={form.errors.name} />
-                            </div>
+                        <div className="space-y-4">
+                            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground border-b border-border pb-2.5">
+                                Staff Profile & Terms
+                            </h2>
 
-                            {/* Phone Number */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="phone">Phone Number <span className="text-red-500">*</span></Label>
-                                <Input
-                                    id="phone"
-                                    placeholder="+252 61 XXX XXXX"
-                                    value={form.data.phone}
-                                    onChange={(e) => form.setData('phone', e.target.value)}
-                                    required
-                                />
-                                <InputError message={form.errors.phone} />
-                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Full Name */}
+                                <div className="grid gap-2">
+                                    <Label htmlFor="name" className="text-xs font-medium text-foreground">
+                                        Full Name <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Input
+                                        id="name"
+                                        placeholder="e.g. Fatima Ali"
+                                        className="h-10"
+                                        value={form.data.name}
+                                        onChange={(e) => form.setData('name', e.target.value)}
+                                        required
+                                        autoFocus
+                                    />
+                                    <InputError message={form.errors.name} />
+                                </div>
 
-                            {/* Commission Rate */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="commission_rate">Commission Rate <span className="text-red-500">*</span></Label>
-                                <Input
-                                    id="commission_rate"
-                                    type="number"
-                                    step="0.01"
-                                    min="0.01"
-                                    max="1"
-                                    placeholder="0.15 (15%)"
-                                    value={form.data.commission_rate}
-                                    onChange={(e) => form.setData('commission_rate', e.target.value)}
-                                    required
-                                />
-                                <InputError message={form.errors.commission_rate} />
-                            </div>
+                                {/* Phone Number */}
+                                <div className="grid gap-2">
+                                    <Label htmlFor="phone" className="text-xs font-medium text-foreground">
+                                        Phone Number <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Input
+                                        id="phone"
+                                        placeholder="+252 61 XXX XXXX"
+                                        className="h-10"
+                                        value={form.data.phone}
+                                        onChange={(e) => form.setData('phone', e.target.value)}
+                                        required
+                                    />
+                                    <InputError message={form.errors.phone} />
+                                </div>
 
-                            {/* Status */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="status">Status <span className="text-red-500">*</span></Label>
-                                <select
-                                    id="status"
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                    value={form.data.status}
-                                    onChange={(e) => form.setData('status', e.target.value as any)}
-                                >
-                                    <option value="active">Active (On Duty)</option>
-                                    <option value="inactive">Inactive (Off Duty)</option>
-                                </select>
-                                <InputError message={form.errors.status} />
+                                {/* Commission Rate */}
+                                <div className="grid gap-2">
+                                    <Label htmlFor="commission_rate" className="text-xs font-medium text-foreground">
+                                        Commission Rate <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Input
+                                        id="commission_rate"
+                                        type="number"
+                                        step="0.01"
+                                        min="0.01"
+                                        max="1"
+                                        placeholder="0.15 (15%)"
+                                        className="h-10 font-mono"
+                                        value={form.data.commission_rate}
+                                        onChange={(e) => form.setData('commission_rate', e.target.value)}
+                                        required
+                                    />
+                                    <InputError message={form.errors.commission_rate} />
+                                </div>
+
+                                {/* Status */}
+                                <div className="grid gap-2">
+                                    <Label htmlFor="status" className="text-xs font-medium text-foreground">
+                                        Status <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Select
+                                        value={form.data.status}
+                                        onValueChange={(val: 'active' | 'inactive') => form.setData('status', val)}
+                                    >
+                                        <SelectTrigger id="status" className="w-full h-10">
+                                            <SelectValue placeholder="Select status" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="active">Active (On Duty)</SelectItem>
+                                            <SelectItem value="inactive">Inactive (Off Duty)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <InputError message={form.errors.status} />
+                                </div>
                             </div>
                         </div>
 
                         {/* Fixed Number Range */}
-                        <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 space-y-3">
-                            <p className="text-xs font-semibold text-amber-800 dark:text-amber-300 uppercase tracking-wide">
-                                Assigned Fixed Number Range
-                            </p>
+                        <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 md:p-5 space-y-3">
+                            <h2 className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">
+                                Assigned Fixed / Table Number Range
+                            </h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="grid gap-2">
-                                    <Label htmlFor="range_start" className="text-xs">Start Number <span className="text-red-500">*</span></Label>
+                                    <Label htmlFor="range_start" className="text-xs font-medium text-foreground">
+                                        Start Number <span className="text-red-500">*</span>
+                                    </Label>
                                     <Input
                                         id="range_start"
                                         type="number"
                                         min="1"
                                         placeholder="101"
+                                        className="h-10 font-mono"
                                         value={form.data.range_start}
                                         onChange={(e) => form.setData('range_start', e.target.value)}
                                         required
@@ -130,12 +162,15 @@ export default function WaitressCreate() {
                                     <InputError message={form.errors.range_start} />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="range_end" className="text-xs">End Number <span className="text-red-500">*</span></Label>
+                                    <Label htmlFor="range_end" className="text-xs font-medium text-foreground">
+                                        End Number <span className="text-red-500">*</span>
+                                    </Label>
                                     <Input
                                         id="range_end"
                                         type="number"
                                         min="1"
                                         placeholder="150"
+                                        className="h-10 font-mono"
                                         value={form.data.range_end}
                                         onChange={(e) => form.setData('range_end', e.target.value)}
                                         required
@@ -145,11 +180,19 @@ export default function WaitressCreate() {
                             </div>
                         </div>
 
-                        <div className="flex items-center justify-end gap-3 border-t pt-4">
+                        {/* Actions Footer */}
+                        <div className="flex items-center justify-end gap-3 border-t border-border pt-4">
                             <Link href="/management/waitresses">
-                                <Button type="button" variant="outline">Cancel</Button>
+                                <Button type="button" variant="outline" size="sm" className="gap-1.5 text-xs shadow-xs">
+                                    Cancel
+                                </Button>
                             </Link>
-                            <Button type="submit" disabled={form.processing} className="bg-[#823d21] hover:bg-[#682e18] min-w-[140px]">
+                            <Button
+                                type="submit"
+                                size="sm"
+                                disabled={form.processing}
+                                className="gap-1.5 text-xs shadow-xs bg-[#823d21] text-white hover:bg-[#682e18] min-w-[120px]"
+                            >
                                 {form.processing ? 'Saving...' : 'Save Waitress'}
                             </Button>
                         </div>
@@ -165,7 +208,7 @@ WaitressCreate.layout = (page: React.ReactNode) => (
         breadcrumbs={[
             { title: 'Management', href: '/management/waitresses' },
             { title: 'Waitresses', href: '/management/waitresses' },
-            { title: 'Create', href: '#' },
+            { title: 'Add Waitress', href: '#' },
         ]}
     >
         {page}

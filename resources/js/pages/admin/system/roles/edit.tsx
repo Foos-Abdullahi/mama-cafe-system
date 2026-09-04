@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
+import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Key, Lock, Save, Shield, ChevronDown } from 'lucide-react';
@@ -75,12 +77,12 @@ export default function RolesEdit({ role, permissionsByModule }: Props) {
         <>
             <Head title={`Edit ${role.name} — MaMa Café`} />
 
-            <div className="space-y-6 p-6 w-full">
+            <div className="flex flex-col gap-6 p-4 md:p-6 animate-in fade-in slide-in-from-bottom-3 duration-300">
                 {/* Header */}
-                <div className="flex items-start justify-between">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <div className="flex items-center gap-3 mb-1">
-                            <h1 className="text-2xl font-bold tracking-tight text-foreground">Edit Role</h1>
+                        <div className="flex items-center gap-2.5 mb-1">
+                            <h1 className="text-lg md:text-xl font-semibold text-foreground tracking-tight">Edit Role</h1>
                             <Badge
                                 variant="outline"
                                 className={
@@ -92,96 +94,85 @@ export default function RolesEdit({ role, permissionsByModule }: Props) {
                                 {role.is_system ? 'System Role' : 'Custom Role'}
                             </Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-xs text-muted-foreground mt-0.5">
                             {role.is_system
                                 ? 'System role identity cannot be changed. You can only update its permissions.'
                                 : 'Update role details and configure module permissions.'}
                         </p>
                     </div>
-                    <Button variant="ghost" asChild className="gap-2 text-sm">
-                        <Link href="/system/roles">
-                            <ArrowLeft className="h-4 w-4" />
+                    <Link href="/system/roles">
+                        <Button variant="outline" size="sm" className="gap-1.5 text-xs shadow-xs">
+                            <ArrowLeft className="h-3.5 w-3.5" />
                             Back to Roles
-                        </Link>
-                    </Button>
+                        </Button>
+                    </Link>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Role Identification Card */}
-                    <div className="rounded-xl border bg-card shadow-sm">
-                        <div className="flex items-center gap-3 border-b px-5 py-4">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-lg border bg-muted/30">
-                                {role.is_system ? (
-                                    <Lock className="h-4 w-4 text-muted-foreground" />
-                                ) : (
-                                    <Shield className="h-4 w-4 text-muted-foreground" />
-                                )}
-                            </div>
-                            <div>
-                                <p className="text-sm font-semibold text-foreground">Role Identification</p>
-                                <p className="text-xs text-muted-foreground">
-                                    {role.is_system ? 'System role — identity fields are locked.' : 'Role title and unique machine slug.'}
-                                </p>
-                            </div>
-                        </div>
-                        <div className="space-y-4 p-5">
-                            <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="rounded-xl border border-border bg-card p-5 md:p-6 shadow-xs space-y-6">
+                        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground border-b border-border pb-2.5">
+                            Role Identification
+                        </h2>
+                        <div className="space-y-4">
+                            <div className="grid gap-6 sm:grid-cols-2">
                                 {/* Name */}
-                                <div className="space-y-1.5">
-                                    <label htmlFor="role-name" className="text-sm font-medium text-foreground">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="role-name">
                                         Role Name
-                                        {!role.is_system && <span className="text-red-500"> *</span>}
-                                    </label>
+                                        {!role.is_system && <span className="text-destructive"> *</span>}
+                                    </Label>
                                     <Input
                                         id="role-name"
                                         value={data.name}
                                         disabled={role.is_system}
                                         onChange={(e) => !role.is_system && setData('name', e.target.value)}
-                                        className="text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                                        className="disabled:cursor-not-allowed disabled:opacity-60"
+                                        required={!role.is_system}
                                     />
-                                    {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
+                                    <InputError message={errors.name} />
                                 </div>
 
                                 {/* Slug */}
-                                <div className="space-y-1.5">
-                                    <label htmlFor="role-slug" className="text-sm font-medium text-foreground">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="role-slug">
                                         Role Identifier (Slug)
-                                    </label>
+                                    </Label>
                                     <Input
                                         id="role-slug"
                                         value={data.slug}
                                         disabled={role.is_system}
                                         onChange={(e) => !role.is_system && setData('slug', e.target.value)}
-                                        className="font-mono text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                                        className="font-mono disabled:cursor-not-allowed disabled:opacity-60"
                                     />
-                                    {errors.slug && <p className="text-xs text-red-500">{errors.slug}</p>}
+                                    <InputError message={errors.slug} />
                                 </div>
                             </div>
 
                             {/* Description */}
-                            <div className="space-y-1.5">
-                                <label htmlFor="role-description" className="text-sm font-medium text-foreground">
+                            <div className="grid gap-2">
+                                <Label htmlFor="role-description">
                                     Role Description &amp; Scope
-                                </label>
+                                </Label>
                                 <textarea
                                     id="role-description"
                                     value={data.description}
                                     disabled={role.is_system}
                                     onChange={(e) => !role.is_system && setData('description', e.target.value)}
                                     rows={3}
-                                    className="w-full rounded-md border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 resize-none"
                                 />
-                                {errors.description && <p className="text-xs text-red-500">{errors.description}</p>}
+                                <InputError message={errors.description} />
                             </div>
                         </div>
                     </div>
 
                     {/* Permissions Card */}
-                    <div className="rounded-xl border bg-card shadow-sm">
-                        <div className="flex items-center justify-between gap-3 border-b px-5 py-4">
+                    <div className="rounded-xl border border-border bg-card shadow-xs overflow-hidden">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border p-5 md:px-6">
                             <div className="flex items-center gap-3">
-                                <div className="flex h-8 w-8 items-center justify-center rounded-lg border bg-muted/30">
-                                    <Key className="h-4 w-4 text-muted-foreground" />
+                                <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-muted/40 text-muted-foreground">
+                                    <Key className="h-4 w-4" />
                                 </div>
                                 <div>
                                     <p className="text-sm font-semibold text-foreground">Granted Module Privileges</p>
@@ -196,7 +187,7 @@ export default function RolesEdit({ role, permissionsByModule }: Props) {
                                     variant="outline"
                                     size="sm"
                                     onClick={toggleAll}
-                                    className="shrink-0 text-xs"
+                                    className="shrink-0 text-xs shadow-xs"
                                 >
                                     {isAllSelected ? 'Deselect All' : 'Toggle All Permissions'}
                                 </Button>
@@ -205,7 +196,7 @@ export default function RolesEdit({ role, permissionsByModule }: Props) {
 
                         {/* Admin notice */}
                         {role.slug === 'admin' && (
-                            <div className="flex items-center gap-3 border-b bg-blue-50 px-5 py-3 dark:bg-blue-950/30">
+                            <div className="flex items-center gap-3 border-b border-border bg-blue-50/70 dark:bg-blue-950/30 px-5 py-3 md:px-6">
                                 <Lock className="h-4 w-4 shrink-0 text-blue-600" />
                                 <p className="text-xs text-blue-700 dark:text-blue-400">
                                     The Administrator role always has full access to all permissions regardless of what is selected here.
@@ -213,7 +204,7 @@ export default function RolesEdit({ role, permissionsByModule }: Props) {
                             </div>
                         )}
 
-                        <div className="divide-y">
+                        <div className="divide-y divide-border">
                             {Object.entries(permissionsByModule).map(([module, modulePerms]) => {
                                 const moduleKeys = Object.keys(modulePerms);
                                 const selectedCount = moduleKeys.filter((k) => data.permissions.includes(k)).length;
@@ -223,7 +214,7 @@ export default function RolesEdit({ role, permissionsByModule }: Props) {
                                 return (
                                     <div key={module}>
                                         {/* Module Header */}
-                                        <div className="flex items-center justify-between bg-muted/30 px-5 py-3">
+                                        <div className="flex items-center justify-between bg-muted/30 px-5 py-3 md:px-6">
                                             <button
                                                 type="button"
                                                 onClick={() => toggleModuleCollapse(module)}
@@ -233,7 +224,7 @@ export default function RolesEdit({ role, permissionsByModule }: Props) {
                                                     className={`h-3.5 w-3.5 transition-transform ${isCollapsed ? '-rotate-90' : ''}`}
                                                 />
                                                 {module} Module
-                                                <Badge variant="outline" className="ml-1 text-[10px] px-1.5 py-0">
+                                                <Badge variant="outline" className="ml-1 text-[10px] px-1.5 py-0 border-border">
                                                     {role.slug === 'admin' ? moduleKeys.length : selectedCount} of {moduleKeys.length}
                                                 </Badge>
                                             </button>
@@ -250,14 +241,14 @@ export default function RolesEdit({ role, permissionsByModule }: Props) {
 
                                         {/* Module Permissions Grid */}
                                         {!isCollapsed && (
-                                            <div className="grid gap-0 sm:grid-cols-2 lg:grid-cols-3 px-5 py-4">
+                                            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 p-4 md:p-6 bg-card">
                                                 {Object.entries(modulePerms).map(([key, meta]) => {
                                                     const isAdminRole = role.slug === 'admin';
                                                     return (
                                                         <label
                                                             key={key}
                                                             htmlFor={`perm-${key}`}
-                                                            className="flex cursor-pointer items-start gap-3 rounded-lg p-3 hover:bg-muted/20 transition-colors"
+                                                            className="flex cursor-pointer items-start gap-3 rounded-lg border border-transparent p-2.5 hover:border-border hover:bg-muted/30 transition-colors"
                                                         >
                                                             <Checkbox
                                                                 id={`perm-${key}`}
@@ -266,13 +257,13 @@ export default function RolesEdit({ role, permissionsByModule }: Props) {
                                                                 onCheckedChange={(checked) =>
                                                                     !isAdminRole && togglePermission(key, Boolean(checked))
                                                                 }
-                                                                className="mt-0.5 border-muted-foreground data-[state=checked]:bg-[#823d21] data-[state=checked]:border-[#823d21] disabled:opacity-80"
+                                                                className="mt-0.5 data-[state=checked]:bg-[#823d21] data-[state=checked]:border-[#823d21] disabled:opacity-80"
                                                             />
-                                                            <div>
-                                                                <p className="text-sm font-medium text-foreground leading-tight">
+                                                            <div className="space-y-0.5">
+                                                                <p className="text-xs font-medium text-foreground leading-snug">
                                                                     {meta.name}
                                                                 </p>
-                                                                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                                                                <p className="text-[11px] text-muted-foreground leading-normal">
                                                                     {meta.description}
                                                                 </p>
                                                             </div>
@@ -288,16 +279,19 @@ export default function RolesEdit({ role, permissionsByModule }: Props) {
                     </div>
 
                     {/* Footer Actions */}
-                    <div className="flex items-center justify-end gap-3">
-                        <Button type="button" variant="outline" asChild>
-                            <Link href="/system/roles">Cancel</Link>
-                        </Button>
+                    <div className="flex items-center justify-end gap-3 border-t border-border pt-4">
+                        <Link href="/system/roles">
+                            <Button type="button" variant="outline" size="sm" className="shadow-xs">
+                                Cancel
+                            </Button>
+                        </Link>
                         <Button
                             type="submit"
                             disabled={processing}
-                            className="gap-2 bg-[#823d21] text-white hover:bg-[#682e18]"
+                            size="sm"
+                            className="gap-1.5 bg-[#823d21] text-white hover:bg-[#682e18] shadow-xs min-w-[130px]"
                         >
-                            <Save className="h-4 w-4" />
+                            <Save className="h-3.5 w-3.5" />
                             {processing ? 'Saving...' : 'Save Changes'}
                         </Button>
                     </div>

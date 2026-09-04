@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
+import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Key, Shield, ChevronDown } from 'lucide-react';
@@ -82,57 +84,52 @@ export default function RolesCreate({ permissionsByModule }: Props) {
         <>
             <Head title="Create Role — MaMa Café" />
 
-            <div className="space-y-6 p-6 w-full">
+            <div className="flex flex-col gap-6 p-4 md:p-6 animate-in fade-in slide-in-from-bottom-3 duration-300">
                 {/* Header */}
-                <div className="flex items-start justify-between">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-foreground">Create New Role</h1>
-                        <p className="mt-1 text-sm text-muted-foreground">
+                        <h1 className="text-lg md:text-xl font-semibold text-foreground tracking-tight">Create New Role</h1>
+                        <p className="text-xs text-muted-foreground mt-0.5">
                             Define a custom role title, machine identifier, and grant granular module privileges.
                         </p>
                     </div>
-                    <Button variant="ghost" asChild className="gap-2 text-sm">
-                        <Link href="/system/roles">
-                            <ArrowLeft className="h-4 w-4" />
+                    <Link href="/system/roles">
+                        <Button variant="outline" size="sm" className="gap-1.5 text-xs shadow-xs">
+                            <ArrowLeft className="h-3.5 w-3.5" />
                             Back to Roles
-                        </Link>
-                    </Button>
+                        </Button>
+                    </Link>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Role Identification Card */}
-                    <div className="rounded-xl border bg-card shadow-sm">
-                        <div className="flex items-center gap-3 border-b px-5 py-4">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-lg border bg-muted/30">
-                                <Shield className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                            <div>
-                                <p className="text-sm font-semibold text-foreground">Role Identification</p>
-                                <p className="text-xs text-muted-foreground">Role title and unique machine slug.</p>
-                            </div>
-                        </div>
-                        <div className="space-y-4 p-5">
-                            <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="rounded-xl border border-border bg-card p-5 md:p-6 shadow-xs space-y-6">
+                        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground border-b border-border pb-2.5">
+                            Role Identification
+                        </h2>
+                        <div className="space-y-4">
+                            <div className="grid gap-6 sm:grid-cols-2">
                                 {/* Name */}
-                                <div className="space-y-1.5">
-                                    <label htmlFor="role-name" className="text-sm font-medium text-foreground">
-                                        Role Name <span className="text-red-500">*</span>
-                                    </label>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="role-name">
+                                        Role Name <span className="text-destructive">*</span>
+                                    </Label>
                                     <Input
                                         id="role-name"
                                         placeholder="e.g. Head Cashier, Floor Supervisor"
                                         value={data.name}
                                         onChange={(e) => handleNameChange(e.target.value)}
-                                        className="text-sm"
+                                        required
+                                        autoFocus
                                     />
-                                    {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
+                                    <InputError message={errors.name} />
                                 </div>
 
                                 {/* Slug */}
-                                <div className="space-y-1.5">
-                                    <label htmlFor="role-slug" className="text-sm font-medium text-foreground">
-                                        Role Identifier (Slug) <span className="text-red-500">*</span>
-                                    </label>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="role-slug">
+                                        Role Identifier (Slug) <span className="text-destructive">*</span>
+                                    </Label>
                                     <Input
                                         id="role-slug"
                                         placeholder="e.g. head_cashier, floor_supervisor"
@@ -141,36 +138,37 @@ export default function RolesCreate({ permissionsByModule }: Props) {
                                             setSlugManuallyEdited(true);
                                             setData('slug', slugify(e.target.value));
                                         }}
-                                        className="font-mono text-sm"
+                                        className="font-mono"
+                                        required
                                     />
-                                    {errors.slug && <p className="text-xs text-red-500">{errors.slug}</p>}
+                                    <InputError message={errors.slug} />
                                 </div>
                             </div>
 
                             {/* Description */}
-                            <div className="space-y-1.5">
-                                <label htmlFor="role-description" className="text-sm font-medium text-foreground">
+                            <div className="grid gap-2">
+                                <Label htmlFor="role-description">
                                     Role Description &amp; Scope
-                                </label>
+                                </Label>
                                 <textarea
                                     id="role-description"
                                     placeholder="Explain duties, access restrictions, and administrative responsibilities..."
                                     value={data.description}
                                     onChange={(e) => setData('description', e.target.value)}
                                     rows={3}
-                                    className="w-full rounded-md border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
                                 />
-                                {errors.description && <p className="text-xs text-red-500">{errors.description}</p>}
+                                <InputError message={errors.description} />
                             </div>
                         </div>
                     </div>
 
                     {/* Permissions Card */}
-                    <div className="rounded-xl border bg-card shadow-sm">
-                        <div className="flex items-center justify-between gap-3 border-b px-5 py-4">
+                    <div className="rounded-xl border border-border bg-card shadow-xs overflow-hidden">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border p-5 md:px-6">
                             <div className="flex items-center gap-3">
-                                <div className="flex h-8 w-8 items-center justify-center rounded-lg border bg-muted/30">
-                                    <Key className="h-4 w-4 text-muted-foreground" />
+                                <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-muted/40 text-muted-foreground">
+                                    <Key className="h-4 w-4" />
                                 </div>
                                 <div>
                                     <p className="text-sm font-semibold text-foreground">Granted Module Privileges</p>
@@ -184,13 +182,13 @@ export default function RolesCreate({ permissionsByModule }: Props) {
                                 variant="outline"
                                 size="sm"
                                 onClick={toggleAll}
-                                className="shrink-0 text-xs"
+                                className="shrink-0 text-xs shadow-xs"
                             >
                                 {isAllSelected ? 'Deselect All' : 'Toggle All Permissions'}
                             </Button>
                         </div>
 
-                        <div className="divide-y">
+                        <div className="divide-y divide-border">
                             {Object.entries(permissionsByModule).map(([module, modulePerms]) => {
                                 const moduleKeys = Object.keys(modulePerms);
                                 const selectedCount = moduleKeys.filter((k) => data.permissions.includes(k)).length;
@@ -200,7 +198,7 @@ export default function RolesCreate({ permissionsByModule }: Props) {
                                 return (
                                     <div key={module}>
                                         {/* Module Header */}
-                                        <div className="flex items-center justify-between bg-muted/30 px-5 py-3">
+                                        <div className="flex items-center justify-between bg-muted/30 px-5 py-3 md:px-6">
                                             <button
                                                 type="button"
                                                 onClick={() => toggleModuleCollapse(module)}
@@ -210,7 +208,7 @@ export default function RolesCreate({ permissionsByModule }: Props) {
                                                     className={`h-3.5 w-3.5 transition-transform ${isCollapsed ? '-rotate-90' : ''}`}
                                                 />
                                                 {module} Module
-                                                <Badge variant="outline" className="ml-1 text-[10px] px-1.5 py-0">
+                                                <Badge variant="outline" className="ml-1 text-[10px] px-1.5 py-0 border-border">
                                                     {selectedCount} of {moduleKeys.length}
                                                 </Badge>
                                             </button>
@@ -225,12 +223,12 @@ export default function RolesCreate({ permissionsByModule }: Props) {
 
                                         {/* Module Permissions Grid */}
                                         {!isCollapsed && (
-                                            <div className="grid gap-0 sm:grid-cols-2 lg:grid-cols-3 px-5 py-4">
+                                            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 p-4 md:p-6 bg-card">
                                                 {Object.entries(modulePerms).map(([key, meta]) => (
                                                     <label
                                                         key={key}
                                                         htmlFor={`perm-${key}`}
-                                                        className="flex cursor-pointer items-start gap-3 rounded-lg p-3 hover:bg-muted/20 transition-colors"
+                                                        className="flex cursor-pointer items-start gap-3 rounded-lg border border-transparent p-2.5 hover:border-border hover:bg-muted/30 transition-colors"
                                                     >
                                                         <Checkbox
                                                             id={`perm-${key}`}
@@ -238,13 +236,13 @@ export default function RolesCreate({ permissionsByModule }: Props) {
                                                             onCheckedChange={(checked) =>
                                                                 togglePermission(key, Boolean(checked))
                                                             }
-                                                            className="mt-0.5 border-muted-foreground data-[state=checked]:bg-[#823d21] data-[state=checked]:border-[#823d21]"
+                                                            className="mt-0.5 data-[state=checked]:bg-[#823d21] data-[state=checked]:border-[#823d21]"
                                                         />
-                                                        <div>
-                                                            <p className="text-sm font-medium text-foreground leading-tight">
+                                                        <div className="space-y-0.5">
+                                                            <p className="text-xs font-medium text-foreground leading-snug">
                                                                 {meta.name}
                                                             </p>
-                                                            <p className="mt-0.5 text-[11px] text-muted-foreground">
+                                                            <p className="text-[11px] text-muted-foreground leading-normal">
                                                                 {meta.description}
                                                             </p>
                                                         </div>
@@ -259,16 +257,19 @@ export default function RolesCreate({ permissionsByModule }: Props) {
                     </div>
 
                     {/* Footer Actions */}
-                    <div className="flex items-center justify-end gap-3">
-                        <Button type="button" variant="outline" asChild>
-                            <Link href="/system/roles">Cancel</Link>
-                        </Button>
+                    <div className="flex items-center justify-end gap-3 border-t border-border pt-4">
+                        <Link href="/system/roles">
+                            <Button type="button" variant="outline" size="sm" className="shadow-xs">
+                                Cancel
+                            </Button>
+                        </Link>
                         <Button
                             type="submit"
                             disabled={processing}
-                            className="gap-2 bg-[#823d21] text-white hover:bg-[#682e18]"
+                            size="sm"
+                            className="gap-1.5 bg-[#823d21] text-white hover:bg-[#682e18] shadow-xs min-w-[130px]"
                         >
-                            <Shield className="h-4 w-4" />
+                            <Shield className="h-3.5 w-3.5" />
                             {processing ? 'Creating...' : 'Create Role'}
                         </Button>
                     </div>

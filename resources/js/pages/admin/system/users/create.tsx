@@ -5,6 +5,13 @@ import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { ArrowLeft, UserPlus } from 'lucide-react';
 
 export default function UserCreate() {
@@ -25,32 +32,35 @@ export default function UserCreate() {
         <>
             <Head title="Add User Account - MaMa Café" />
 
-            <div className="space-y-6 p-6">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#823d21]/10 text-[#823d21]">
-                            <UserPlus className="h-5 w-5" />
-                        </div>
-                        <div>
-                            <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                                Create User Account
-                            </h1>
-                            <p className="text-sm text-muted-foreground">Register new staff login credentials and role.</p>
-                        </div>
+            <div className="flex flex-col gap-6 p-4 md:p-6 animate-in fade-in slide-in-from-bottom-3 duration-300">
+                {/* Header */}
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h1 className="text-lg md:text-xl font-semibold text-foreground tracking-tight">
+                            Create User Account
+                        </h1>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                            Register new staff login credentials and system role.
+                        </p>
                     </div>
                     <Link href="/system/users">
-                        <Button variant="outline" size="sm" className="gap-2">
-                            <ArrowLeft className="h-4 w-4" /> Back to Users
+                        <Button variant="outline" size="sm" className="gap-1.5 text-xs shadow-xs">
+                            <ArrowLeft className="h-3.5 w-3.5" /> Back to Users
                         </Button>
                     </Link>
                 </div>
 
-                <div className="rounded-xl border bg-card p-6 shadow-sm">
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* Profile & Account Details */}
+                    <div className="rounded-xl border border-border bg-card p-5 md:p-6 shadow-xs space-y-6">
+                        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground border-b border-border pb-2.5">
+                            Profile &amp; Role Assignment
+                        </h2>
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* Full Name */}
                             <div className="grid gap-2">
-                                <Label htmlFor="name">Full Name <span className="text-red-500">*</span></Label>
+                                <Label htmlFor="name">Full Name <span className="text-destructive">*</span></Label>
                                 <Input
                                     id="name"
                                     placeholder="e.g. Ali Ahmed"
@@ -64,7 +74,7 @@ export default function UserCreate() {
 
                             {/* Email Address */}
                             <div className="grid gap-2">
-                                <Label htmlFor="email">Email Address <span className="text-red-500">*</span></Label>
+                                <Label htmlFor="email">Email Address <span className="text-destructive">*</span></Label>
                                 <Input
                                     id="email"
                                     type="email"
@@ -77,27 +87,34 @@ export default function UserCreate() {
                             </div>
 
                             {/* Role */}
-                            <div className="grid gap-2">
-                                <Label htmlFor="role">User Role <span className="text-red-500">*</span></Label>
-                                <select
-                                    id="role"
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            <div className="grid gap-2 md:col-span-2">
+                                <Label htmlFor="role">User Role <span className="text-destructive">*</span></Label>
+                                <Select
                                     value={form.data.role}
-                                    onChange={(e) => form.setData('role', e.target.value as any)}
+                                    onValueChange={(val) => form.setData('role', val as any)}
                                 >
-                                    <option value="operations">Operations / Cashier (POS & Orders)</option>
-                                    <option value="manager">Manager (Reports & Floor Management)</option>
-                                    <option value="admin">Administrator (Full System Control)</option>
-                                    <option value="waitress">Waitress</option>
-                                </select>
+                                    <SelectTrigger id="role" className="w-full">
+                                        <SelectValue placeholder="Select a role..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="operations">Operations / Cashier (POS &amp; Orders)</SelectItem>
+                                        <SelectItem value="manager">Manager (Reports &amp; Floor Management)</SelectItem>
+                                        <SelectItem value="admin">Administrator (Full System Control)</SelectItem>
+                                        <SelectItem value="waitress">Waitress</SelectItem>
+                                    </SelectContent>
+                                </Select>
                                 <InputError message={form.errors.role} />
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t pt-4">
+                        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground border-b border-border pb-2.5 pt-2">
+                            Security &amp; Credentials
+                        </h2>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* Password */}
                             <div className="grid gap-2">
-                                <Label htmlFor="password">Password <span className="text-red-500">*</span></Label>
+                                <Label htmlFor="password">Password <span className="text-destructive">*</span></Label>
                                 <Input
                                     id="password"
                                     type="password"
@@ -111,7 +128,7 @@ export default function UserCreate() {
 
                             {/* Confirm Password */}
                             <div className="grid gap-2">
-                                <Label htmlFor="password_confirmation">Confirm Password <span className="text-red-500">*</span></Label>
+                                <Label htmlFor="password_confirmation">Confirm Password <span className="text-destructive">*</span></Label>
                                 <Input
                                     id="password_confirmation"
                                     type="password"
@@ -124,16 +141,25 @@ export default function UserCreate() {
                             </div>
                         </div>
 
-                        <div className="flex items-center justify-end gap-3 border-t pt-4">
+                        {/* Footer Actions */}
+                        <div className="flex items-center justify-end gap-3 border-t border-border pt-4">
                             <Link href="/system/users">
-                                <Button type="button" variant="outline">Cancel</Button>
+                                <Button type="button" variant="outline" size="sm" className="shadow-xs">
+                                    Cancel
+                                </Button>
                             </Link>
-                            <Button type="submit" disabled={form.processing} className="bg-[#823d21] hover:bg-[#682e18] min-w-[140px]">
+                            <Button
+                                type="submit"
+                                disabled={form.processing}
+                                size="sm"
+                                className="bg-[#823d21] text-white hover:bg-[#682e18] shadow-xs min-w-[130px]"
+                            >
+                                <UserPlus className="h-3.5 w-3.5 mr-1.5" />
                                 {form.processing ? 'Creating...' : 'Create Account'}
                             </Button>
                         </div>
-                    </form>
-                </div>
+                    </div>
+                </form>
             </div>
         </>
     );

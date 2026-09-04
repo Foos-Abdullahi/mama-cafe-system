@@ -33,6 +33,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::resource('orders', OrderController::class)->only(['index', 'create', 'store', 'show']);
 
         Route::middleware('role:admin,manager')->group(function () {
+            Route::resource('orders', OrderController::class)->only(['edit', 'update', 'destroy']);
             Route::resource('categories', CategoryController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
             Route::resource('products', ProductController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
             Route::resource('waitresses', WaitressController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);

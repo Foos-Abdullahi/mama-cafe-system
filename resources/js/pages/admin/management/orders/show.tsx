@@ -3,7 +3,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Edit, Trash2, ShoppingCart, User, CreditCard, Package } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Printer, ShoppingBag, CreditCard, User, Calendar, Clock, Hash } from 'lucide-react';
 
 interface Product {
     id: number;
@@ -24,6 +24,7 @@ interface Payment {
     method: string;
     amount: number;
     status: string;
+    created_at?: string;
 }
 
 interface Waitress {
@@ -51,18 +52,19 @@ interface Props {
     order: Order;
 }
 
-const statusColor: Record<string, string> = {
-    draft: 'bg-slate-100 text-slate-600',
-    completed: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400',
-    cancelled: 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400',
-    refunded: 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400',
+const statusBadgeClasses: Record<string, string> = {
+    draft: 'bg-slate-100 text-slate-700 dark:bg-slate-900/50 dark:text-slate-300 border-slate-200 dark:border-slate-800',
+    pending: 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200 dark:border-amber-800',
+    completed: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800',
+    cancelled: 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border-rose-200 dark:border-rose-800',
+    refunded: 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400 border-purple-200 dark:border-purple-800',
 };
 
-const paymentColor: Record<string, string> = {
-    paid: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400',
-    partial: 'bg-orange-100 text-orange-700 dark:bg-orange-950/40 dark:text-orange-400',
-    unpaid: 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400',
-    refunded: 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400',
+const paymentBadgeClasses: Record<string, string> = {
+    paid: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800',
+    partial: 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200 dark:border-amber-800',
+    unpaid: 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border-rose-200 dark:border-rose-800',
+    refunded: 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400 border-purple-200 dark:border-purple-800',
 };
 
 export default function OrderShow({ order }: Props) {
@@ -72,135 +74,332 @@ export default function OrderShow({ order }: Props) {
         }
     };
 
-    const payment = order.payments?.[0];
-    const amountPaid = payment?.amount ?? 0;
-    const remaining = Math.max(0, Number(order.total) - Number(amountPaid));
+    const handlePrintReceipt = () => {
+        window.print();
+    };
+
+    const totalPaid = (order.payments || []).reduce(
+        (sum, p) => sum + Number(p.amount || 0),
+        0
+    );
+    const balanceDue = Math.max(0, Number(order.total) - totalPaid);
 
     return (
         <>
-            <Head title={`${order.order_number} - MaMa Café`} />
+            <Head title={`${order.order_number} — Order Details`} />
 
-            <div className="space-y-6 p-6">
-                {/* Header */}
-                <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#823d21]/10 text-[#823d21]">
-                            <ShoppingCart className="h-5 w-5" />
-                        </div>
-                        <div>
-                            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            <div className="flex flex-col gap-6 p-4 md:p-6 animate-in fade-in slide-in-from-bottom-3 duration-300">
+                {/* Header with Title and Actions */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4 print:hidden">
+                    <div>
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-lg md:text-xl font-semibold text-foreground tracking-tight">
                                 {order.order_number}
                             </h1>
-                            <p className="text-sm text-muted-foreground">Order transaction details & digital receipt</p>
+                            <div className="flex items-center gap-2">
+                                <Badge
+                                    variant="outline"
+                                    className={`capitalize font-medium text-xs ${statusBadgeClasses[order.status] ?? ''}`}
+                                >
+                                    {order.status.replace('_', ' ')}
+                                </Badge>
+                                <Badge
+                                    variant="outline"
+                                    className={`capitalize font-medium text-xs ${paymentBadgeClasses[order.payment_status] ?? ''}`}
+                                >
+                                    {order.payment_status.replace('_', ' ')}
+                                </Badge>
+                                <Badge variant="outline" className="text-xs">
+                                    {order.order_type === 'dine_in' ? 'Dine In' : 'Takeaway'}
+                                </Badge>
+                                {order.fixed_number && (
+                                    <Badge variant="outline" className="text-xs font-mono">
+                                        Table #{order.fixed_number}
+                                    </Badge>
+                                )}
+                            </div>
                         </div>
+                        <p className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
+                            <Calendar className="h-3.5 w-3.5" />
+                            {formatDateTime(order.created_at)}
+                        </p>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <Link href="/management/orders">
-                            <Button variant="outline" size="sm" className="gap-2">
-                                <ArrowLeft className="h-4 w-4" /> Back to Orders
-                            </Button>
-                        </Link>
-                        <Link href={`/management/orders/${order.id}/edit`}>
-                            <Button size="sm" className="gap-2 bg-[#823d21] hover:bg-[#682e18]">
-                                <Edit className="h-4 w-4" /> Edit
-                            </Button>
-                        </Link>
-                        <Button size="sm" variant="destructive" className="gap-2" onClick={handleDelete}>
-                            <Trash2 className="h-4 w-4" /> Delete
+
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handlePrintReceipt}
+                            className="gap-1.5 text-xs shadow-xs"
+                        >
+                            <Printer className="h-3.5 w-3.5" />
+                            Print Receipt
                         </Button>
+                        <Link href={`/management/orders/${order.id}/edit`}>
+                            <Button variant="outline" size="sm" className="gap-1.5 text-xs shadow-xs">
+                                <Edit className="h-3.5 w-3.5" />
+                                Edit
+                            </Button>
+                        </Link>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleDelete}
+                            className="gap-1.5 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive shadow-xs border-destructive/30"
+                        >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Delete
+                        </Button>
+                        <Link href="/management/orders">
+                            <Button variant="outline" size="sm" className="gap-1.5 text-xs shadow-xs">
+                                <ArrowLeft className="h-3.5 w-3.5" />
+                                Back
+                            </Button>
+                        </Link>
                     </div>
                 </div>
 
-                {/* Status Badges */}
-                <div className="flex gap-3 flex-wrap">
-                    <Badge className={statusColor[order.status] ?? ''}>{order.status.replace('_', ' ')}</Badge>
-                    <Badge className={paymentColor[order.payment_status] ?? ''}>{order.payment_status.replace('_', ' ')}</Badge>
-                    <Badge variant="outline">{order.order_type === 'dine_in' ? 'Dine In' : 'Takeaway'}</Badge>
-                    {order.fixed_number && <Badge variant="outline">Table #{order.fixed_number}</Badge>}
+                {/* Main 2-Column Grid */}
+                <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
+                    {/* Left Column: Order Items Table */}
+                    <section className="rounded-xl border border-border bg-card shadow-xs overflow-hidden">
+                        <div className="border-b border-border px-4 py-3 flex items-center justify-between bg-muted/20">
+                            <div className="flex items-center gap-2">
+                                <ShoppingBag className="h-4 w-4 text-[#823d21]" />
+                                <h2 className="font-semibold text-foreground text-sm">
+                                    Order Items
+                                </h2>
+                            </div>
+                            <span className="text-xs text-muted-foreground font-medium">
+                                {order.items?.length || 0} items
+                            </span>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-border text-sm">
+                                <thead className="bg-muted/40">
+                                    <tr>
+                                        <TableHead>Product</TableHead>
+                                        <TableHead className="text-center">Qty</TableHead>
+                                        <TableHead className="text-right">Unit Price</TableHead>
+                                        <TableHead className="text-right">Line Total</TableHead>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-border">
+                                    {order.items?.map((item) => (
+                                        <tr key={item.id} className="hover:bg-muted/30 transition-colors">
+                                            <td className="px-4 py-3">
+                                                <p className="font-medium text-foreground">
+                                                    {item.product?.name ?? '—'}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground font-mono">
+                                                    ID: #{item.product?.id ?? item.id}
+                                                </p>
+                                            </td>
+                                            <td className="px-4 py-3 text-center font-mono font-medium">
+                                                {item.quantity}
+                                            </td>
+                                            <td className="px-4 py-3 text-right font-mono text-muted-foreground">
+                                                ${Number(item.unit_price).toFixed(2)}
+                                            </td>
+                                            <td className="px-4 py-3 text-right font-mono font-semibold text-foreground">
+                                                ${Number(item.line_total).toFixed(2)}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {(!order.items || order.items.length === 0) && (
+                                        <tr>
+                                            <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
+                                                No items in this order.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    {/* Right Column: Panels */}
+                    <div className="space-y-4">
+                        {/* Summary Panel */}
+                        <Panel title="Summary">
+                            <SummaryRow
+                                label="Subtotal"
+                                value={`$${Number(order.subtotal ?? order.total).toFixed(2)}`}
+                            />
+                            <SummaryRow
+                                label="Grand Total"
+                                value={`$${Number(order.total).toFixed(2)}`}
+                                strong
+                            />
+                            <SummaryRow
+                                label="Paid Amount"
+                                value={`$${totalPaid.toFixed(2)}`}
+                            />
+                            <SummaryRow
+                                label="Balance Due"
+                                value={`$${balanceDue.toFixed(2)}`}
+                                strong
+                            />
+                        </Panel>
+
+                        {/* Order Details Panel */}
+                        <Panel title="Order Details">
+                            <SummaryRow
+                                label="Order Type"
+                                value={order.order_type === 'dine_in' ? 'Dine In' : 'Takeaway'}
+                            />
+                            {order.fixed_number && (
+                                <SummaryRow
+                                    label="Table Number"
+                                    value={`#${order.fixed_number}`}
+                                />
+                            )}
+                            <SummaryRow
+                                label="Waitress"
+                                value={order.waitress?.name ?? 'Walk-in'}
+                            />
+                            <SummaryRow
+                                label="Order Date"
+                                value={formatDateTime(order.created_at)}
+                            />
+                            {order.completed_at && (
+                                <SummaryRow
+                                    label="Completed At"
+                                    value={formatDateTime(order.completed_at)}
+                                />
+                            )}
+                        </Panel>
+                    </div>
                 </div>
 
-                {/* Order Info */}
-                <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
-                    <h2 className="font-semibold text-lg border-b pb-3 flex items-center gap-2">
-                        <User className="h-4 w-4 text-[#823d21]" /> Order Details
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
-                        <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">Waitress</p>
-                            <p className="mt-1 font-medium text-foreground">{order.waitress?.name ?? '— Walk-in —'}</p>
-                        </div>
-                        <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">Created At</p>
-                            <p className="mt-1 font-medium text-foreground">{order.created_at}</p>
-                        </div>
-                        {order.completed_at && (
-                            <div>
-                                <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">Completed At</p>
-                                <p className="mt-1 font-medium text-foreground">{order.completed_at}</p>
+                {/* Bottom Row: Payments */}
+                <div className="grid gap-4 lg:grid-cols-2">
+                    <Panel title="Payment Records">
+                        {(!order.payments || order.payments.length === 0) ? (
+                            <p className="text-sm text-muted-foreground">
+                                No payment records logged for this order.
+                            </p>
+                        ) : (
+                            <div className="space-y-3">
+                                {order.payments.map((payment) => (
+                                    <div
+                                        key={payment.id}
+                                        className="rounded-lg border border-border p-3 text-sm bg-muted/20"
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <span className="font-semibold text-foreground capitalize">
+                                                {payment.method?.replace('_', ' ') || 'Cash'}
+                                            </span>
+                                            <span className="font-bold font-mono text-foreground">
+                                                ${Number(payment.amount).toFixed(2)}
+                                            </span>
+                                        </div>
+                                        <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
+                                            <span className="capitalize">Status: {payment.status}</span>
+                                            {payment.created_at && (
+                                                <span>{formatDateTime(payment.created_at)}</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         )}
-                    </div>
-                </div>
+                    </Panel>
 
-                {/* Items */}
-                <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
-                    <div className="flex items-center gap-2 px-6 py-4 border-b bg-muted/30">
-                        <Package className="h-4 w-4 text-[#823d21]" />
-                        <h2 className="font-semibold text-base">Items ({order.items.length})</h2>
-                    </div>
-                    <table className="w-full text-sm">
-                        <thead className="bg-muted/20">
-                            <tr>
-                                <th className="text-left px-6 py-3 font-medium text-muted-foreground">Product</th>
-                                <th className="text-center px-4 py-3 font-medium text-muted-foreground">Qty</th>
-                                <th className="text-right px-4 py-3 font-medium text-muted-foreground">Unit Price</th>
-                                <th className="text-right px-6 py-3 font-medium text-muted-foreground">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y">
-                            {order.items.map((item) => (
-                                <tr key={item.id}>
-                                    <td className="px-6 py-3.5 font-medium">{item.product?.name ?? '—'}</td>
-                                    <td className="px-4 py-3.5 text-center">{item.quantity}</td>
-                                    <td className="px-4 py-3.5 text-right font-mono">${Number(item.unit_price).toFixed(2)}</td>
-                                    <td className="px-6 py-3.5 text-right font-semibold font-mono">${Number(item.line_total).toFixed(2)}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                        <tfoot className="border-t bg-muted/10">
-                            <tr>
-                                <td colSpan={3} className="px-6 py-3.5 text-right font-semibold text-base">Order Total</td>
-                                <td className="px-6 py-3.5 text-right font-bold text-xl text-[#823d21] font-mono">${Number(order.total).toFixed(2)}</td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-
-                {/* Payment */}
-                <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
-                    <h2 className="font-semibold text-lg border-b pb-3 flex items-center gap-2">
-                        <CreditCard className="h-4 w-4 text-[#823d21]" /> Payment Summary
-                    </h2>
-                    <div className="space-y-3 text-sm">
-                        <div className="flex justify-between">
-                            <span className="text-muted-foreground">Payment Method</span>
-                            <span className="font-semibold capitalize text-foreground">{payment?.method?.replace('_', ' ') ?? '—'}</span>
+                    <Panel title="Order Fulfillment">
+                        <div className="space-y-2 text-sm">
+                            <SummaryRow
+                                label="Order Status"
+                                value={order.status.replace('_', ' ').toUpperCase()}
+                                strong
+                            />
+                            <SummaryRow
+                                label="Payment Status"
+                                value={order.payment_status.replace('_', ' ').toUpperCase()}
+                                strong
+                            />
+                            <SummaryRow
+                                label="Items Count"
+                                value={`${order.items?.length || 0} items`}
+                            />
                         </div>
-                        <div className="flex justify-between">
-                            <span className="text-muted-foreground">Amount Paid</span>
-                            <span className="font-bold text-emerald-600 font-mono text-base">${Number(amountPaid).toFixed(2)}</span>
-                        </div>
-                        {order.payment_status === 'partial' && (
-                            <div className="flex justify-between border-t pt-3">
-                                <span className="text-muted-foreground font-medium">Remaining Unpaid Balance</span>
-                                <span className="font-bold text-orange-600 font-mono text-base">${remaining.toFixed(2)}</span>
-                            </div>
-                        )}
-                    </div>
+                    </Panel>
                 </div>
             </div>
         </>
     );
+}
+
+function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+    return (
+        <section className="rounded-xl border border-border bg-card p-4 shadow-xs">
+            <h2 className="mb-3 font-semibold text-foreground text-sm border-b border-border pb-2">
+                {title}
+            </h2>
+            {children}
+        </section>
+    );
+}
+
+function SummaryRow({
+    label,
+    value,
+    strong = false,
+}: {
+    label: string;
+    value: string;
+    strong?: boolean;
+}) {
+    return (
+        <div className="flex items-center justify-between py-1 text-sm">
+            <span className="text-muted-foreground text-xs">{label}</span>
+            <span
+                className={
+                    strong
+                        ? 'font-bold font-mono text-foreground'
+                        : 'font-medium font-mono text-foreground'
+                }
+            >
+                {value}
+            </span>
+        </div>
+    );
+}
+
+function TableHead({
+    children,
+    className = '',
+}: {
+    children: React.ReactNode;
+    className?: string;
+}) {
+    return (
+        <th
+            className={`px-4 py-2.5 text-xs font-bold tracking-wider text-muted-foreground uppercase ${className}`}
+        >
+            {children}
+        </th>
+    );
+}
+
+function formatDateTime(value: string | null): string {
+    if (!value) {
+        return '—';
+    }
+
+    const date = new Date(value);
+    if (isNaN(date.getTime())) {
+        return value;
+    }
+
+    return date.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+    });
 }
 
 OrderShow.layout = (page: React.ReactNode) => (
@@ -214,3 +413,4 @@ OrderShow.layout = (page: React.ReactNode) => (
         {page}
     </AppLayout>
 );
+

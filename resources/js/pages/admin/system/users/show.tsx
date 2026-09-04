@@ -3,7 +3,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Edit, Trash2, UserCog, Mail, Calendar, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, UserCog, Mail, Calendar, ShieldCheck, Clock } from 'lucide-react';
 
 interface UserData {
     id: number;
@@ -36,76 +36,179 @@ export default function UserShow({ user }: Props) {
 
     return (
         <>
-            <Head title={`${user.name} - MaMa Café`} />
+            <Head title={`${user.name} — User Details`} />
 
-            <div className="space-y-6 p-6">
-                {/* Header */}
-                <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#823d21]/10 text-[#823d21]">
-                            <UserCog className="h-5 w-5" />
-                        </div>
-                        <div>
-                            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            <div className="flex flex-col gap-6 p-4 md:p-6 animate-in fade-in slide-in-from-bottom-3 duration-300">
+                {/* Header with Title and Actions */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
+                    <div>
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-lg md:text-xl font-semibold text-foreground tracking-tight">
                                 {user.name}
                             </h1>
-                            <p className="text-sm text-muted-foreground">Staff account details & permissions</p>
+                            <Badge
+                                variant="outline"
+                                className={`capitalize font-medium text-xs ${role.class}`}
+                            >
+                                <ShieldCheck className="h-3 w-3 mr-1" />
+                                {role.label}
+                            </Badge>
                         </div>
+                        <p className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
+                            <Calendar className="h-3.5 w-3.5" />
+                            Joined: {formatDateTime(user.created_at)}
+                        </p>
                     </div>
-                    <div className="flex items-center gap-3">
+
+                    <div className="flex flex-wrap items-center gap-2">
                         <Link href="/system/users">
-                            <Button variant="outline" size="sm" className="gap-2">
-                                <ArrowLeft className="h-4 w-4" /> Back to Users
+                            <Button variant="outline" size="sm" className="gap-1.5 text-xs shadow-xs">
+                                <ArrowLeft className="h-3.5 w-3.5" />
+                                Back to Users
                             </Button>
                         </Link>
                         <Link href={`/system/users/${user.id}/edit`}>
-                            <Button size="sm" className="gap-2 bg-[#823d21] hover:bg-[#682e18]">
-                                <Edit className="h-4 w-4" /> Edit
+                            <Button variant="outline" size="sm" className="gap-1.5 text-xs shadow-xs">
+                                <Edit className="h-3.5 w-3.5" />
+                                Edit
                             </Button>
                         </Link>
-                        <Button size="sm" variant="destructive" className="gap-2" onClick={handleDelete}>
-                            <Trash2 className="h-4 w-4" /> Delete
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleDelete}
+                            className="gap-1.5 text-xs shadow-xs text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/20"
+                        >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Delete
                         </Button>
                     </div>
                 </div>
 
-                {/* Details Card */}
-                <div className="rounded-xl border bg-card p-6 shadow-sm space-y-6">
-                    <div className="flex items-center justify-between border-b pb-4">
-                        <h2 className="font-semibold text-lg">Account Profile</h2>
-                        <Badge className={`uppercase text-xs ${role.class}`}>{role.label}</Badge>
+                {/* Main Content Grid */}
+                <div className="grid gap-6 lg:grid-cols-[1.8fr_1fr]">
+                    {/* Left Column: Account Profile Overview */}
+                    <div className="space-y-6">
+                        <Panel title="Account Overview">
+                            <div className="flex items-center gap-4 border-b border-border pb-4">
+                                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#823d21]/10 text-[#823d21]">
+                                    <UserCog className="h-7 w-7" />
+                                </div>
+                                <div>
+                                    <h3 className="text-base font-semibold text-foreground">{user.name}</h3>
+                                    <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                                        <Mail className="h-3.5 w-3.5" />
+                                        {user.email}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="pt-4 space-y-2.5">
+                                <SummaryRow label="Account Name" value={user.name} />
+                                <SummaryRow label="Email Address" value={user.email} />
+                                <SummaryRow label="System ID" value={`#USER-${user.id}`} />
+                                <SummaryRow
+                                    label="Assigned Role"
+                                    value={<span className="capitalize">{user.role}</span>}
+                                />
+                            </div>
+                        </Panel>
+
+                        <Panel title="Permissions & Access Summary">
+                            <div className="rounded-lg border border-border/60 bg-muted/20 p-4 text-xs space-y-2 text-muted-foreground leading-relaxed">
+                                <p>
+                                    This user is assigned the <strong className="text-foreground capitalize">{user.role}</strong> role.
+                                    {user.role === 'admin' && ' Full super-admin privileges over all orders, products, staff, financials, and system configurations.'}
+                                    {user.role === 'manager' && ' Management access to monitor staff performance, review orders, manage catalog, and oversee shifts.'}
+                                    {user.role === 'operations' && ' Operations access enabled for POS checkout, order intake, fulfillment, and daily operations.'}
+                                    {user.role === 'waitress' && ' Waitress access scoped to order creation, personal commission tracking, and active assigned tables.'}
+                                </p>
+                            </div>
+                        </Panel>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1">
-                                <UserCog className="h-3.5 w-3.5 text-[#823d21]" /> Account Name
-                            </p>
-                            <p className="mt-1 font-semibold text-base text-foreground">{user.name}</p>
-                        </div>
-                        <div>
-                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1">
-                                <Mail className="h-3.5 w-3.5 text-[#823d21]" /> Email Address
-                            </p>
-                            <p className="mt-1 font-semibold text-base text-foreground">{user.email}</p>
-                        </div>
-                        <div>
-                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1">
-                                <ShieldCheck className="h-3.5 w-3.5 text-purple-600" /> Assigned Role
-                            </p>
-                            <p className="mt-1 font-semibold text-base text-foreground capitalize">{user.role}</p>
-                        </div>
-                        <div>
-                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1">
-                                <Calendar className="h-3.5 w-3.5 text-muted-foreground" /> Created Date
-                            </p>
-                            <p className="mt-1 font-semibold text-base text-foreground">{user.created_at}</p>
-                        </div>
+                    {/* Right Column: Timestamps & Activity Panel */}
+                    <div className="space-y-6">
+                        <Panel title="Account Metadata">
+                            <div className="space-y-2.5">
+                                <SummaryRow label="Created At" value={formatDateTime(user.created_at)} />
+                                <SummaryRow label="Last Updated" value={formatDateTime(user.updated_at)} />
+                                <SummaryRow label="Status" value="Active Account" strong />
+                            </div>
+                        </Panel>
                     </div>
                 </div>
             </div>
         </>
     );
+}
+
+function Panel({
+    title,
+    children,
+}: {
+    title: string;
+    children: React.ReactNode;
+}) {
+    return (
+        <div className="rounded-xl border border-border bg-card p-4 shadow-xs">
+            <h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                {title}
+            </h2>
+            {children}
+        </div>
+    );
+}
+
+function SummaryRow({
+    label,
+    value,
+    strong,
+}: {
+    label: string;
+    value: React.ReactNode;
+    strong?: boolean;
+}) {
+    return (
+        <div
+            className={`flex items-center justify-between text-xs ${
+                strong
+                    ? 'border-t border-border pt-2 text-sm font-bold text-foreground'
+                    : 'text-muted-foreground'
+            }`}
+        >
+            <span>{label}</span>
+            <span
+                className={
+                    strong
+                        ? 'font-mono text-base font-bold text-[#823d21]'
+                        : 'font-mono font-medium text-foreground'
+                }
+            >
+                {value}
+            </span>
+        </div>
+    );
+}
+
+function formatDateTime(value: string | null): string {
+    if (!value) {
+        return '—';
+    }
+
+    const date = new Date(value);
+    if (isNaN(date.getTime())) {
+        return value;
+    }
+
+    return date.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+    });
 }
 
 UserShow.layout = (page: React.ReactNode) => (

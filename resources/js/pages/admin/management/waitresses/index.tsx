@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Head, router, Link } from '@inertiajs/react';
 import { StatsCard, StatSection } from '@/components/tools/StatsCard';
 import { DataTable } from '@/components/tools/table/main-table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -43,10 +44,18 @@ interface Props {
 }
 
 export default function WaitressesIndex({ waitresses, stats }: Props) {
-    const handleDelete = (id: number) => {
-        if (confirm('Are you sure you want to delete this waitress?')) {
-            router.delete(`/management/waitresses/${id}`);
-        }
+    const [deleteTarget, setDeleteTarget] = useState<Waitress | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleConfirmDelete = () => {
+        if (!deleteTarget) return;
+        setIsDeleting(true);
+        router.delete(`/management/waitresses/${deleteTarget.id}`, {
+            onFinish: () => {
+                setIsDeleting(false);
+                setDeleteTarget(null);
+            },
+        });
     };
 
     const columns: ColumnDef<Waitress>[] = [
@@ -72,16 +81,13 @@ export default function WaitressesIndex({ waitresses, stats }: Props) {
         },
         {
             accessorKey: 'fixed_numbers',
-            header: 'Fixed Number Range',
+            header: 'Waitress Number',
             cell: ({ row }) => {
                 const fn = row.original.fixed_numbers?.[0];
                 return fn ? (
-                    <div className="flex items-center gap-1.5 text-xs font-mono text-foreground">
+                    <div className="flex items-center gap-1.5 text-xs font-mono text-foreground font-semibold">
                         <Hash className="h-3.5 w-3.5 text-amber-600" />
-                        <span>Range: {fn.range_start} - {fn.range_end}</span>
-                        <Badge variant="outline" className="ml-1 text-[10px] bg-secondary/40">
-                            Current: #{fn.current_number}
-                        </Badge>
+                        <span>Waitress #{fn.range_start}</span>
                     </div>
                 ) : (
                     <span className="text-xs text-muted-foreground italic">Unassigned</span>
@@ -166,7 +172,7 @@ export default function WaitressesIndex({ waitresses, stats }: Props) {
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => handleDelete(w.id)} className="text-red-600 focus:text-red-600">
+                                <DropdownMenuItem onClick={() => setDeleteTarget(w)} className="text-red-600 focus:text-red-600 cursor-pointer">
                                     <Trash2 className="mr-2 h-4 w-4" />
                                     Delete Waitress
                                 </DropdownMenuItem>
@@ -210,6 +216,15 @@ export default function WaitressesIndex({ waitresses, stats }: Props) {
                     />
                 </div>
             </div>
+
+            <ConfirmDeleteDialog
+                open={!!deleteTarget}
+                onOpenChange={(open) => !open && setDeleteTarget(null)}
+                onConfirm={handleConfirmDelete}
+                title={deleteTarget ? `Delete Waitress "${deleteTarget.name}"` : 'Confirm Deletion'}
+                description="Are you sure you want to delete this waitress? This action cannot be undone."
+                isDeleting={isDeleting}
+            />
         </>
     );
 }

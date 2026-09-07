@@ -106,7 +106,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
 
         Route::get('daily-closing', [DailyClosingController::class, 'index'])->name('daily-closing.index');
+        Route::get('daily-closing/create', [DailyClosingController::class, 'create'])->name('daily-closing.create');
         Route::post('daily-closing', [DailyClosingController::class, 'store'])->name('daily-closing.store');
+        Route::get('daily-closing/{dailyClosing}/edit', [DailyClosingController::class, 'edit'])->name('daily-closing.edit');
+        Route::put('daily-closing/{dailyClosing}', [DailyClosingController::class, 'update'])->name('daily-closing.update');
     });
 
     // System routes (Admin only)

@@ -86,7 +86,7 @@ const sections: NavSection[] = [
             { title: 'Payments', href: '/finance/payments', icon: CreditCard },
             { title: 'Payroll', href: '/finance/payroll', icon: Wallet },
             { title: 'Reports', href: '/finance/reports', icon: BarChart3 },
-            { title: 'Daily Closing', href: '/finance/daily-closing', icon: CalendarCheck },
+            { title: 'Daily Waitresses', href: '/finance/daily-closing', icon: CalendarCheck },
         ],
     },
     {

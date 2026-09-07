@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Management;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Cancellation;
 use App\Models\Order;
 use App\Models\Payment;
@@ -140,6 +141,8 @@ class OrderController extends Controller
             ]);
         }
 
+        ActivityLog::log('order_create', "Order #{$order->order_number} was created (total: \${$order->total}).");
+
         return redirect()->route('management.orders.index')->with('success', 'Order created successfully.');
     }
 
@@ -252,12 +255,17 @@ class OrderController extends Controller
             ]);
         }
 
+        ActivityLog::log('order_update', "Order #{$order->order_number} was updated (status: {$validated['status']}).");
+
         return redirect()->route('management.orders.index')->with('success', 'Order updated successfully.');
     }
 
     public function destroy(Order $order)
     {
+        $orderNumber = $order->order_number;
         $order->delete();
+
+        ActivityLog::log('order_delete', "Order #{$orderNumber} was deleted.");
 
         return redirect()->route('management.orders.index')->with('success', 'Order deleted successfully.');
     }

@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Head, router, Link } from '@inertiajs/react';
 import { StatsCard, StatSection } from '@/components/tools/StatsCard';
 import { DataTable } from '@/components/tools/table/main-table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -40,10 +41,18 @@ interface Props {
 }
 
 export default function ProductsIndex({ products, stats }: Props) {
-    const handleDelete = (id: number) => {
-        if (confirm('Are you sure you want to delete this product?')) {
-            router.delete(`/management/products/${id}`);
-        }
+    const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleConfirmDelete = () => {
+        if (!deleteTarget) return;
+        setIsDeleting(true);
+        router.delete(`/management/products/${deleteTarget.id}`, {
+            onFinish: () => {
+                setIsDeleting(false);
+                setDeleteTarget(null);
+            },
+        });
     };
 
     const columns: ColumnDef<Product>[] = [
@@ -57,8 +66,16 @@ export default function ProductsIndex({ products, stats }: Props) {
             header: 'Product',
             cell: ({ row }) => (
                 <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#823d21]/10 text-[#823d21]">
-                        <Coffee className="h-5 w-5" />
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#823d21]/10 text-[#823d21] overflow-hidden">
+                        {row.original.image_url ? (
+                            <img
+                                src={row.original.image_url}
+                                alt={row.original.name}
+                                className="h-10 w-10 object-cover rounded-lg"
+                            />
+                        ) : (
+                            <Coffee className="h-5 w-5" />
+                        )}
                     </div>
                     <div>
                         <span className="font-semibold text-foreground block">{row.original.name}</span>
@@ -131,7 +148,7 @@ export default function ProductsIndex({ products, stats }: Props) {
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => handleDelete(p.id)} className="text-red-600 focus:text-red-600">
+                                <DropdownMenuItem onClick={() => setDeleteTarget(p)} className="text-red-600 focus:text-red-600 cursor-pointer">
                                     <Trash2 className="mr-2 h-4 w-4" />
                                     Delete Product
                                 </DropdownMenuItem>
@@ -175,6 +192,15 @@ export default function ProductsIndex({ products, stats }: Props) {
                     />
                 </div>
             </div>
+
+            <ConfirmDeleteDialog
+                open={!!deleteTarget}
+                onOpenChange={(open) => !open && setDeleteTarget(null)}
+                onConfirm={handleConfirmDelete}
+                title={deleteTarget ? `Delete Product "${deleteTarget.name}"` : 'Confirm Deletion'}
+                description="Are you sure you want to delete this product? This action cannot be undone."
+                isDeleting={isDeleting}
+            />
         </>
     );
 }

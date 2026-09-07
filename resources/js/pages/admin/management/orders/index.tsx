@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Head, router, Link, usePage } from '@inertiajs/react';
 import { StatsCard, StatSection } from '@/components/tools/StatsCard';
 import { DataTable } from '@/components/tools/table/main-table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -81,10 +82,18 @@ export default function OrdersIndex({ orders, stats }: Props) {
     const { auth } = usePage<{ auth: { user: { role?: string } } }>().props;
     const canEditDelete = auth?.user?.role === 'admin' || auth?.user?.role === 'manager';
 
-    const handleDelete = (id: number) => {
-        if (confirm('Are you sure you want to delete this order record?')) {
-            router.delete(`/management/orders/${id}`);
-        }
+    const [deleteTarget, setDeleteTarget] = useState<Order | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleConfirmDelete = () => {
+        if (!deleteTarget) return;
+        setIsDeleting(true);
+        router.delete(`/management/orders/${deleteTarget.id}`, {
+            onFinish: () => {
+                setIsDeleting(false);
+                setDeleteTarget(null);
+            },
+        });
     };
 
     const columns: ColumnDef<Order>[] = [
@@ -212,7 +221,7 @@ export default function OrdersIndex({ orders, stats }: Props) {
                                             </Link>
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator />
-                                        <DropdownMenuItem onClick={() => handleDelete(order.id)} className="text-red-600 focus:text-red-600">
+                                        <DropdownMenuItem onClick={() => setDeleteTarget(order)} className="text-red-600 focus:text-red-600 cursor-pointer">
                                             <Trash2 className="mr-2 h-4 w-4" />
                                             Delete Order
                                         </DropdownMenuItem>
@@ -258,6 +267,15 @@ export default function OrdersIndex({ orders, stats }: Props) {
                     />
                 </div>
             </div>
+
+            <ConfirmDeleteDialog
+                open={!!deleteTarget}
+                onOpenChange={(open) => !open && setDeleteTarget(null)}
+                onConfirm={handleConfirmDelete}
+                title={deleteTarget ? `Delete Order ${deleteTarget.order_number}` : 'Confirm Deletion'}
+                description="Are you sure you want to delete this order record? This action cannot be undone."
+                isDeleting={isDeleting}
+            />
         </>
     );
 }

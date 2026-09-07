@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Management;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\FixedNumber;
 use App\Models\Order;
+use App\Models\Setting;
 use App\Models\Waitress;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -41,6 +43,8 @@ class WaitressController extends Controller
         $totalOrdersHandled = Order::whereNotNull('waitress_id')->count();
         $totalCommissionPaid = $waitresses->sum('commission_earned');
 
+        $defaultCommSetting = Setting::getByKey('default_commission_rate', '15');
+
         $stats = [
             [
                 'title' => 'Total Waitresses',
@@ -52,13 +56,13 @@ class WaitressController extends Controller
                 'title' => 'Active Waitresses',
                 'value' => (string) $activeWaitresses,
                 'badge' => ['text' => 'On Duty', 'variant' => 'emerald'],
-                'description' => 'Assigned fixed numbers',
+                'description' => 'Assigned staff numbers',
             ],
             [
                 'title' => 'Commission Rate',
-                'value' => '15%',
-                'badge' => ['text' => 'Standard Rate', 'variant' => 'amber'],
-                'description' => 'Default sales commission',
+                'value' => $defaultCommSetting.'%',
+                'badge' => ['text' => 'System Managed', 'variant' => 'amber'],
+                'description' => 'Global fixed commission',
             ],
             [
                 'title' => 'Orders Handled',
@@ -76,7 +80,18 @@ class WaitressController extends Controller
 
     public function create(): Response
     {
-        return Inertia::render('admin/management/waitresses/create');
+        $defaultCommSetting = Setting::getByKey('default_commission_rate', '15');
+        $defaultCommRate = (float) $defaultCommSetting / 100;
+
+        $rawNumbers = Setting::getByKey('cafe_fixed_numbers', '101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 150, 456543');
+        $cafeFixedNumbers = array_values(array_filter(array_map('trim', explode(',', $rawNumbers))));
+        $assignedNumbers = FixedNumber::pluck('range_start')->map(fn ($n) => (string) $n)->toArray();
+
+        return Inertia::render('admin/management/waitresses/create', [
+            'default_commission_rate' => $defaultCommRate,
+            'cafe_fixed_numbers' => $cafeFixedNumbers,
+            'assigned_numbers' => $assignedNumbers,
+        ]);
     }
 
     public function store(Request $request)
@@ -84,27 +99,32 @@ class WaitressController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|min:2|max:255',
             'phone' => 'required|string|min:5|max:50',
-            'commission_rate' => 'required|numeric|min:0.01|max:1',
             'status' => 'required|in:active,inactive',
-            'range_start' => 'required|integer|min:1',
-            'range_end' => 'required|integer|gte:range_start',
+            'assigned_number' => 'required|integer|min:1',
         ]);
+
+        $defaultCommSetting = Setting::getByKey('default_commission_rate', '15');
+        $commissionRate = (float) $defaultCommSetting / 100;
 
         $waitress = Waitress::create([
             'name' => $validated['name'],
             'phone' => $validated['phone'],
-            'commission_rate' => $validated['commission_rate'],
+            'commission_rate' => $commissionRate,
             'status' => $validated['status'],
         ]);
 
+        $num = (int) $validated['assigned_number'];
+
         FixedNumber::create([
             'waitress_id' => $waitress->id,
-            'range_start' => $validated['range_start'],
-            'range_end' => $validated['range_end'],
-            'current_number' => $validated['range_start'],
+            'range_start' => $num,
+            'range_end' => $num,
+            'current_number' => $num,
             'status' => 'active',
             'assigned_at' => now(),
         ]);
+
+        ActivityLog::log('waitress_create', "Waitress '{$waitress->name}' was created with number {$num}.");
 
         return redirect()->route('management.waitresses.index')->with('success', 'Waitress created successfully.');
     }
@@ -128,8 +148,22 @@ class WaitressController extends Controller
     {
         $waitress->load('fixedNumbers');
 
+        $defaultCommSetting = Setting::getByKey('default_commission_rate', '15');
+        $defaultCommRate = (float) $defaultCommSetting / 100;
+
+        $rawNumbers = Setting::getByKey('cafe_fixed_numbers', '101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 150, 456543');
+        $cafeFixedNumbers = array_values(array_filter(array_map('trim', explode(',', $rawNumbers))));
+
+        $assignedNumbers = FixedNumber::where('waitress_id', '!=', $waitress->id)
+            ->pluck('range_start')
+            ->map(fn ($n) => (string) $n)
+            ->toArray();
+
         return Inertia::render('admin/management/waitresses/edit', [
             'waitress' => $waitress,
+            'default_commission_rate' => $defaultCommRate,
+            'cafe_fixed_numbers' => $cafeFixedNumbers,
+            'assigned_numbers' => $assignedNumbers,
         ]);
     }
 
@@ -138,36 +172,44 @@ class WaitressController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|min:2|max:255',
             'phone' => 'required|string|min:5|max:50',
-            'commission_rate' => 'required|numeric|min:0.01|max:1',
             'status' => 'required|in:active,inactive',
-            'range_start' => 'required|integer|min:1',
-            'range_end' => 'required|integer|gte:range_start',
+            'assigned_number' => 'required|integer|min:1',
         ]);
+
+        $defaultCommSetting = Setting::getByKey('default_commission_rate', '15');
+        $commissionRate = (float) $defaultCommSetting / 100;
 
         $waitress->update([
             'name' => $validated['name'],
             'phone' => $validated['phone'],
-            'commission_rate' => $validated['commission_rate'],
+            'commission_rate' => $commissionRate,
             'status' => $validated['status'],
         ]);
+
+        $num = (int) $validated['assigned_number'];
 
         FixedNumber::updateOrCreate(
             ['waitress_id' => $waitress->id],
             [
-                'range_start' => $validated['range_start'],
-                'range_end' => $validated['range_end'],
-                'current_number' => $validated['range_start'],
+                'range_start' => $num,
+                'range_end' => $num,
+                'current_number' => $num,
                 'status' => 'active',
                 'assigned_at' => now(),
             ]
         );
+
+        ActivityLog::log('waitress_update', "Waitress '{$waitress->name}' was updated.");
 
         return redirect()->route('management.waitresses.index')->with('success', 'Waitress updated successfully.');
     }
 
     public function destroy(Waitress $waitress)
     {
+        $name = $waitress->name;
         $waitress->delete();
+
+        ActivityLog::log('waitress_delete', "Waitress '{$name}' was deleted.");
 
         return redirect()->route('management.waitresses.index')->with('success', 'Waitress deleted successfully.');
     }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Management;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Http\Request;
@@ -72,6 +73,8 @@ class CategoryController extends Controller
 
         Category::create($validated);
 
+        ActivityLog::log('category_create', "Category '{$validated['name']}' was created.");
+
         return redirect()->route('management.categories.index')->with('success', 'Category created successfully.');
     }
 
@@ -102,12 +105,17 @@ class CategoryController extends Controller
 
         $category->update($validated);
 
+        ActivityLog::log('category_update', "Category '{$validated['name']}' was updated.");
+
         return redirect()->route('management.categories.index')->with('success', 'Category updated successfully.');
     }
 
     public function destroy(Category $category)
     {
+        $name = $category->name;
         $category->delete();
+
+        ActivityLog::log('category_delete', "Category '{$name}' was deleted.");
 
         return redirect()->route('management.categories.index')->with('success', 'Category deleted successfully.');
     }

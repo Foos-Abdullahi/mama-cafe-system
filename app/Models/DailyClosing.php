@@ -21,6 +21,7 @@ class DailyClosing extends Model
         'credit_total',
         'variance',
         'notes',
+        'waitress_assignments',
         'closed_by_user_id',
     ];
 
@@ -33,6 +34,7 @@ class DailyClosing extends Model
         'card_total' => 'decimal:2',
         'credit_total' => 'decimal:2',
         'variance' => 'decimal:2',
+        'waitress_assignments' => 'array',
     ];
 
     public function closedBy(): BelongsTo

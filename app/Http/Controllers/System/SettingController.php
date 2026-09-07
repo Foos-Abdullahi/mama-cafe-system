@@ -21,8 +21,7 @@ class SettingController extends Controller
             'currency' => Setting::getByKey('currency', 'USD ($)'),
             'tax_rate' => Setting::getByKey('tax_rate', '0'),
             'default_commission_rate' => Setting::getByKey('default_commission_rate', '15'),
-            'fixed_number_start' => Setting::getByKey('fixed_number_start', '101'),
-            'fixed_number_end' => Setting::getByKey('fixed_number_end', '199'),
+            'cafe_fixed_numbers' => Setting::getByKey('cafe_fixed_numbers', '101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 150, 456543'),
         ];
 
         return Inertia::render('admin/system/settings/index', [
@@ -39,8 +38,7 @@ class SettingController extends Controller
             'currency' => 'required|string|max:50',
             'tax_rate' => 'required|numeric|min:0|max:100',
             'default_commission_rate' => 'required|numeric|min:0|max:100',
-            'fixed_number_start' => 'required|integer|min:1',
-            'fixed_number_end' => 'required|integer|gte:fixed_number_start',
+            'cafe_fixed_numbers' => 'required|string|max:2000',
         ]);
 
         foreach ($validated as $key => $value) {

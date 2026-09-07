@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Head, router, Link } from '@inertiajs/react';
 import { StatsCard, StatSection } from '@/components/tools/StatsCard';
 import { DataTable } from '@/components/tools/table/main-table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -13,7 +14,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ColumnDef } from '@tanstack/react-table';
-import { UserCog, Plus, MoreHorizontal, Eye, Edit, Trash2, ShieldCheck } from 'lucide-react';
+import { UserCog, Plus, MoreHorizontal, Eye, Edit, Trash2 } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 
 interface UserItem {
@@ -37,10 +38,18 @@ const roleBadges: Record<string, { label: string; class: string }> = {
 };
 
 export default function UsersIndex({ users, stats }: Props) {
-    const handleDelete = (id: number) => {
-        if (confirm('Are you sure you want to delete this user account?')) {
-            router.delete(`/system/users/${id}`);
-        }
+    const [deleteTarget, setDeleteTarget] = useState<UserItem | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleConfirmDelete = () => {
+        if (!deleteTarget) return;
+        setIsDeleting(true);
+        router.delete(`/system/users/${deleteTarget.id}`, {
+            onFinish: () => {
+                setIsDeleting(false);
+                setDeleteTarget(null);
+            },
+        });
     };
 
     const columns: ColumnDef<UserItem>[] = [
@@ -68,8 +77,12 @@ export default function UsersIndex({ users, stats }: Props) {
             accessorKey: 'role',
             header: 'Role',
             cell: ({ row }) => {
-                const r = roleBadges[row.original.role] || { label: row.original.role, class: '' };
-                return <Badge className={`uppercase text-[10px] ${r.class}`}>{r.label}</Badge>;
+                const r = roleBadges[row.original.role];
+                if (r) {
+                    return <Badge className={`uppercase text-[10px] ${r.class}`}>{r.label}</Badge>;
+                }
+                const formattedName = row.original.role.charAt(0).toUpperCase() + row.original.role.slice(1);
+                return <Badge variant="outline" className="uppercase text-[10px] bg-slate-500/10 text-slate-700 dark:text-slate-300 font-semibold">{formattedName}</Badge>;
             },
         },
         {
@@ -105,7 +118,7 @@ export default function UsersIndex({ users, stats }: Props) {
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => handleDelete(u.id)} className="text-red-600 focus:text-red-600">
+                                <DropdownMenuItem onClick={() => setDeleteTarget(u)} className="text-red-600 focus:text-red-600 cursor-pointer">
                                     <Trash2 className="mr-2 h-4 w-4" />
                                     Delete User
                                 </DropdownMenuItem>
@@ -122,7 +135,6 @@ export default function UsersIndex({ users, stats }: Props) {
             <Head title="Users Management - MaMa Café" />
 
             <div className="p-6">
-                {/* Header */}
                 <div className="flex items-start justify-between">
                     <div>
                         <h1 className="text-lg font-semibold">Users & Role Management</h1>
@@ -150,6 +162,15 @@ export default function UsersIndex({ users, stats }: Props) {
                     />
                 </div>
             </div>
+
+            <ConfirmDeleteDialog
+                open={!!deleteTarget}
+                onOpenChange={(open) => !open && setDeleteTarget(null)}
+                onConfirm={handleConfirmDelete}
+                title={deleteTarget ? `Delete User "${deleteTarget.name}"` : 'Confirm Deletion'}
+                description="Are you sure you want to delete this user account? This action cannot be undone."
+                isDeleting={isDeleting}
+            />
         </>
     );
 }

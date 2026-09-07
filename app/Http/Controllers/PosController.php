@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\Category;
 use App\Models\Order;
 use App\Models\Payment;
@@ -176,6 +177,8 @@ class PosController extends Controller
 
             return $order;
         });
+
+        ActivityLog::log('pos_order', "POS order #{$order->order_number} was processed (total: \${$order->total}).");
 
         return redirect()->route('pos.index')->with('success', "Order #{$order->order_number} completed successfully!");
     }

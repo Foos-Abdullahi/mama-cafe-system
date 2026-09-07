@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Finance;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Payroll;
 use App\Models\Waitress;
 use Illuminate\Http\RedirectResponse;
@@ -142,6 +143,8 @@ class PayrollController extends Controller
             'paid_at' => now(),
             'notes' => $validated['notes'] ?? 'Commission payout processed.',
         ]);
+
+        ActivityLog::log('payroll_create', "Payroll payout of \${$payroll->commission_amount} recorded for '{$waitress->name}'.");
 
         return redirect()->route('finance.payroll.show', $payroll->id)->with('success', 'Payroll payout recorded successfully!');
     }

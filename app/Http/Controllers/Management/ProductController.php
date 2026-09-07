@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Management;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Http\Request;
@@ -69,16 +70,37 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
+        $imageUrl = $request->input('image_url');
+
+        if ($request->hasFile('image')) {
+            $request->validate([
+                'image' => 'file|image|mimes:jpeg,png,jpg,gif,webp|max:10240',
+            ]);
+
+            $uploadDir = public_path('uploads/products');
+            if (! file_exists($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+
+            $file = $request->file('image');
+            $filename = time().'_'.uniqid().'.'.$file->getClientOriginalExtension();
+            $file->move($uploadDir, $filename);
+            $imageUrl = '/uploads/products/'.$filename;
+        }
+
         $validated = $request->validate([
             'category_id' => 'required|exists:categories,id',
             'name' => 'required|string|min:2|max:255',
             'description' => 'required|string|min:3|max:1000',
             'price' => 'required|numeric|min:0.01',
-            'image_url' => 'nullable|string',
             'status' => 'required|in:active,inactive',
         ]);
 
+        $validated['image_url'] = $imageUrl;
+
         Product::create($validated);
+
+        ActivityLog::log('product_create', "Product '{$validated['name']}' was created.");
 
         return redirect()->route('management.products.index')->with('success', 'Product created successfully.');
     }
@@ -105,23 +127,47 @@ class ProductController extends Controller
 
     public function update(Request $request, Product $product)
     {
+        $imageUrl = $request->input('image_url', $product->image_url);
+
+        if ($request->hasFile('image')) {
+            $request->validate([
+                'image' => 'file|image|mimes:jpeg,png,jpg,gif,webp|max:10240',
+            ]);
+
+            $uploadDir = public_path('uploads/products');
+            if (! file_exists($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+
+            $file = $request->file('image');
+            $filename = time().'_'.uniqid().'.'.$file->getClientOriginalExtension();
+            $file->move($uploadDir, $filename);
+            $imageUrl = '/uploads/products/'.$filename;
+        }
+
         $validated = $request->validate([
             'category_id' => 'required|exists:categories,id',
             'name' => 'required|string|min:2|max:255',
             'description' => 'required|string|min:3|max:1000',
             'price' => 'required|numeric|min:0.01',
-            'image_url' => 'nullable|string',
             'status' => 'required|in:active,inactive',
         ]);
 
+        $validated['image_url'] = $imageUrl;
+
         $product->update($validated);
+
+        ActivityLog::log('product_update', "Product '{$validated['name']}' was updated.");
 
         return redirect()->route('management.products.index')->with('success', 'Product updated successfully.');
     }
 
     public function destroy(Product $product)
     {
+        $name = $product->name;
         $product->delete();
+
+        ActivityLog::log('product_delete', "Product '{$name}' was deleted.");
 
         return redirect()->route('management.products.index')->with('success', 'Product deleted successfully.');
     }

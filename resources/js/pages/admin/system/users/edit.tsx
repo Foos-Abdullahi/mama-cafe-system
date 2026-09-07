@@ -14,18 +14,26 @@ import {
 } from '@/components/ui/select';
 import { ArrowLeft, Save } from 'lucide-react';
 
+interface RoleOption {
+    id: number;
+    name: string;
+    slug: string;
+    description?: string | null;
+}
+
 interface UserData {
     id: number;
     name: string;
     email: string;
-    role: 'admin' | 'manager' | 'operations' | 'waitress';
+    role: string;
 }
 
 interface Props {
     user: UserData;
+    roles?: RoleOption[];
 }
 
-export default function UserEdit({ user }: Props) {
+export default function UserEdit({ user, roles = [] }: Props) {
     const form = useForm({
         name: user.name,
         email: user.email,
@@ -100,16 +108,26 @@ export default function UserEdit({ user }: Props) {
                                 <Label htmlFor="role">User Role <span className="text-destructive">*</span></Label>
                                 <Select
                                     value={form.data.role}
-                                    onValueChange={(val) => form.setData('role', val as any)}
+                                    onValueChange={(val) => form.setData('role', val)}
                                 >
                                     <SelectTrigger id="role" className="w-full">
                                         <SelectValue placeholder="Select a role..." />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="operations">Operations / Cashier (POS &amp; Orders)</SelectItem>
-                                        <SelectItem value="manager">Manager (Reports &amp; Floor Management)</SelectItem>
-                                        <SelectItem value="admin">Administrator (Full System Control)</SelectItem>
-                                        <SelectItem value="waitress">Waitress</SelectItem>
+                                        {roles.length > 0 ? (
+                                            roles.map((r) => (
+                                                <SelectItem key={r.slug} value={r.slug}>
+                                                    {r.name} {r.description ? `(${r.description})` : ''}
+                                                </SelectItem>
+                                            ))
+                                        ) : (
+                                            <>
+                                                <SelectItem value="operations">Operations / Cashier (POS &amp; Orders)</SelectItem>
+                                                <SelectItem value="manager">Manager (Reports &amp; Floor Management)</SelectItem>
+                                                <SelectItem value="admin">Administrator (Full System Control)</SelectItem>
+                                                <SelectItem value="waitress">Waitress</SelectItem>
+                                            </>
+                                        )}
                                     </SelectContent>
                                 </Select>
                                 <InputError message={form.errors.role} />

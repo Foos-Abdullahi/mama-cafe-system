@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Edit, Trash2, UserCog, Mail, Calendar, ShieldCheck, Clock } from 'lucide-react';
+import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog';
+import { ArrowLeft, Edit, Trash2, UserCog, Mail, Calendar, ShieldCheck } from 'lucide-react';
 
 interface UserData {
     id: number;
@@ -26,10 +27,17 @@ const roleBadges: Record<string, { label: string; class: string }> = {
 };
 
 export default function UserShow({ user }: Props) {
-    const handleDelete = () => {
-        if (confirm(`Are you sure you want to delete user account "${user.name}"?`)) {
-            router.delete(`/system/users/${user.id}`);
-        }
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleConfirmDelete = () => {
+        setIsDeleting(true);
+        router.delete(`/system/users/${user.id}`, {
+            onFinish: () => {
+                setIsDeleting(false);
+                setConfirmOpen(false);
+            },
+        });
     };
 
     const role = roleBadges[user.role] || { label: user.role, class: '' };
@@ -76,7 +84,7 @@ export default function UserShow({ user }: Props) {
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={handleDelete}
+                            onClick={() => setConfirmOpen(true)}
                             className="gap-1.5 text-xs shadow-xs text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/20"
                         >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -139,6 +147,15 @@ export default function UserShow({ user }: Props) {
                     </div>
                 </div>
             </div>
+
+            <ConfirmDeleteDialog
+                open={confirmOpen}
+                onOpenChange={setConfirmOpen}
+                onConfirm={handleConfirmDelete}
+                title={`Delete User "${user.name}"`}
+                description="Are you sure you want to delete this user account? This action cannot be undone."
+                isDeleting={isDeleting}
+            />
         </>
     );
 }

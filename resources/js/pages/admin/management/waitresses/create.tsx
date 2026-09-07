@@ -12,16 +12,27 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, UserPlus } from 'lucide-react';
+import { ArrowLeft, UserPlus, Hash, Lock } from 'lucide-react';
 
-export default function WaitressCreate() {
+interface Props {
+    default_commission_rate?: number;
+    cafe_fixed_numbers?: string[];
+    assigned_numbers?: string[];
+}
+
+export default function WaitressCreate({
+    default_commission_rate = 0.15,
+    cafe_fixed_numbers = ['101', '102', '103', '104', '105', '456543'],
+    assigned_numbers = [],
+}: Props) {
+    // Select first number not assigned, or first available number
+    const firstAvailable = cafe_fixed_numbers.find((num) => !assigned_numbers.includes(num)) ?? cafe_fixed_numbers[0] ?? '101';
+
     const form = useForm({
         name: '',
         phone: '',
-        commission_rate: '0.15',
         status: 'active' as 'active' | 'inactive',
-        range_start: '',
-        range_end: '',
+        assigned_number: firstAvailable,
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -44,7 +55,9 @@ export default function WaitressCreate() {
                             <h1 className="text-lg md:text-xl font-semibold text-foreground tracking-tight">
                                 Add Waitress
                             </h1>
-                            <p className="text-xs text-muted-foreground mt-0.5">Register a new floor staff member and assigned tables.</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                                Register a new floor staff member and assign their unique waitress number.
+                            </p>
                         </div>
                     </div>
                     <Link href="/management/waitresses">
@@ -97,24 +110,21 @@ export default function WaitressCreate() {
                                     <InputError message={form.errors.phone} />
                                 </div>
 
-                                {/* Commission Rate */}
+                                {/* Commission Rate (Disabled - Managed in Settings) */}
                                 <div className="grid gap-2">
-                                    <Label htmlFor="commission_rate" className="text-xs font-medium text-foreground">
-                                        Commission Rate <span className="text-red-500">*</span>
-                                    </Label>
+                                    <div className="flex items-center justify-between">
+                                        <Label htmlFor="commission_rate" className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                                            Commission Rate <Lock className="h-3 w-3 text-muted-foreground" />
+                                        </Label>
+                                        <span className="text-[11px] text-muted-foreground">Managed in Settings</span>
+                                    </div>
                                     <Input
                                         id="commission_rate"
-                                        type="number"
-                                        step="0.01"
-                                        min="0.01"
-                                        max="1"
-                                        placeholder="0.15 (15%)"
-                                        className="h-10 font-mono"
-                                        value={form.data.commission_rate}
-                                        onChange={(e) => form.setData('commission_rate', e.target.value)}
-                                        required
+                                        type="text"
+                                        disabled
+                                        className="h-10 font-mono bg-muted/50 cursor-not-allowed opacity-75"
+                                        value={`${(default_commission_rate * 100).toFixed(0)}% (${default_commission_rate})`}
                                     />
-                                    <InputError message={form.errors.commission_rate} />
                                 </div>
 
                                 {/* Status */}
@@ -139,43 +149,46 @@ export default function WaitressCreate() {
                             </div>
                         </div>
 
-                        {/* Fixed Number Range */}
+                        {/* Single Assigned Waitress Number */}
                         <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 md:p-5 space-y-3">
-                            <h2 className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">
-                                Assigned Fixed / Table Number Range
-                            </h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex items-center gap-2">
+                                <Hash className="h-4 w-4 text-amber-700 dark:text-amber-400" />
+                                <h2 className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">
+                                    Assigned Waitress Number
+                                </h2>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                Select the unique number assigned to this waitress from the numbers configured in General Settings.
+                            </p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
                                 <div className="grid gap-2">
-                                    <Label htmlFor="range_start" className="text-xs font-medium text-foreground">
-                                        Start Number <span className="text-red-500">*</span>
+                                    <Label htmlFor="assigned_number" className="text-xs font-medium text-foreground">
+                                        Waitress Number <span className="text-red-500">*</span>
                                     </Label>
-                                    <Input
-                                        id="range_start"
-                                        type="number"
-                                        min="1"
-                                        placeholder="101"
-                                        className="h-10 font-mono"
-                                        value={form.data.range_start}
-                                        onChange={(e) => form.setData('range_start', e.target.value)}
-                                        required
-                                    />
-                                    <InputError message={form.errors.range_start} />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="range_end" className="text-xs font-medium text-foreground">
-                                        End Number <span className="text-red-500">*</span>
-                                    </Label>
-                                    <Input
-                                        id="range_end"
-                                        type="number"
-                                        min="1"
-                                        placeholder="150"
-                                        className="h-10 font-mono"
-                                        value={form.data.range_end}
-                                        onChange={(e) => form.setData('range_end', e.target.value)}
-                                        required
-                                    />
-                                    <InputError message={form.errors.range_end} />
+                                    <Select
+                                        value={form.data.assigned_number}
+                                        onValueChange={(val) => form.setData('assigned_number', val)}
+                                    >
+                                        <SelectTrigger id="assigned_number" className="w-full h-10 font-mono">
+                                            <SelectValue placeholder="Select Waitress Number" />
+                                        </SelectTrigger>
+                                        <SelectContent className="max-h-60">
+                                            {cafe_fixed_numbers.map((numStr) => {
+                                                const isTaken = assigned_numbers.includes(numStr);
+                                                return (
+                                                    <SelectItem
+                                                        key={numStr}
+                                                        value={numStr}
+                                                        disabled={isTaken}
+                                                        className="font-mono text-xs"
+                                                    >
+                                                        #{numStr} {isTaken ? '(In Use by Another Waitress)' : ''}
+                                                    </SelectItem>
+                                                );
+                                            })}
+                                        </SelectContent>
+                                    </Select>
+                                    <InputError message={form.errors.assigned_number} />
                                 </div>
                             </div>
                         </div>

@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Edit, Trash2, Printer, ShoppingBag, CreditCard, User, Calendar, Clock, Hash } from 'lucide-react';
+import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog';
+import { ArrowLeft, Edit, Trash2, Printer, ShoppingBag, Calendar } from 'lucide-react';
 
 interface Product {
     id: number;
@@ -68,10 +69,17 @@ const paymentBadgeClasses: Record<string, string> = {
 };
 
 export default function OrderShow({ order }: Props) {
-    const handleDelete = () => {
-        if (confirm(`Are you sure you want to delete order ${order.order_number}?`)) {
-            router.delete(`/management/orders/${order.id}`);
-        }
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleConfirmDelete = () => {
+        setIsDeleting(true);
+        router.delete(`/management/orders/${order.id}`, {
+            onFinish: () => {
+                setIsDeleting(false);
+                setConfirmOpen(false);
+            },
+        });
     };
 
     const handlePrintReceipt = () => {
@@ -144,7 +152,7 @@ export default function OrderShow({ order }: Props) {
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={handleDelete}
+                            onClick={() => setConfirmOpen(true)}
                             className="gap-1.5 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive shadow-xs border-destructive/30"
                         >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -326,6 +334,15 @@ export default function OrderShow({ order }: Props) {
                     </Panel>
                 </div>
             </div>
+
+            <ConfirmDeleteDialog
+                open={confirmOpen}
+                onOpenChange={setConfirmOpen}
+                onConfirm={handleConfirmDelete}
+                title={`Delete Order ${order.order_number}`}
+                description="Are you sure you want to delete this order record? This action cannot be undone."
+                isDeleting={isDeleting}
+            />
         </>
     );
 }
@@ -413,4 +430,3 @@ OrderShow.layout = (page: React.ReactNode) => (
         {page}
     </AppLayout>
 );
-

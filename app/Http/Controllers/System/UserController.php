@@ -4,6 +4,7 @@ namespace App\Http\Controllers\System;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -55,7 +56,11 @@ class UserController extends Controller
 
     public function create(): Response
     {
-        return Inertia::render('admin/system/users/create');
+        $roles = Role::orderBy('name')->get(['id', 'name', 'slug', 'description']);
+
+        return Inertia::render('admin/system/users/create', [
+            'roles' => $roles,
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -63,7 +68,7 @@ class UserController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email',
-            'role' => 'required|in:admin,manager,operations,waitress',
+            'role' => 'required|string|max:100',
             'password' => 'required|string|min:8|confirmed',
         ]);
 
@@ -95,6 +100,8 @@ class UserController extends Controller
 
     public function edit(User $user): Response
     {
+        $roles = Role::orderBy('name')->get(['id', 'name', 'slug', 'description']);
+
         return Inertia::render('admin/system/users/edit', [
             'user' => [
                 'id' => $user->id,
@@ -102,6 +109,7 @@ class UserController extends Controller
                 'email' => $user->email,
                 'role' => $user->role ?? 'operations',
             ],
+            'roles' => $roles,
         ]);
     }
 
@@ -110,7 +118,7 @@ class UserController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'role' => 'required|in:admin,manager,operations,waitress',
+            'role' => 'required|string|max:100',
             'password' => 'nullable|string|min:8|confirmed',
         ]);
 

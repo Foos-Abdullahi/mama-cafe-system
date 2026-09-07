@@ -5,7 +5,7 @@ import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Settings, Save, Store, Hash, DollarSign } from 'lucide-react';
+import { Settings, Save, Store, Hash } from 'lucide-react';
 
 interface SystemSettings {
     cafe_name: string;
@@ -14,8 +14,7 @@ interface SystemSettings {
     currency: string;
     tax_rate: string;
     default_commission_rate: string;
-    fixed_number_start: string;
-    fixed_number_end: string;
+    cafe_fixed_numbers: string;
 }
 
 interface Props {
@@ -30,8 +29,7 @@ export default function SystemSettingsIndex({ settings }: Props) {
         currency: settings.currency || 'USD ($)',
         tax_rate: settings.tax_rate || '0',
         default_commission_rate: settings.default_commission_rate || '15',
-        fixed_number_start: settings.fixed_number_start || '101',
-        fixed_number_end: settings.fixed_number_end || '199',
+        cafe_fixed_numbers: settings.cafe_fixed_numbers || '101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 150, 456543',
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -49,7 +47,7 @@ export default function SystemSettingsIndex({ settings }: Props) {
                     <div>
                         <h1 className="text-lg font-semibold">General System Settings</h1>
                         <p className="text-xs text-muted-foreground">
-                            Configure cafe identity, fixed-number table ranges, currency, and default commission rules.
+                            Configure cafe identity, waitress fixed numbers, currency, and default commission rules.
                         </p>
                     </div>
                 </div>
@@ -105,7 +103,7 @@ export default function SystemSettingsIndex({ settings }: Props) {
                             </div>
                         </div>
 
-                        {/* Financial Rules & Fixed Number Ranges */}
+                        {/* Financial Rules & Fixed Numbers */}
                         <div className="rounded-xl border bg-card p-6 shadow-sm space-y-6">
                             <div className="flex items-center gap-2 border-b pb-3">
                                 <Hash className="h-5 w-5 text-[#823d21]" />
@@ -113,32 +111,22 @@ export default function SystemSettingsIndex({ settings }: Props) {
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="fixed_number_start">
-                                        Global Fixed Number Range Start <span className="text-red-500">*</span>
+                                <div className="grid gap-2 md:col-span-2">
+                                    <Label htmlFor="cafe_fixed_numbers">
+                                        Café Waitress Fixed Numbers <span className="text-red-500">*</span>
                                     </Label>
                                     <Input
-                                        id="fixed_number_start"
-                                        type="number"
-                                        value={form.data.fixed_number_start}
-                                        onChange={(e) => form.setData('fixed_number_start', e.target.value)}
+                                        id="cafe_fixed_numbers"
+                                        placeholder="e.g. 101, 102, 103, 104, 150, 456543"
+                                        className="font-mono"
+                                        value={form.data.cafe_fixed_numbers}
+                                        onChange={(e) => form.setData('cafe_fixed_numbers', e.target.value)}
                                         required
                                     />
-                                    <InputError message={form.errors.fixed_number_start} />
-                                </div>
-
-                                <div className="grid gap-2">
-                                    <Label htmlFor="fixed_number_end">
-                                        Global Fixed Number Range End <span className="text-red-500">*</span>
-                                    </Label>
-                                    <Input
-                                        id="fixed_number_end"
-                                        type="number"
-                                        value={form.data.fixed_number_end}
-                                        onChange={(e) => form.setData('fixed_number_end', e.target.value)}
-                                        required
-                                    />
-                                    <InputError message={form.errors.fixed_number_end} />
+                                    <p className="text-xs text-muted-foreground">
+                                        Enter all fixed numbers that belong to the café, separated by commas. These will be available for assignment when adding waitresses.
+                                    </p>
+                                    <InputError message={form.errors.cafe_fixed_numbers} />
                                 </div>
 
                                 <div className="grid gap-2">

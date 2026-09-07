@@ -30,7 +30,7 @@ class PosController extends Controller
                 'name' => $p->name,
                 'description' => $p->description,
                 'price' => (float) $p->price,
-                'image_url' => $p->image_url,
+                'image_url' => $p->image_url ?: '/images/drink-item-0.jpg',
             ];
         });
 

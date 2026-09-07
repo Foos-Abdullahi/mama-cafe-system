@@ -97,6 +97,23 @@ class MenuSeeder extends Seeder
             );
 
             foreach ($categoryData['products'] as $productData) {
+                $name = strtolower($productData['name']);
+                $img = '/images/drink-item-0.jpg';
+
+                if (str_contains($name, 'boba')) {
+                    $img = '/images/boba_drink.jpg';
+                } elseif (str_contains($name, 'chocolate') || str_contains($name, 'choco')) {
+                    $img = '/images/iced-chocolate.jpg';
+                } elseif (str_contains($name, 'shake')) {
+                    $img = '/images/drink-item-3.jpg';
+                } elseif (str_contains($name, 'ice') || str_contains($name, 'iced') || str_contains($name, 'cold')) {
+                    $img = '/images/iced_coffee.jpg';
+                } elseif (str_contains($name, 'latte') || str_contains($name, 'cappuccino')) {
+                    $img = '/images/drink-item-1.jpg';
+                } elseif (str_contains($name, 'matcha')) {
+                    $img = '/images/drink-item-2.jpg';
+                }
+
                 Product::updateOrCreate(
                     [
                         'category_id' => $category->id,
@@ -105,6 +122,7 @@ class MenuSeeder extends Seeder
                     [
                         'price' => $productData['price'],
                         'description' => $productData['description'],
+                        'image_url' => $img,
                         'status' => 'active',
                     ]
                 );

@@ -14,9 +14,63 @@ use App\Http\Controllers\System\ActivityLogController;
 use App\Http\Controllers\System\RolePermissionController;
 use App\Http\Controllers\System\SettingController;
 use App\Http\Controllers\System\UserController;
+use App\Models\Category;
+use App\Models\Product;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
-Route::inertia('/', 'welcome')->name('home');
+Route::get('/', function () {
+    $categories = Category::query()
+        ->where('status', 'active')
+        ->with(['products' => function ($query) {
+            $query->where('status', 'active')->orderBy('name');
+        }])
+        ->orderBy('id')
+        ->get()
+        ->map(function (Category $category) {
+            return [
+                'id' => $category->id,
+                'name' => $category->name,
+                'description' => $category->description,
+                'products' => $category->products->map(function (Product $product) use ($category) {
+                    return [
+                        'id' => $product->id,
+                        'name' => $product->name,
+                        'description' => $product->description,
+                        'price' => (float) $product->price,
+                        'image_url' => $product->image_url,
+                        'category_id' => $product->category_id,
+                        'category_name' => $category->name,
+                    ];
+                })->values(),
+            ];
+        })
+        ->values();
+
+    $products = Product::query()
+        ->where('status', 'active')
+        ->with('category')
+        ->orderBy('category_id')
+        ->orderBy('name')
+        ->get()
+        ->map(function (Product $p) {
+            return [
+                'id' => $p->id,
+                'category_id' => $p->category_id,
+                'category_name' => $p->category->name ?? 'Specialty',
+                'name' => $p->name,
+                'description' => $p->description,
+                'price' => (float) $p->price,
+                'image_url' => $p->image_url,
+            ];
+        })
+        ->values();
+
+    return Inertia::render('welcome', [
+        'categories' => $categories,
+        'products' => $products,
+    ]);
+})->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])

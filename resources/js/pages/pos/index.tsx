@@ -300,17 +300,14 @@ export default function PosIndex({
                                         <div>
                                             {/* Product Image Container / Placeholder */}
                                             <div className="relative mb-2.5 flex h-28 w-full items-center justify-center overflow-hidden rounded-lg border bg-gradient-to-br from-[#823d21]/5 to-amber-500/10">
-                                                {product.image_url ? (
-                                                    <img
-                                                        src={product.image_url}
-                                                        alt={product.name}
-                                                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                                                    />
-                                                ) : (
-                                                    <div className="flex flex-col items-center justify-center text-[#823d21]/40 transition-colors group-hover:text-[#823d21]/60">
-                                                        <Coffee className="h-8 w-8" />
-                                                    </div>
-                                                )}
+                                                <img
+                                                    src={product.image_url || "/images/drink-item-0.jpg"}
+                                                    alt={product.name}
+                                                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                                    onError={(e) => {
+                                                        (e.currentTarget as HTMLImageElement).src = "/images/drink-item-0.jpg";
+                                                    }}
+                                                />
                                                 <Badge
                                                     variant="outline"
                                                     className="absolute top-2 left-2 border-border bg-background/90 px-1.5 py-0 text-[10px] font-medium shadow-xs backdrop-blur-sm"

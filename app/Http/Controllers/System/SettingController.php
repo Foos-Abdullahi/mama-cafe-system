@@ -21,6 +21,7 @@ class SettingController extends Controller
             'currency' => Setting::getByKey('currency', 'USD ($)'),
             'tax_rate' => Setting::getByKey('tax_rate', '0'),
             'default_commission_rate' => Setting::getByKey('default_commission_rate', '15'),
+            'commission_rates' => Setting::getByKey('commission_rates', '10, 12, 15, 18, 20'),
             'cafe_fixed_numbers' => Setting::getByKey('cafe_fixed_numbers', '101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 150, 456543'),
         ];
 
@@ -37,12 +38,13 @@ class SettingController extends Controller
             'cafe_address' => 'required|string|max:255',
             'currency' => 'required|string|max:50',
             'tax_rate' => 'required|numeric|min:0|max:100',
-            'default_commission_rate' => 'required|numeric|min:0|max:100',
+            'default_commission_rate' => 'nullable|numeric|min:0|max:100',
+            'commission_rates' => 'required|string|max:2000',
             'cafe_fixed_numbers' => 'required|string|max:2000',
         ]);
 
         foreach ($validated as $key => $value) {
-            Setting::setByKey($key, (string) $value, 'general');
+            Setting::setByKey($key, (string) ($value ?? ''), 'general');
         }
 
         ActivityLog::log('settings_update', 'Updated general system settings.');

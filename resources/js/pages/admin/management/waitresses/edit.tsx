@@ -12,7 +12,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, Edit, Lock } from 'lucide-react';
+import { ArrowLeft, Edit } from 'lucide-react';
 
 interface Waitress {
     id: number;
@@ -25,24 +25,31 @@ interface Waitress {
 interface Props {
     waitress: Waitress;
     default_commission_rate?: number;
+    commission_rates?: string[];
 }
 
 export default function WaitressEdit({
     waitress,
     default_commission_rate = 0.15,
+    commission_rates = ['10', '12', '15', '18', '20'],
 }: Props) {
+    const currentRate = Number(waitress.commission_rate ?? default_commission_rate);
+    const currentRateStr = (currentRate * 100).toFixed(0);
+
+    // Make sure current waitress commission rate is included in dropdown options even if custom
+    const allRates = Array.from(new Set([...commission_rates, currentRateStr]));
+
     const form = useForm({
         name: waitress.name,
         phone: waitress.phone ?? '',
         status: waitress.status,
+        commission_rate: currentRateStr,
     });
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         form.put(`/management/waitresses/${waitress.id}`);
     };
-
-    const commRate = Number(waitress.commission_rate ?? default_commission_rate);
 
     return (
         <>
@@ -112,21 +119,27 @@ export default function WaitressEdit({
                                     <InputError message={form.errors.phone} />
                                 </div>
 
-                                {/* Commission Rate (Disabled - Managed in Settings) */}
+                                {/* Commission Rate Select Dropdown */}
                                 <div className="grid gap-2">
-                                    <div className="flex items-center justify-between">
-                                        <Label htmlFor="commission_rate" className="text-xs font-medium text-foreground flex items-center gap-1.5">
-                                            Commission Rate <Lock className="h-3 w-3 text-muted-foreground" />
-                                        </Label>
-                                        <span className="text-[11px] text-muted-foreground">Managed in Settings</span>
-                                    </div>
-                                    <Input
-                                        id="commission_rate"
-                                        type="text"
-                                        disabled
-                                        className="h-10 font-mono bg-muted/50 cursor-not-allowed opacity-75"
-                                        value={`${(commRate * 100).toFixed(0)}% (${commRate})`}
-                                    />
+                                    <Label htmlFor="commission_rate" className="text-xs font-medium text-foreground">
+                                        Commission Rate <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Select
+                                        value={form.data.commission_rate}
+                                        onValueChange={(val) => form.setData('commission_rate', val)}
+                                    >
+                                        <SelectTrigger id="commission_rate" className="w-full h-10 font-mono">
+                                            <SelectValue placeholder="Select Commission Rate" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {allRates.map((rate) => (
+                                                <SelectItem key={rate} value={rate} className="font-mono text-xs">
+                                                    {rate}% Commission
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <InputError message={form.errors.commission_rate} />
                                 </div>
 
                                 {/* Status */}

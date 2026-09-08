@@ -1,12 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm, Head } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Save, Store, Hash, Edit, X, Plus } from 'lucide-react';
+import { Save, Store, Hash, Edit, X, Plus, Trash2, Percent } from 'lucide-react';
 
 interface SystemSettings {
     cafe_name: string;
@@ -15,6 +14,7 @@ interface SystemSettings {
     currency: string;
     tax_rate: string;
     default_commission_rate: string;
+    commission_rates?: string;
     cafe_fixed_numbers: string;
 }
 
@@ -24,7 +24,21 @@ interface Props {
 
 export default function SystemSettingsIndex({ settings }: Props) {
     const [isEditing, setIsEditing] = useState(false);
-    const [newNumberInput, setNewNumberInput] = useState('');
+
+    // Parse fixed numbers into an array of strings
+    const initialNumbers = (settings.cafe_fixed_numbers || '101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 150, 456543')
+        .split(',')
+        .map((n) => n.trim())
+        .filter(Boolean);
+
+    // Parse commission rates into an array of strings
+    const initialCommissions = (settings.commission_rates || '10, 12, 15, 18, 20')
+        .split(',')
+        .map((c) => c.trim())
+        .filter(Boolean);
+
+    const [numberInputs, setNumberInputs] = useState<string[]>(initialNumbers);
+    const [commissionInputs, setCommissionInputs] = useState<string[]>(initialCommissions);
 
     const form = useForm({
         cafe_name: settings.cafe_name || '',
@@ -33,47 +47,74 @@ export default function SystemSettingsIndex({ settings }: Props) {
         currency: settings.currency || 'USD ($)',
         tax_rate: settings.tax_rate || '0',
         default_commission_rate: settings.default_commission_rate || '15',
+        commission_rates: settings.commission_rates || '10, 12, 15, 18, 20',
         cafe_fixed_numbers: settings.cafe_fixed_numbers || '101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 150, 456543',
     });
 
-    const parsedNumbers = form.data.cafe_fixed_numbers
-        .split(',')
-        .map((num) => num.trim())
-        .filter(Boolean);
-
-    const handleAddNumber = (e?: React.FormEvent) => {
-        if (e) e.preventDefault();
-        const trimmed = newNumberInput.trim();
-        if (!trimmed) return;
-
-        if (!parsedNumbers.includes(trimmed)) {
-            const updated = [...parsedNumbers, trimmed];
-            form.setData('cafe_fixed_numbers', updated.join(', '));
-        }
-        setNewNumberInput('');
-    };
-
-    const handleRemoveNumber = (numToRemove: string) => {
-        const updated = parsedNumbers.filter((n) => n !== numToRemove);
-        form.setData('cafe_fixed_numbers', updated.join(', '));
-    };
-
+    // Sync state when reset or canceled
     const handleCancel = () => {
         form.reset();
-        setNewNumberInput('');
+        setNumberInputs(initialNumbers);
+        setCommissionInputs(initialCommissions);
         setIsEditing(false);
+    };
+
+    // Number Inputs Management
+    const handleNumberChange = (index: number, val: string) => {
+        const updated = [...numberInputs];
+        updated[index] = val;
+        setNumberInputs(updated);
+        form.setData('cafe_fixed_numbers', updated.filter(Boolean).join(', '));
+    };
+
+    const addNumberInput = () => {
+        const updated = [...numberInputs, ''];
+        setNumberInputs(updated);
+    };
+
+    const removeNumberInput = (index: number) => {
+        const updated = numberInputs.filter((_, i) => i !== index);
+        setNumberInputs(updated);
+        form.setData('cafe_fixed_numbers', updated.filter(Boolean).join(', '));
+    };
+
+    // Commission Inputs Management
+    const handleCommissionChange = (index: number, val: string) => {
+        const updated = [...commissionInputs];
+        updated[index] = val;
+        setCommissionInputs(updated);
+        form.setData('commission_rates', updated.filter(Boolean).join(', '));
+    };
+
+    const addCommissionInput = () => {
+        const updated = [...commissionInputs, ''];
+        setCommissionInputs(updated);
+    };
+
+    const removeCommissionInput = (index: number) => {
+        const updated = commissionInputs.filter((_, i) => i !== index);
+        setCommissionInputs(updated);
+        form.setData('commission_rates', updated.filter(Boolean).join(', '));
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        // Prepare combined strings before submit
+        const cleanedNumbers = numberInputs.map((n) => n.trim()).filter(Boolean).join(', ');
+        const cleanedCommissions = commissionInputs.map((c) => c.trim()).filter(Boolean).join(', ');
+
+        form.transform((data) => ({
+            ...data,
+            cafe_fixed_numbers: cleanedNumbers,
+            commission_rates: cleanedCommissions,
+        }));
+
         form.put('/system/settings', {
             onSuccess: () => {
                 setIsEditing(false);
             },
         });
     };
-
-    const presetCommissions = ['10', '12', '15', '18', '20', '25'];
 
     return (
         <>
@@ -85,7 +126,7 @@ export default function SystemSettingsIndex({ settings }: Props) {
                     <div>
                         <h1 className="text-lg font-semibold text-foreground tracking-tight">General System Settings</h1>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                            Configure cafe identity, waitress fixed numbers, operating currency, and commission rules.
+                            Configure cafe identity, waitress fixed numbers, currency, and available commission rates.
                         </p>
                     </div>
 
@@ -188,135 +229,139 @@ export default function SystemSettingsIndex({ settings }: Props) {
                                 <h2 className="font-semibold text-base text-foreground">Fixed Numbers & Commission Configuration</h2>
                             </div>
 
-                            <div className="space-y-6">
-                                {/* Waitress Fixed Numbers List Management */}
-                                <div className="grid gap-3">
-                                    <div className="flex items-center justify-between">
-                                        <Label className="text-xs font-medium">
-                                            Café Waitress Fixed Numbers <span className="text-red-500">*</span>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                {/* 1. Waitress Fixed Numbers Input List */}
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                                        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                            Café Waitress Fixed Numbers ({numberInputs.length})
                                         </Label>
-                                        <span className="text-xs text-muted-foreground">
-                                            Total configured: {parsedNumbers.length} numbers
-                                        </span>
-                                    </div>
-
-                                    {/* Add Number Input Control (When Editing) */}
-                                    {isEditing && (
-                                        <div className="flex items-center gap-2">
-                                            <Input
-                                                placeholder="Enter a new waitress number (e.g. 108)"
-                                                className="font-mono h-10 max-w-sm"
-                                                value={newNumberInput}
-                                                onChange={(e) => setNewNumberInput(e.target.value)}
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter') {
-                                                        e.preventDefault();
-                                                        handleAddNumber();
-                                                    }
-                                                }}
-                                            />
+                                        {isEditing && (
                                             <Button
                                                 type="button"
-                                                onClick={() => handleAddNumber()}
-                                                variant="secondary"
-                                                className="gap-1.5 h-10 text-xs bg-[#823d21]/10 text-[#823d21] hover:bg-[#823d21]/20 border border-[#823d21]/20 font-medium"
+                                                size="sm"
+                                                onClick={addNumberInput}
+                                                className="h-8 gap-1.5 text-xs bg-[#823d21] text-white hover:bg-[#682e18]"
                                             >
-                                                <Plus className="h-4 w-4" />
-                                                Add Number
+                                                <Plus className="h-3.5 w-3.5" />
+                                                Add Waitress Number
                                             </Button>
-                                        </div>
-                                    )}
+                                        )}
+                                    </div>
 
-                                    {/* Display Chip Tags */}
-                                    <div className="flex flex-wrap gap-2 p-3.5 rounded-lg border bg-muted/20 min-h-[56px] items-center">
-                                        {parsedNumbers.length === 0 ? (
-                                            <p className="text-xs text-muted-foreground italic">No fixed numbers configured yet.</p>
+                                    <div className="space-y-3.5 max-h-[360px] overflow-y-auto pr-1">
+                                        {numberInputs.length === 0 ? (
+                                            <p className="text-xs text-muted-foreground italic">No waitress numbers configured. Click Add Waitress Number to create one.</p>
                                         ) : (
-                                            parsedNumbers.map((num) => (
-                                                <Badge
-                                                    key={num}
-                                                    variant="secondary"
-                                                    className="font-mono text-xs px-2.5 py-1 gap-1.5 bg-background border border-border shadow-2xs hover:bg-muted"
-                                                >
-                                                    <span className="text-[#823d21] font-semibold">#{num}</span>
+                                            numberInputs.map((num, idx) => (
+                                                <div key={idx} className="flex items-center gap-2">
+                                                    <div className="relative flex-1">
+                                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#823d21]">#</span>
+                                                        <Input
+                                                            placeholder="Waitress number e.g. 6100000"
+                                                            disabled={!isEditing}
+                                                            className={`h-10 font-mono pl-7 ${!isEditing ? 'bg-muted/50 cursor-not-allowed' : ''}`}
+                                                            value={num}
+                                                            onChange={(e) => handleNumberChange(idx, e.target.value)}
+                                                        />
+                                                    </div>
                                                     {isEditing && (
-                                                        <button
+                                                        <Button
                                                             type="button"
-                                                            onClick={() => handleRemoveNumber(num)}
-                                                            className="text-muted-foreground hover:text-red-500 rounded-full p-0.5 transition-colors"
-                                                            title="Remove number"
+                                                            variant="outline"
+                                                            size="icon"
+                                                            onClick={() => removeNumberInput(idx)}
+                                                            className="h-10 w-10 shrink-0 text-red-500 hover:bg-red-500/10 hover:text-red-600 border-red-200 dark:border-red-900/30"
+                                                            title="Remove input"
                                                         >
-                                                            <X className="h-3 w-3" />
-                                                        </button>
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
                                                     )}
-                                                </Badge>
+                                                </div>
                                             ))
                                         )}
                                     </div>
-                                    <p className="text-xs text-muted-foreground">
-                                        These numbers represent the physical floor cards available for waitresses on duty.
+                                    <p className="text-[11px] text-muted-foreground">
+                                        Each number input represents an available floor card number for waitresses.
                                     </p>
                                     <InputError message={form.errors.cafe_fixed_numbers} />
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                                    {/* Commission Rate Config */}
-                                    <div className="grid gap-3">
-                                        <Label htmlFor="default_commission_rate" className="text-xs font-medium">
-                                            Default Waitress Commission Rate (%) <span className="text-red-500">*</span>
+                                {/* 2. Commission Rates Input List */}
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                                        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                            Available Commission Rates ({commissionInputs.length})
                                         </Label>
-                                        <div className="flex items-center gap-2">
-                                            <Input
-                                                id="default_commission_rate"
-                                                type="number"
-                                                step="0.1"
-                                                disabled={!isEditing}
-                                                className={`font-mono h-10 ${!isEditing ? 'bg-muted/50 cursor-not-allowed' : ''}`}
-                                                value={form.data.default_commission_rate}
-                                                onChange={(e) => form.setData('default_commission_rate', e.target.value)}
-                                                required
-                                            />
-                                            <span className="font-semibold text-sm text-muted-foreground">%</span>
-                                        </div>
-
-                                        {/* Quick Add / Select Preset Commission Badges */}
                                         {isEditing && (
-                                            <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                                                <span className="text-[11px] text-muted-foreground mr-1">Quick Select:</span>
-                                                {presetCommissions.map((rate) => (
-                                                    <button
-                                                        key={rate}
-                                                        type="button"
-                                                        onClick={() => form.setData('default_commission_rate', rate)}
-                                                        className={`text-xs px-2 py-0.5 rounded border font-mono transition-colors ${
-                                                            form.data.default_commission_rate === rate
-                                                                ? 'bg-[#823d21] text-white border-[#823d21]'
-                                                                : 'bg-background hover:bg-muted text-foreground border-border'
-                                                        }`}
-                                                    >
-                                                        {rate}%
-                                                    </button>
-                                                ))}
-                                            </div>
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                onClick={addCommissionInput}
+                                                className="h-8 gap-1.5 text-xs bg-[#823d21] text-white hover:bg-[#682e18]"
+                                            >
+                                                <Plus className="h-3.5 w-3.5" />
+                                                Add Commission Rate
+                                            </Button>
                                         )}
-                                        <InputError message={form.errors.default_commission_rate} />
                                     </div>
 
-                                    {/* Currency */}
-                                    <div className="grid gap-3">
-                                        <Label htmlFor="currency" className="text-xs font-medium">
-                                            Operating Currency <span className="text-red-500">*</span>
-                                        </Label>
-                                        <Input
-                                            id="currency"
-                                            disabled={!isEditing}
-                                            className={`h-10 ${!isEditing ? 'bg-muted/50 cursor-not-allowed' : ''}`}
-                                            value={form.data.currency}
-                                            onChange={(e) => form.setData('currency', e.target.value)}
-                                            required
-                                        />
-                                        <InputError message={form.errors.currency} />
+                                    <div className="space-y-3.5 max-h-[360px] overflow-y-auto pr-1">
+                                        {commissionInputs.length === 0 ? (
+                                            <p className="text-xs text-muted-foreground italic">No commission rates configured. Click Add Commission Rate to create one.</p>
+                                        ) : (
+                                            commissionInputs.map((rate, idx) => (
+                                                <div key={idx} className="flex items-center gap-2">
+                                                    <div className="relative flex-1">
+                                                        <Input
+                                                            type="number"
+                                                            step="0.1"
+                                                            placeholder="Commission percentage e.g. 15"
+                                                            disabled={!isEditing}
+                                                            className={`h-10 font-mono pr-8 ${!isEditing ? 'bg-muted/50 cursor-not-allowed' : ''}`}
+                                                            value={rate}
+                                                            onChange={(e) => handleCommissionChange(idx, e.target.value)}
+                                                        />
+                                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">%</span>
+                                                    </div>
+                                                    {isEditing && (
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="icon"
+                                                            onClick={() => removeCommissionInput(idx)}
+                                                            className="h-10 w-10 shrink-0 text-red-500 hover:bg-red-500/10 hover:text-red-600 border-red-200 dark:border-red-900/30"
+                                                            title="Remove input"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            ))
+                                        )}
                                     </div>
+                                    <p className="text-[11px] text-muted-foreground">
+                                        These commission rates will appear as options in the dropdown when adding or editing a waitress.
+                                    </p>
+                                    <InputError message={form.errors.commission_rates} />
+                                </div>
+                            </div>
+
+                            {/* Currency */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-border/60">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="currency" className="text-xs font-medium">
+                                        Operating Currency <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Input
+                                        id="currency"
+                                        disabled={!isEditing}
+                                        className={`h-10 ${!isEditing ? 'bg-muted/50 cursor-not-allowed' : ''}`}
+                                        value={form.data.currency}
+                                        onChange={(e) => form.setData('currency', e.target.value)}
+                                        required
+                                    />
+                                    <InputError message={form.errors.currency} />
                                 </div>
                             </div>
                         </div>
@@ -367,3 +412,4 @@ SystemSettingsIndex.layout = (page: React.ReactNode) => (
         {page}
     </AppLayout>
 );
+

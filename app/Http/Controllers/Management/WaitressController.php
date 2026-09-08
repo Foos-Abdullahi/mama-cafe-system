@@ -82,8 +82,12 @@ class WaitressController extends Controller
         $defaultCommSetting = Setting::getByKey('default_commission_rate', '15');
         $defaultCommRate = (float) $defaultCommSetting / 100;
 
+        $rawRates = Setting::getByKey('commission_rates', '10, 12, 15, 18, 20');
+        $commissionRates = array_values(array_filter(array_map('trim', explode(',', $rawRates))));
+
         return Inertia::render('admin/management/waitresses/create', [
             'default_commission_rate' => $defaultCommRate,
+            'commission_rates' => $commissionRates,
         ]);
     }
 
@@ -93,19 +97,23 @@ class WaitressController extends Controller
             'name' => 'required|string|min:2|max:255',
             'phone' => 'required|string|min:5|max:50',
             'status' => 'required|in:active,inactive',
+            'commission_rate' => 'required|numeric|min:0|max:100',
         ]);
 
-        $defaultCommSetting = Setting::getByKey('default_commission_rate', '15');
-        $commissionRate = (float) $defaultCommSetting / 100;
+        // Convert percentage e.g. 15 to 0.15 decimal rate if > 1
+        $commRate = (float) $validated['commission_rate'];
+        if ($commRate > 1) {
+            $commRate = $commRate / 100;
+        }
 
         $waitress = Waitress::create([
             'name' => $validated['name'],
             'phone' => $validated['phone'],
-            'commission_rate' => $commissionRate,
+            'commission_rate' => $commRate,
             'status' => $validated['status'],
         ]);
 
-        ActivityLog::log('waitress_create', "Waitress '{$waitress->name}' was registered.");
+        ActivityLog::log('waitress_create', "Waitress '{$waitress->name}' was registered with ".($commRate * 100).'% commission.');
 
         return redirect()->route('management.waitresses.index')->with('success', 'Waitress created successfully.');
     }
@@ -130,9 +138,13 @@ class WaitressController extends Controller
         $defaultCommSetting = Setting::getByKey('default_commission_rate', '15');
         $defaultCommRate = (float) $defaultCommSetting / 100;
 
+        $rawRates = Setting::getByKey('commission_rates', '10, 12, 15, 18, 20');
+        $commissionRates = array_values(array_filter(array_map('trim', explode(',', $rawRates))));
+
         return Inertia::render('admin/management/waitresses/edit', [
             'waitress' => $waitress,
             'default_commission_rate' => $defaultCommRate,
+            'commission_rates' => $commissionRates,
         ]);
     }
 
@@ -142,15 +154,18 @@ class WaitressController extends Controller
             'name' => 'required|string|min:2|max:255',
             'phone' => 'required|string|min:5|max:50',
             'status' => 'required|in:active,inactive',
+            'commission_rate' => 'required|numeric|min:0|max:100',
         ]);
 
-        $defaultCommSetting = Setting::getByKey('default_commission_rate', '15');
-        $commissionRate = (float) $defaultCommSetting / 100;
+        $commRate = (float) $validated['commission_rate'];
+        if ($commRate > 1) {
+            $commRate = $commRate / 100;
+        }
 
         $waitress->update([
             'name' => $validated['name'],
             'phone' => $validated['phone'],
-            'commission_rate' => $commissionRate,
+            'commission_rate' => $commRate,
             'status' => $validated['status'],
         ]);
 

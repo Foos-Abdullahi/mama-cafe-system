@@ -135,7 +135,7 @@ export default function OrderCreate({ products, waitresses }: Props) {
                                 <Input
                                     id="fixed_number"
                                     type="number"
-                                    placeholder="e.g. 101"
+                                    placeholder="e.g. 61000000"
                                     className="h-10"
                                     value={form.data.fixed_number}
                                     onChange={(e) => form.setData('fixed_number', e.target.value)}

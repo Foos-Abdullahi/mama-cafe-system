@@ -464,7 +464,7 @@ export default function PosIndex({
                                         <Input
                                             id="fixed_no"
                                             type="number"
-                                            placeholder="e.g. 101"
+                                            placeholder="e.g. 61000000"
                                             className="mt-1 h-9 font-mono text-xs shadow-sm"
                                             value={form.data.fixed_number}
                                             onChange={(e) =>

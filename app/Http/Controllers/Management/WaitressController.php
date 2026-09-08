@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Management;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
-use App\Models\FixedNumber;
 use App\Models\Order;
 use App\Models\Setting;
 use App\Models\Waitress;
@@ -83,14 +82,8 @@ class WaitressController extends Controller
         $defaultCommSetting = Setting::getByKey('default_commission_rate', '15');
         $defaultCommRate = (float) $defaultCommSetting / 100;
 
-        $rawNumbers = Setting::getByKey('cafe_fixed_numbers', '101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 150, 456543');
-        $cafeFixedNumbers = array_values(array_filter(array_map('trim', explode(',', $rawNumbers))));
-        $assignedNumbers = FixedNumber::pluck('range_start')->map(fn ($n) => (string) $n)->toArray();
-
         return Inertia::render('admin/management/waitresses/create', [
             'default_commission_rate' => $defaultCommRate,
-            'cafe_fixed_numbers' => $cafeFixedNumbers,
-            'assigned_numbers' => $assignedNumbers,
         ]);
     }
 
@@ -100,7 +93,6 @@ class WaitressController extends Controller
             'name' => 'required|string|min:2|max:255',
             'phone' => 'required|string|min:5|max:50',
             'status' => 'required|in:active,inactive',
-            'assigned_number' => 'required|integer|min:1',
         ]);
 
         $defaultCommSetting = Setting::getByKey('default_commission_rate', '15');
@@ -113,18 +105,7 @@ class WaitressController extends Controller
             'status' => $validated['status'],
         ]);
 
-        $num = (int) $validated['assigned_number'];
-
-        FixedNumber::create([
-            'waitress_id' => $waitress->id,
-            'range_start' => $num,
-            'range_end' => $num,
-            'current_number' => $num,
-            'status' => 'active',
-            'assigned_at' => now(),
-        ]);
-
-        ActivityLog::log('waitress_create', "Waitress '{$waitress->name}' was created with number {$num}.");
+        ActivityLog::log('waitress_create', "Waitress '{$waitress->name}' was registered.");
 
         return redirect()->route('management.waitresses.index')->with('success', 'Waitress created successfully.');
     }
@@ -146,24 +127,12 @@ class WaitressController extends Controller
 
     public function edit(Waitress $waitress): Response
     {
-        $waitress->load('fixedNumbers');
-
         $defaultCommSetting = Setting::getByKey('default_commission_rate', '15');
         $defaultCommRate = (float) $defaultCommSetting / 100;
-
-        $rawNumbers = Setting::getByKey('cafe_fixed_numbers', '101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 150, 456543');
-        $cafeFixedNumbers = array_values(array_filter(array_map('trim', explode(',', $rawNumbers))));
-
-        $assignedNumbers = FixedNumber::where('waitress_id', '!=', $waitress->id)
-            ->pluck('range_start')
-            ->map(fn ($n) => (string) $n)
-            ->toArray();
 
         return Inertia::render('admin/management/waitresses/edit', [
             'waitress' => $waitress,
             'default_commission_rate' => $defaultCommRate,
-            'cafe_fixed_numbers' => $cafeFixedNumbers,
-            'assigned_numbers' => $assignedNumbers,
         ]);
     }
 
@@ -173,7 +142,6 @@ class WaitressController extends Controller
             'name' => 'required|string|min:2|max:255',
             'phone' => 'required|string|min:5|max:50',
             'status' => 'required|in:active,inactive',
-            'assigned_number' => 'required|integer|min:1',
         ]);
 
         $defaultCommSetting = Setting::getByKey('default_commission_rate', '15');
@@ -186,20 +154,7 @@ class WaitressController extends Controller
             'status' => $validated['status'],
         ]);
 
-        $num = (int) $validated['assigned_number'];
-
-        FixedNumber::updateOrCreate(
-            ['waitress_id' => $waitress->id],
-            [
-                'range_start' => $num,
-                'range_end' => $num,
-                'current_number' => $num,
-                'status' => 'active',
-                'assigned_at' => now(),
-            ]
-        );
-
-        ActivityLog::log('waitress_update', "Waitress '{$waitress->name}' was updated.");
+        ActivityLog::log('waitress_update', "Waitress '{$waitress->name}' details updated.");
 
         return redirect()->route('management.waitresses.index')->with('success', 'Waitress updated successfully.');
     }

@@ -12,13 +12,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, Edit, Hash, Lock } from 'lucide-react';
-
-interface FixedNumber {
-    id: number;
-    range_start: number;
-    range_end: number;
-}
+import { ArrowLeft, Edit, Lock } from 'lucide-react';
 
 interface Waitress {
     id: number;
@@ -26,32 +20,21 @@ interface Waitress {
     phone: string | null;
     commission_rate: number | string;
     status: 'active' | 'inactive';
-    fixed_numbers: FixedNumber[];
 }
 
 interface Props {
     waitress: Waitress;
     default_commission_rate?: number;
-    cafe_fixed_numbers?: string[];
-    assigned_numbers?: string[];
 }
 
 export default function WaitressEdit({
     waitress,
     default_commission_rate = 0.15,
-    cafe_fixed_numbers = ['101', '102', '103', '104', '105', '456543'],
-    assigned_numbers = [],
 }: Props) {
-    const currentNumber = waitress.fixed_numbers?.[0]?.range_start?.toString() ?? cafe_fixed_numbers[0] ?? '101';
-
-    // Make sure current assigned number is included in dropdown options even if custom
-    const allNumbers = Array.from(new Set([...cafe_fixed_numbers, currentNumber]));
-
     const form = useForm({
         name: waitress.name,
         phone: waitress.phone ?? '',
         status: waitress.status,
-        assigned_number: currentNumber,
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -164,51 +147,6 @@ export default function WaitressEdit({
                                         </SelectContent>
                                     </Select>
                                     <InputError message={form.errors.status} />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Single Assigned Waitress Number */}
-                        <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 md:p-5 space-y-3">
-                            <div className="flex items-center gap-2">
-                                <Hash className="h-4 w-4 text-amber-700 dark:text-amber-400" />
-                                <h2 className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">
-                                    Assigned Waitress Number
-                                </h2>
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                Select the unique number assigned to this waitress from the numbers configured in General Settings.
-                            </p>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="assigned_number" className="text-xs font-medium text-foreground">
-                                        Waitress Number <span className="text-red-500">*</span>
-                                    </Label>
-                                    <Select
-                                        value={form.data.assigned_number}
-                                        onValueChange={(val) => form.setData('assigned_number', val)}
-                                    >
-                                        <SelectTrigger id="assigned_number" className="w-full h-10 font-mono">
-                                            <SelectValue placeholder="Select Waitress Number" />
-                                        </SelectTrigger>
-                                        <SelectContent className="max-h-60">
-                                            {allNumbers.map((numStr) => {
-                                                const isTaken = assigned_numbers.includes(numStr);
-                                                const isCurrent = numStr === currentNumber;
-                                                return (
-                                                    <SelectItem
-                                                        key={numStr}
-                                                        value={numStr}
-                                                        disabled={isTaken && !isCurrent}
-                                                        className="font-mono text-xs"
-                                                    >
-                                                        #{numStr} {isCurrent ? '(Currently Assigned)' : isTaken ? '(In Use by Another Waitress)' : ''}
-                                                    </SelectItem>
-                                                );
-                                            })}
-                                        </SelectContent>
-                                    </Select>
-                                    <InputError message={form.errors.assigned_number} />
                                 </div>
                             </div>
                         </div>

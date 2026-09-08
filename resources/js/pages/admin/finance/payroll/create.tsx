@@ -39,7 +39,6 @@ export default function PayrollCreate({ waitresses, selectedWaitressId }: Props)
         period_start: new Date(new Date().setDate(new Date().getDate() - 7)).toISOString().split('T')[0],
         period_end: new Date().toISOString().split('T')[0],
         commission_amount: initialWaitress ? String(initialWaitress.unpaid_commission > 0 ? initialWaitress.unpaid_commission.toFixed(2) : initialWaitress.earned_commission.toFixed(2)) : '',
-        notes: initialWaitress ? `15% Commission Payout for ${initialWaitress.name}` : '',
     });
 
     const activeWaitress = waitresses.find((w) => String(w.id) === form.data.waitress_id);
@@ -51,7 +50,6 @@ export default function PayrollCreate({ waitresses, selectedWaitressId }: Props)
             ...data,
             waitress_id: id,
             commission_amount: w ? String(w.unpaid_commission > 0 ? w.unpaid_commission.toFixed(2) : w.earned_commission.toFixed(2)) : '',
-            notes: w ? `15% Commission Payout for ${w.name}` : '',
         }));
     };
 
@@ -192,21 +190,6 @@ export default function PayrollCreate({ waitresses, selectedWaitressId }: Props)
                                 </div>
                             </div>
                         )}
-
-                        {/* Notes */}
-                        <div className="grid gap-2">
-                            <Label htmlFor="notes" className="text-xs font-medium text-foreground">
-                                Notes / Reference
-                            </Label>
-                            <Input
-                                id="notes"
-                                placeholder="e.g. Paid in cash by Manager"
-                                className="h-10"
-                                value={form.data.notes}
-                                onChange={(e) => form.setData('notes', e.target.value)}
-                            />
-                            <InputError message={form.errors.notes} />
-                        </div>
 
                         {/* Actions Footer */}
                         <div className="flex items-center justify-end gap-3 border-t border-border pt-4">

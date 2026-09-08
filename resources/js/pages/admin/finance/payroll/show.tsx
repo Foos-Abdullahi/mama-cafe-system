@@ -113,31 +113,6 @@ export default function PayrollShow({ payroll }: Props) {
                                     />
                                 </div>
                             </Panel>
-
-                            {payroll.notes && (
-                                <Panel title="Payout Notes">
-                                    <p className="text-sm text-muted-foreground bg-muted/20 p-3.5 rounded-lg border border-border/60">
-                                        {payroll.notes}
-                                    </p>
-                                </Panel>
-                            )}
-
-                            {/* Signatures Panel */}
-                            <div className="rounded-xl border border-border bg-card p-6 shadow-xs">
-                                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-8">
-                                    Signatures & Authorization
-                                </p>
-                                <div className="grid grid-cols-2 gap-8 text-center text-xs">
-                                    <div className="border-t border-dashed border-border pt-3">
-                                        <p className="font-semibold text-foreground">Manager Signature</p>
-                                        <p className="text-[11px] text-muted-foreground mt-0.5">Authorized Sign-off</p>
-                                    </div>
-                                    <div className="border-t border-dashed border-border pt-3">
-                                        <p className="font-semibold text-foreground">Waitress Signature</p>
-                                        <p className="text-[11px] text-muted-foreground mt-0.5">Payment Received</p>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
 
                         {/* Right Side: Staff & Record Details */}

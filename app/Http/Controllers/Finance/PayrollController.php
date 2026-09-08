@@ -48,7 +48,7 @@ class PayrollController extends Controller
                 'commission_rate' => (float) $p->commission_rate,
                 'commission_amount' => (float) $p->commission_amount,
                 'status' => $p->status,
-                'paid_at' => $p->paid_at ? $p->paid_at->format('Y-m-d H:i') : ($p->created_at ? $p->created_at->format('Y-m-d H:i') : '—'),
+                'paid_at' => $p->paid_at ? $p->paid_at->toIso8601String() : ($p->created_at ? $p->created_at->toIso8601String() : null),
                 'notes' => $p->notes,
             ];
         });
@@ -165,7 +165,7 @@ class PayrollController extends Controller
                 'commission_rate' => (float) $payroll->commission_rate,
                 'commission_amount' => (float) $payroll->commission_amount,
                 'status' => $payroll->status,
-                'paid_at' => $payroll->paid_at ? $payroll->paid_at->format('Y-m-d H:i') : ($payroll->created_at ? $payroll->created_at->format('Y-m-d H:i') : '—'),
+                'paid_at' => $payroll->paid_at ? $payroll->paid_at->toIso8601String() : ($payroll->created_at ? $payroll->created_at->toIso8601String() : null),
                 'notes' => $payroll->notes,
             ],
         ]);

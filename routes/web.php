@@ -84,10 +84,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Management routes
     Route::prefix('management')->name('management.')->group(function () {
-        Route::resource('orders', OrderController::class)->only(['index', 'create', 'store', 'show']);
+        Route::resource('orders', OrderController::class)->only(['index', 'show']);
 
         Route::middleware('role:admin,manager')->group(function () {
-            Route::resource('orders', OrderController::class)->only(['edit', 'update', 'destroy']);
+            Route::resource('orders', OrderController::class)->only(['destroy']);
             Route::resource('categories', CategoryController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
             Route::resource('products', ProductController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
             Route::resource('waitresses', WaitressController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);

@@ -1,42 +1,32 @@
-import React, { useState, useMemo } from 'react';
-import { Head, useForm } from '@inertiajs/react';
-import AppLayout from '@/layouts/app-layout';
-import InputError from '@/components/input-error';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import {
     Search,
-    ShoppingBag,
+    ShoppingCart,
+    Trash2,
     Plus,
     Minus,
-    Trash2,
-    CreditCard,
-    Coffee,
     CheckCircle2,
-    DollarSign,
+    Banknote,
     Smartphone,
-    UserCheck,
-    Hash,
-    Receipt,
+    CreditCard,
+    BadgeDollarSign,
+    BarChart3,
+    Tag,
+    FileText,
+    UserRound,
+    PauseCircle,
+    ChevronDown,
+    ChevronLeft,
+    ChevronRight,
+    LogOut,
+    ClipboardList,
+    Home,
+    Coffee,
 } from 'lucide-react';
+import type { User } from '@/types';
 
+/* ─── Types ─────────────────────────────────────────────────────────────── */
 interface Category {
     id: number;
     name: string;
@@ -61,23 +51,12 @@ interface Waitress {
     current_number: number | null;
 }
 
-interface RecentOrder {
-    id: number;
-    order_number: string;
-    fixed_number: number | null;
-    waitress_name: string;
-    order_type: string;
-    total: number;
-    payment_status: string;
-    payment_method: string;
-    created_at: string;
-}
-
 interface Props {
     categories: Category[];
     products: Product[];
     waitresses: Waitress[];
-    recentOrders: RecentOrder[];
+    recentOrders: unknown[];
+    nextOrderNumber: number;
 }
 
 interface CartItem {
@@ -85,750 +64,607 @@ interface CartItem {
     quantity: number;
 }
 
-export default function PosIndex({
-    categories,
-    products,
-    waitresses,
-    recentOrders,
-}: Props) {
-    const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(
-        null,
-    );
-    const [searchQuery, setSearchQuery] = useState('');
-    const [cart, setCart] = useState<CartItem[]>([]);
-    const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-    const [cashTendered, setCashTendered] = useState('');
+/* ─── Category icon mapping ─────────────────────────────────────────────── */
+const CATEGORY_EMOJI: Record<string, string> = {
+    'Hot Coffee':    '☕',
+    'Boba Tea':      '🧋',
+    'Cold Drinks':   '🧊',
+    'Shakes':        '🥤',
+    'Hot Tea':       '🍵',
+};
 
-    const form = useForm({
-        order_type: 'dine_in' as 'dine_in' | 'takeaway',
-        fixed_number: '',
-        waitress_id: '',
-        payment_method: 'cash' as 'cash' | 'mobile_money' | 'card' | 'credit',
-        payment_status: 'paid' as 'paid' | 'partial' | 'unpaid',
-        amount_paid: '',
-        discount: '0',
-        items: [] as { product_id: number; quantity: number }[],
-    });
+/* ─── Payment methods ───────────────────────────────────────────────────── */
+const PAYMENT_METHODS = [
+    { id: 'cash',         label: 'Cash',         icon: Banknote,         bg: '#1B5C35', ring: '#266E3B' },
+    { id: 'mobile_money', label: 'Mobile Money',  icon: Smartphone,       bg: '#5C2B0D', ring: '#70381B' },
+    { id: 'card',         label: 'Card',          icon: CreditCard,       bg: '#1A1A1A', ring: '#2A2A2A' },
+    { id: 'credit',       label: 'Credit',        icon: BadgeDollarSign,  bg: '#3B1A6E', ring: '#522A7F' },
+] as const;
 
-    // Filter Products
+/* ═══════════════════════════════════════════════════════════════════════════
+   MaMa Café POS Terminal
+   ═══════════════════════════════════════════════════════════════════════════ */
+export default function PosIndex({ categories, products, waitresses, nextOrderNumber }: Props) {
+    const { auth } = usePage<{ auth: { user: User } }>().props;
+    const user = auth?.user;
+
+    /* ── State ─────────────────────────────────────────────────────────── */
+    const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+    const [searchQuery, setSearchQuery]               = useState('');
+    const [cart, setCart]                             = useState<CartItem[]>([]);
+    const [selectedWaitressId, setSelectedWaitressId] = useState<string>('');
+    const [selectedPayment, setSelectedPayment]       = useState<'cash' | 'mobile_money' | 'card' | 'credit'>('cash');
+    const [isProcessing, setIsProcessing]             = useState(false);
+    const [orderSuccess, setOrderSuccess]             = useState(false);
+    const [currentOrderNum, setCurrentOrderNum]       = useState(nextOrderNumber);
+    const [now, setNow]                               = useState(new Date());
+    const [showUserMenu, setShowUserMenu]             = useState(false);
+    const [discountAmount, setDiscountAmount]         = useState(0);
+    const [currentPage, setCurrentPage]               = useState(1);
+    const ITEMS_PER_PAGE = 25;
+
+    /* ── Live clock ────────────────────────────────────────────────────── */
+    useEffect(() => {
+        const timer = setInterval(() => setNow(new Date()), 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    /* ── Reset pagination on filter changes ────────────────────────────── */
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [selectedCategoryId, searchQuery]);
+
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const dateStr = now.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+
+    /* ── Filtered products ─────────────────────────────────────────────── */
     const filteredProducts = useMemo(() => {
-        return products.filter((p) => {
-            const matchesCategory =
-                selectedCategoryId === null ||
-                p.category_id === selectedCategoryId;
-            const matchesSearch =
-                p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                p.category_name
-                    .toLowerCase()
-                    .includes(searchQuery.toLowerCase());
+        return products.filter(p => {
+            const matchesCategory = selectedCategoryId === null || p.category_id === selectedCategoryId;
+            const q = searchQuery.toLowerCase();
+            const matchesSearch = !q || p.name.toLowerCase().includes(q) || p.category_name.toLowerCase().includes(q);
             return matchesCategory && matchesSearch;
         });
     }, [products, selectedCategoryId, searchQuery]);
 
-    // Cart calculations
-    const subtotal = useMemo(() => {
-        return cart.reduce(
-            (sum, item) => sum + item.product.price * item.quantity,
-            0,
-        );
-    }, [cart]);
+    /* ── Pagination ────────────────────────────────────────────────────── */
+    const totalPages = Math.max(1, Math.ceil(filteredProducts.length / ITEMS_PER_PAGE));
+    const safePage = Math.min(currentPage, totalPages);
+    const paginatedProducts = useMemo(() => {
+        return filteredProducts.slice((safePage - 1) * ITEMS_PER_PAGE, safePage * ITEMS_PER_PAGE);
+    }, [filteredProducts, safePage, ITEMS_PER_PAGE]);
 
-    const discountAmount = Number(form.data.discount || 0);
-    const grandTotal = Math.max(0, subtotal - discountAmount);
+    /* ── Cart calculations ─────────────────────────────────────────────── */
+    const subtotal    = useMemo(() => cart.reduce((s, i) => s + i.product.price * i.quantity, 0), [cart]);
+    const grandTotal  = Math.max(0, subtotal - discountAmount);
 
-    const cashChange = useMemo(() => {
-        const tendered = Number(cashTendered || 0);
-        return Math.max(0, tendered - grandTotal);
-    }, [cashTendered, grandTotal]);
-
-    // Cart Handlers
-    const addToCart = (product: Product) => {
-        setCart((prev) => {
-            const existing = prev.find(
-                (item) => item.product.id === product.id,
-            );
+    /* ── Cart handlers ─────────────────────────────────────────────────── */
+    const addToCart = useCallback((product: Product) => {
+        setCart(prev => {
+            const existing = prev.find(i => i.product.id === product.id);
             if (existing) {
-                return prev.map((item) =>
-                    item.product.id === product.id
-                        ? { ...item, quantity: item.quantity + 1 }
-                        : item,
-                );
+                return prev.map(i => i.product.id === product.id ? { ...i, quantity: i.quantity + 1 } : i);
             }
             return [...prev, { product, quantity: 1 }];
         });
-    };
+    }, []);
 
-    const updateQuantity = (productId: number, delta: number) => {
-        setCart(
-            (prev) =>
-                prev
-                    .map((item) => {
-                        if (item.product.id === productId) {
-                            const newQty = item.quantity + delta;
-                            return newQty > 0
-                                ? { ...item, quantity: newQty }
-                                : null;
-                        }
-                        return item;
-                    })
-                    .filter(Boolean) as CartItem[],
+    const updateQty = useCallback((productId: number, delta: number) => {
+        setCart(prev =>
+            prev.map(i => i.product.id === productId ? { ...i, quantity: Math.max(1, i.quantity + delta) } : i)
         );
-    };
+    }, []);
 
-    const removeFromCart = (productId: number) => {
-        setCart((prev) => prev.filter((item) => item.product.id !== productId));
-    };
+    const removeItem = useCallback((productId: number) => {
+        setCart(prev => prev.filter(i => i.product.id !== productId));
+    }, []);
 
-    const clearCart = () => {
+    const clearCart = useCallback(() => {
         setCart([]);
-        setCashTendered('');
-    };
+        setDiscountAmount(0);
+        setSelectedWaitressId('');
+        setSelectedPayment('cash');
+    }, []);
 
-    // Submit POS Order
-    const handleCheckoutSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (cart.length === 0) return;
+    /* ── Complete Sale ─────────────────────────────────────────────────── */
+    const handleCompleteSale = () => {
+        if (cart.length === 0 || isProcessing) return;
+        setIsProcessing(true);
 
-        const itemsPayload = cart.map((item) => ({
-            product_id: item.product.id,
-            quantity: item.quantity,
-        }));
-
-        form.transform((data) => ({
-            ...data,
-            items: itemsPayload,
-            amount_paid:
-                data.payment_status === 'paid'
-                    ? grandTotal.toString()
-                    : data.amount_paid,
-        }));
-
-        form.post('/pos/orders', {
+        router.post('/pos/orders', {
+            order_type:     'dine_in',
+            waitress_id:    selectedWaitressId || null,
+            payment_method: selectedPayment,
+            payment_status: 'paid',
+            discount:       discountAmount,
+            items:          cart.map(i => ({ product_id: i.product.id, quantity: i.quantity })),
+        }, {
             onSuccess: () => {
-                setIsCheckoutOpen(false);
+                setOrderSuccess(true);
+                setCurrentOrderNum(n => n + 1);
                 clearCart();
-                form.reset();
+                setTimeout(() => setOrderSuccess(false), 3000);
             },
+            onFinish: () => setIsProcessing(false),
         });
     };
 
+    /* ═══════════════════════════════════════════════════════════════════
+       RENDER
+       ═══════════════════════════════════════════════════════════════════ */
     return (
-        <>
-            <Head title="POS Terminal - MaMa Café" />
+        <div className="flex h-screen w-screen overflow-hidden" style={{ background: '#F8F3EC', fontFamily: 'system-ui, sans-serif' }}>
+            <Head title="POS Terminal — MaMa Café" />
 
-            <div className="animate-in p-6 duration-1000 ease-in-out fade-in slide-in-from-bottom-6">
-                {/* Main POS Interface Grid (Left Menu Catalog + Right Live Cart) */}
-                <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
-                    {/* Left & Middle Area: Product Catalog (Cols 7/12) */}
-                    <div className="space-y-5 lg:col-span-7">
-                        {/* Search & Category Pills */}
-                        <div className="space-y-3">
-                            <div className="relative">
-                                <Search className="absolute top-2.5 left-3 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    placeholder="Search beverages, coffee, snacks..."
-                                    className="h-10 bg-card pl-9"
-                                    value={searchQuery}
-                                    onChange={(e) =>
-                                        setSearchQuery(e.target.value)
-                                    }
-                                />
-                            </div>
+            {/* ── MAIN CONTENT AREA ───────────────────────────────────────── */}
+            <div className="flex flex-1 flex-col overflow-hidden">
 
-                            {/* Category Filter Tabs */}
-                            <div className="flex scrollbar-none items-center gap-2 overflow-x-auto pb-1">
-                                <Button
-                                    variant={
-                                        selectedCategoryId === null
-                                            ? 'default'
-                                            : 'outline'
-                                    }
-                                    size="sm"
-                                    className={`h-8 shrink-0 rounded-full text-xs font-semibold ${
-                                        selectedCategoryId === null
-                                            ? 'bg-[#823d21] text-white shadow-sm hover:bg-[#682e18]'
-                                            : 'shadow-xs'
-                                    }`}
-                                    onClick={() => setSelectedCategoryId(null)}
-                                >
-                                    All Items ({products.length})
-                                </Button>
-                                {categories.map((cat) => (
-                                    <Button
-                                        key={cat.id}
-                                        variant={
-                                            selectedCategoryId === cat.id
-                                                ? 'default'
-                                                : 'outline'
-                                        }
-                                        size="sm"
-                                        className={`h-8 shrink-0 rounded-full text-xs font-semibold ${
-                                            selectedCategoryId === cat.id
-                                                ? 'bg-[#823d21] text-white shadow-sm hover:bg-[#682e18]'
-                                                : 'shadow-xs'
-                                        }`}
-                                        onClick={() =>
-                                            setSelectedCategoryId(cat.id)
-                                        }
-                                    >
-                                        {cat.name} ({cat.products_count})
-                                    </Button>
-                                ))}
+                {/* ── TOP HEADER BAR ────────────────────────────────────── */}
+                <header
+                    className="flex h-16 items-center gap-4 px-5 shrink-0"
+                    style={{ background: '#2C1810', borderBottom: '2px solid #3D2015' }}
+                >
+                    {/* Brand */}
+                    <div className="flex items-center gap-2.5 shrink-0">
+                        <div
+                            className="flex h-9 w-9 items-center justify-center rounded-xl"
+                            style={{ background: '#5C2B0D' }}
+                        >
+                            <Coffee className="h-5 w-5 text-white" />
+                        </div>
+                        <div className="leading-tight">
+                            <div className="text-base font-bold text-white tracking-wide">MaMa Café</div>
+                            <div className="text-[9px] font-medium tracking-widest uppercase" style={{ color: '#A07050' }}>
+                                Coffee • Boba • Ice Chocolate
                             </div>
                         </div>
+                    </div>
 
-                        {/* Product Cards Grid */}
-                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                            {filteredProducts.length === 0 ? (
-                                <div className="col-span-full rounded-xl border bg-card py-12 text-center text-muted-foreground">
-                                    <Coffee className="mx-auto mb-2 h-10 w-10 text-[#823d21]/40" />
-                                    <p className="text-sm font-semibold">
-                                        No products found
-                                    </p>
-                                    <p className="text-xs">
-                                        Try selecting a different category or
-                                        search term.
-                                    </p>
+                    {/* Search bar */}
+                    <div className="relative flex-1 max-w-md mx-auto">
+                        <Search className="absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2" style={{ color: '#8A6B50' }} />
+                        <input
+                            type="text"
+                            placeholder="Search products..."
+                            value={searchQuery}
+                            onChange={e => setSearchQuery(e.target.value)}
+                            className="h-10 w-full rounded-full border pl-10 pr-4 text-sm outline-none focus:ring-2"
+                            style={{
+                                background: '#F4ECE2',
+                                borderColor: '#CCAB88',
+                                color: '#1F110B',
+                            }}
+                        />
+                    </div>
+
+                    {/* Nav links */}
+                    <nav className="hidden lg:flex items-center gap-1">
+                        {[
+                            { label: 'Home',     icon: Home,          href: '/pos' },
+                            { label: 'Orders',   icon: ClipboardList, href: '/pos/orders' },
+                            { label: 'Reports',  icon: BarChart3,     href: '/finance/reports' },
+                        ].map(({ label, icon: Icon, href }) => (
+                            <Link
+                                key={label}
+                                href={href}
+                                className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors hover:bg-white/10"
+                            >
+                                <Icon className="h-4 w-4 text-white/80" />
+                                <span className="text-[10px] text-white/70">{label}</span>
+                            </Link>
+                        ))}
+                    </nav>
+
+                    {/* Cashier + clock */}
+                    <div className="flex items-center gap-3 shrink-0 ml-auto">
+                        {/* Clock */}
+                        <div className="hidden lg:flex flex-col items-end leading-tight">
+                            <span className="text-sm font-bold text-white">{timeStr}</span>
+                            <span className="text-[10px]" style={{ color: '#A07050' }}>{dateStr}</span>
+                        </div>
+                        {/* Online dot */}
+                        <div className="relative">
+                            <span className="flex h-2.5 w-2.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500" />
+                            </span>
+                        </div>
+
+                        {/* Cashier dropdown */}
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowUserMenu(v => !v)}
+                                className="flex items-center gap-2 rounded-full px-3 py-1.5 transition-colors hover:bg-white/10"
+                            >
+                                <div
+                                    className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold text-white"
+                                    style={{ background: '#5C2B0D' }}
+                                >
+                                    {user?.name?.charAt(0).toUpperCase() ?? 'C'}
                                 </div>
-                            ) : (
-                                filteredProducts.map((product) => (
-                                    <div
-                                        key={product.id}
-                                        onClick={() => addToCart(product)}
-                                        className="group relative flex cursor-pointer flex-col justify-between overflow-hidden rounded-xl border bg-card p-3 shadow-xs transition-all duration-200 select-none hover:border-[#823d21] hover:shadow-md"
-                                    >
-                                        <div>
-                                            {/* Product Image Container / Placeholder */}
-                                            <div className="relative mb-2.5 flex h-28 w-full items-center justify-center overflow-hidden rounded-lg border bg-gradient-to-br from-[#823d21]/5 to-amber-500/10">
-                                                <img
-                                                    src={product.image_url || "/images/drink-item-0.jpg"}
-                                                    alt={product.name}
-                                                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                                                    onError={(e) => {
-                                                        (e.currentTarget as HTMLImageElement).src = "/images/drink-item-0.jpg";
-                                                    }}
-                                                />
-                                                <Badge
-                                                    variant="outline"
-                                                    className="absolute top-2 left-2 border-border bg-background/90 px-1.5 py-0 text-[10px] font-medium shadow-xs backdrop-blur-sm"
-                                                >
-                                                    {product.category_name}
-                                                </Badge>
-                                                <span className="absolute right-2 bottom-2 rounded-md bg-[#823d21] px-2 py-0.5 font-mono text-xs font-bold text-white shadow-xs">
-                                                    $
-                                                    {Number(
-                                                        product.price,
-                                                    ).toFixed(2)}
-                                                </span>
-                                            </div>
-
-                                            <div className="space-y-1">
-                                                <h3 className="line-clamp-1 text-sm font-semibold text-foreground transition-colors group-hover:text-[#823d21]">
-                                                    {product.name}
-                                                </h3>
-                                                {product.description && (
-                                                    <p className="line-clamp-2 text-[11px] text-muted-foreground">
-                                                        {product.description}
-                                                    </p>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        <div className="mt-3 flex items-center justify-between border-t pt-2 text-xs font-semibold text-muted-foreground group-hover:text-[#823d21]">
-                                            <span>Add to order</span>
-                                            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#823d21]/10 transition-colors group-hover:bg-[#823d21] group-hover:text-white">
-                                                <Plus className="h-3.5 w-3.5" />
-                                            </div>
-                                        </div>
+                                <div className="hidden lg:block leading-tight text-left">
+                                    <div className="text-xs font-semibold text-white">
+                                        Cashier {user?.name?.split(' ')[0] ?? 'Staff'}
                                     </div>
-                                ))
+                                </div>
+                                <ChevronDown className="h-3.5 w-3.5 text-white/60" />
+                            </button>
+                            {showUserMenu && (
+                                <div
+                                    className="absolute right-0 top-full z-50 mt-1 w-44 rounded-xl border shadow-xl py-1"
+                                    style={{ background: '#2C1810', borderColor: '#3D2015' }}
+                                >
+                                    <Link
+                                        href="/management/orders"
+                                        className="flex items-center gap-2 px-4 py-2 text-xs text-white/80 hover:bg-white/10"
+                                        onClick={() => setShowUserMenu(false)}
+                                    >
+                                        <ClipboardList className="h-3.5 w-3.5" /> All Orders
+                                    </Link>
+                                    <div className="my-1 border-t" style={{ borderColor: '#3D2015' }} />
+                                    <button
+                                        onClick={() => router.post('/logout')}
+                                        className="flex w-full items-center gap-2 px-4 py-2 text-xs text-red-400 hover:bg-white/10"
+                                    >
+                                        <LogOut className="h-3.5 w-3.5" /> Sign Out
+                                    </button>
+                                </div>
                             )}
                         </div>
                     </div>
+                </header>
 
-                    {/* Right Area: Live Order & Cart Panel (Cols 5/12) */}
-                    <div className="space-y-4 lg:col-span-5">
-                        <div className="space-y-5 rounded-xl border bg-card p-5 shadow-sm">
-                            {/* Order Customer Settings */}
-                            <div className="space-y-4 border-b pb-4">
-                                <div className="flex items-center justify-between">
-                                    <h2 className="flex items-center gap-2 text-base font-semibold">
-                                        <Receipt className="h-4 w-4 text-[#823d21]" />{' '}
-                                        Current Order
-                                    </h2>
-                                    <div className="flex gap-1 rounded-lg bg-muted p-1">
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                form.setData(
-                                                    'order_type',
-                                                    'dine_in',
-                                                )
-                                            }
-                                            className={`rounded-md px-3 py-1 text-xs font-semibold transition-all ${
-                                                form.data.order_type ===
-                                                'dine_in'
-                                                    ? 'bg-background text-foreground shadow-sm'
-                                                    : 'text-muted-foreground hover:text-foreground'
-                                            }`}
-                                        >
-                                            Dine In
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                form.setData(
-                                                    'order_type',
-                                                    'takeaway',
-                                                )
-                                            }
-                                            className={`rounded-md px-3 py-1 text-xs font-semibold transition-all ${
-                                                form.data.order_type ===
-                                                'takeaway'
-                                                    ? 'bg-background text-foreground shadow-sm'
-                                                    : 'text-muted-foreground hover:text-foreground'
-                                            }`}
-                                        >
-                                            Takeaway
-                                        </button>
-                                    </div>
+                {/* ── TWO-COLUMN WORK AREA ──────────────────────────────── */}
+                <div className="flex flex-1 overflow-hidden">
+
+                    {/* ── CENTER: PRODUCT CATALOG ──────────────────────── */}
+                    <div className="flex flex-1 flex-col overflow-hidden">
+
+                        {/* Category Pills */}
+                        <div
+                            className="flex items-center gap-2 overflow-x-auto px-5 py-3 shrink-0"
+                            style={{ borderBottom: '1px solid #E8DDD2', background: '#FAF6F0' }}
+                        >
+                            <button
+                                onClick={() => setSelectedCategoryId(null)}
+                                className="flex shrink-0 items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-all"
+                                style={
+                                    selectedCategoryId === null
+                                        ? { background: '#2C1810', color: '#fff', boxShadow: '0 2px 6px rgba(44,24,16,0.3)' }
+                                        : { background: '#EDE0D0', color: '#5C3A28' }
+                                }
+                            >
+                                ☕ All
+                            </button>
+                            {categories.map(cat => (
+                                <button
+                                    key={cat.id}
+                                    onClick={() => setSelectedCategoryId(cat.id)}
+                                    className="flex shrink-0 items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-all"
+                                    style={
+                                        selectedCategoryId === cat.id
+                                            ? { background: '#2C1810', color: '#fff', boxShadow: '0 2px 6px rgba(44,24,16,0.3)' }
+                                            : { background: '#EDE0D0', color: '#5C3A28' }
+                                    }
+                                >
+                                    {CATEGORY_EMOJI[cat.name] ?? '🍹'} {cat.name}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Product Grid — 5 columns */}
+                        <div className="flex-1 overflow-y-auto p-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                            {filteredProducts.length === 0 ? (
+                                <div className="flex h-full flex-col items-center justify-center text-center" style={{ color: '#9B7A5E' }}>
+                                    <Coffee className="mb-3 h-12 w-12 opacity-30" />
+                                    <p className="text-sm font-semibold">No products found</p>
+                                    <p className="text-xs mt-1 opacity-70">Try a different category or search term.</p>
                                 </div>
-
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <Label
-                                            htmlFor="waitress"
-                                            className="flex items-center gap-1 text-xs"
-                                        >
-                                            <UserCheck className="h-3 w-3 text-[#823d21]" />{' '}
-                                            Waitress
-                                        </Label>
-                                        <Select
-                                            value={
-                                                form.data.waitress_id || 'none'
-                                            }
-                                            onValueChange={(value) => {
-                                                const wId =
-                                                    value === 'none'
-                                                        ? ''
-                                                        : value;
-                                                const w = waitresses.find(
-                                                    (item) =>
-                                                        String(item.id) === wId,
-                                                );
-                                                form.setData((prev) => ({
-                                                    ...prev,
-                                                    waitress_id: wId,
-                                                    fixed_number:
-                                                        w?.current_number
-                                                            ? String(
-                                                                  w.current_number,
-                                                              )
-                                                            : prev.fixed_number,
-                                                }));
+                            ) : (
+                                <div className="grid gap-4 pt-0" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
+                                    {paginatedProducts.map(product => (
+                                        <button
+                                            key={product.id}
+                                            type="button"
+                                            onClick={() => addToCart(product)}
+                                            className="group flex flex-col items-center overflow-hidden rounded-2xl border p-0 pt-0 text-center transition-all hover:-translate-y-0.5 hover:shadow-lg active:scale-95"
+                                            style={{
+                                                background:   '#FFFFFF',
+                                                borderColor:  '#E8DDD2',
+                                                boxShadow:    '0 1px 4px rgba(0,0,0,0.06)',
                                             }}
                                         >
-                                            <SelectTrigger
-                                                id="waitress"
-                                                className="mt-1 h-9 w-full text-xs"
-                                            >
-                                                <SelectValue placeholder="Walk-in / None" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="none">
-                                                    Walk-in / None
-                                                </SelectItem>
-                                                {waitresses.map((w) => (
-                                                    <SelectItem
-                                                        key={w.id}
-                                                        value={String(w.id)}
-                                                    >
-                                                        {w.name}{' '}
-                                                        {w.range_start
-                                                            ? `(#${w.range_start}-${w.range_end})`
-                                                            : ''}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    <div>
-                                        <Label
-                                            htmlFor="fixed_no"
-                                            className="flex items-center gap-1 text-xs"
-                                        >
-                                            <Hash className="h-3 w-3 text-amber-600" />{' '}
-                                            Table / Fixed #
-                                        </Label>
-                                        <Input
-                                            id="fixed_no"
-                                            type="number"
-                                            placeholder="e.g. 61000000"
-                                            className="mt-1 h-9 font-mono text-xs shadow-sm"
-                                            value={form.data.fixed_number}
-                                            onChange={(e) =>
-                                                form.setData(
-                                                    'fixed_number',
-                                                    e.target.value,
-                                                )
-                                            }
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Cart Items List */}
-                            <div className="max-h-[320px] min-h-[200px] space-y-3 overflow-y-auto pr-1">
-                                {cart.length === 0 ? (
-                                    <div className="space-y-2 py-12 text-center text-muted-foreground">
-                                        <ShoppingBag className="mx-auto h-8 w-8 text-muted-foreground/40" />
-                                        <p className="text-xs font-medium">
-                                            Cart is currently empty
-                                        </p>
-                                        <p className="text-[11px] text-muted-foreground">
-                                            Select products from the menu to
-                                            build order.
-                                        </p>
-                                    </div>
-                                ) : (
-                                    cart.map((item) => (
-                                        <div
-                                            key={item.product.id}
-                                            className="flex items-center justify-between gap-3 rounded-lg border bg-card p-2.5 shadow-sm transition-shadow hover:shadow-md"
-                                        >
-                                            <div className="min-w-0 flex-1">
-                                                <p className="truncate text-xs font-semibold text-foreground">
-                                                    {item.product.name}
-                                                </p>
-                                                <p className="font-mono text-[11px] text-muted-foreground">
-                                                    $
-                                                    {item.product.price.toFixed(
-                                                        2,
-                                                    )}{' '}
-                                                    × {item.quantity}
-                                                </p>
+                                            {/* Drink image */}
+                                            <div className="w-full overflow-hidden" style={{ height: 120 }}>
+                                                <img
+                                                    src={product.image_url ?? '/images/drink-item-0.jpg'}
+                                                    alt={product.name}
+                                                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                                    onError={e => { (e.currentTarget as HTMLImageElement).src = '/images/drink-item-0.jpg'; }}
+                                                />
                                             </div>
-
-                                            <div className="flex items-center gap-2">
-                                                <div className="flex items-center rounded-md border bg-background shadow-xs">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                            updateQuantity(
-                                                                item.product.id,
-                                                                -1,
-                                                            )
-                                                        }
-                                                        className="rounded-l-md p-1 text-muted-foreground hover:bg-muted"
-                                                    >
-                                                        <Minus className="h-3 w-3" />
-                                                    </button>
-                                                    <span className="w-7 text-center font-mono text-xs font-semibold">
-                                                        {item.quantity}
-                                                    </span>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                            updateQuantity(
-                                                                item.product.id,
-                                                                1,
-                                                            )
-                                                        }
-                                                        className="rounded-r-md p-1 text-muted-foreground hover:bg-muted"
-                                                    >
-                                                        <Plus className="h-3 w-3" />
-                                                    </button>
-                                                </div>
-
-                                                <span className="w-16 text-right font-mono text-xs font-bold">
-                                                    $
-                                                    {(
-                                                        item.product.price *
-                                                        item.quantity
-                                                    ).toFixed(2)}
-                                                </span>
-
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        removeFromCart(
-                                                            item.product.id,
-                                                        )
-                                                    }
-                                                    className="p-1 text-red-500 hover:text-red-700"
+                                            {/* Name + price */}
+                                            <div className="w-full px-2 py-2.5">
+                                                <p className="mb-1.5 text-xs font-semibold leading-tight" style={{ color: '#1F110B' }}>
+                                                    {product.name}
+                                                </p>
+                                                <div
+                                                    className="inline-block rounded-full px-3 py-0.5 text-xs font-bold text-white"
+                                                    style={{ background: '#2C1810' }}
                                                 >
-                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                </button>
+                                                    ${product.price.toFixed(2)}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
 
-                            {/* Cart Totals Summary */}
-                            <div className="space-y-2 border-t pt-4 text-xs">
-                                <div className="flex justify-between text-muted-foreground">
-                                    <span>Subtotal</span>
-                                    <span className="font-mono font-medium">
-                                        ${subtotal.toFixed(2)}
+                        {/* Pagination Controls */}
+                        {filteredProducts.length > 0 && totalPages > 1 && (
+                            <div
+                                className="flex shrink-0 items-center justify-between gap-3 px-5 py-2.5"
+                                style={{ background: '#FAF6F0', borderTop: '1px solid #E8DDD2' }}
+                            >
+                                <span className="text-xs font-medium" style={{ color: '#9B7A5E' }}>
+                                    Showing {Math.min(filteredProducts.length, (safePage - 1) * ITEMS_PER_PAGE + 1)}–
+                                    {Math.min(safePage * ITEMS_PER_PAGE, filteredProducts.length)} of {filteredProducts.length} products
+                                </span>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        disabled={safePage === 1}
+                                        onClick={() => setCurrentPage(safePage - 1)}
+                                        className="flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-40"
+                                        style={{ borderColor: '#D4B99A', color: '#5C3A28', background: '#F4ECE2' }}
+                                    >
+                                        <ChevronLeft className="h-3.5 w-3.5" /> Prev
+                                    </button>
+                                    <span className="text-xs font-bold" style={{ color: '#5C3A28' }}>
+                                        {safePage} / {totalPages}
                                     </span>
-                                </div>
-                                <div className="flex items-center justify-between text-muted-foreground">
-                                    <span>Discount ($)</span>
-                                    <Input
-                                        type="number"
-                                        step="0.50"
-                                        min="0"
-                                        className="h-7 w-20 p-1 text-right font-mono text-xs shadow-sm"
-                                        value={form.data.discount}
-                                        onChange={(e) =>
-                                            form.setData(
-                                                'discount',
-                                                e.target.value,
-                                            )
-                                        }
-                                    />
-                                </div>
-                                <div className="flex justify-between border-t pt-2 text-base font-bold text-foreground">
-                                    <span>Total Payable</span>
-                                    <span className="font-mono text-lg text-[#823d21]">
-                                        ${grandTotal.toFixed(2)}
-                                    </span>
+                                    <button
+                                        type="button"
+                                        disabled={safePage === totalPages}
+                                        onClick={() => setCurrentPage(safePage + 1)}
+                                        className="flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-40"
+                                        style={{ borderColor: '#D4B99A', color: '#5C3A28', background: '#F4ECE2' }}
+                                    >
+                                        Next <ChevronRight className="h-3.5 w-3.5" />
+                                    </button>
                                 </div>
                             </div>
+                        )}
 
-                            {/* Cart Actions */}
-                            <div className="flex gap-2 pt-1">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={clearCart}
-                                    disabled={cart.length === 0}
-                                    className="flex-1 text-xs"
+                        {/* Bottom Utility Bar */}
+                        <div
+                            className="flex items-center justify-center gap-3 px-5 py-2.5 shrink-0"
+                            style={{ background: '#FAF6F0', borderTop: '1px solid #E8DDD2' }}
+                        >
+                            {[
+                                { icon: Tag,        label: 'Discount' },
+                                { icon: FileText,   label: 'Note' },
+                                { icon: UserRound,  label: 'Customer' },
+                                { icon: PauseCircle,label: 'Hold' },
+                            ].map(({ icon: Icon, label }) => (
+                                <div
+                                    key={label}
+                                    className="flex cursor-pointer items-center gap-1.5 rounded-full border px-4 py-1.5 text-xs font-medium transition-colors hover:bg-[#EDE0D0]"
+                                    style={{ borderColor: '#D4B99A', color: '#5C3A28', background: '#F4ECE2' }}
                                 >
-                                    Clear Cart
-                                </Button>
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    disabled={cart.length === 0}
-                                    onClick={() => setIsCheckoutOpen(true)}
-                                    className="flex-2 gap-1.5 bg-[#823d21] text-xs font-semibold text-white shadow-sm hover:bg-[#682e18]"
-                                >
-                                    <CreditCard className="h-4 w-4" /> Checkout
-                                    & Pay (${grandTotal.toFixed(2)})
-                                </Button>
-                            </div>
+                                    <Icon className="h-3.5 w-3.5" /> {label}
+                                </div>
+                            ))}
                         </div>
                     </div>
-                </div>
 
-                {/* Checkout & Payment Modal */}
-                <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
-                    <DialogContent className="sm:max-w-[500px]">
-                        <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2 text-[#823d21]">
-                                <CreditCard className="h-5 w-5" /> Complete POS
-                                Sale
-                            </DialogTitle>
-                            <DialogDescription>
-                                Select payment method and confirm customer
-                                transaction.
-                            </DialogDescription>
-                        </DialogHeader>
-
-                        <form
-                            onSubmit={handleCheckoutSubmit}
-                            className="space-y-5 py-2"
+                    {/* ── RIGHT: ORDER PANEL ──────────────────────────── */}
+                    <div
+                        className="flex w-80 shrink-0 flex-col overflow-hidden"
+                        style={{ background: '#FAF6F0', borderLeft: '2px solid #E8DDD2' }}
+                    >
+                        {/* Order header */}
+                        <div
+                            className="flex items-center justify-between px-4 py-3 shrink-0"
+                            style={{ background: '#2C1810' }}
                         >
-                            {/* Amount Payable Banner */}
-                            <div className="rounded-xl border border-[#823d21]/20 bg-[#823d21]/10 p-4 text-center">
-                                <p className="text-xs font-semibold text-muted-foreground uppercase">
-                                    Total Amount Due
-                                </p>
-                                <p className="mt-1 font-mono text-3xl font-bold text-[#823d21]">
-                                    ${grandTotal.toFixed(2)}
-                                </p>
+                            <div className="flex items-center gap-2">
+                                <ShoppingCart className="h-4 w-4 text-white/80" />
+                                <span className="text-sm font-bold text-white">Current Order</span>
+                                <span className="text-sm font-bold" style={{ color: '#D4A57A' }}>
+                                    #{currentOrderNum}
+                                </span>
                             </div>
+                            <button
+                                type="button"
+                                onClick={clearCart}
+                                disabled={cart.length === 0}
+                                className="rounded-lg p-1.5 transition-colors hover:bg-red-600/20 disabled:opacity-30"
+                                title="Clear order"
+                            >
+                                <Trash2 className="h-4 w-4 text-red-400" />
+                            </button>
+                        </div>
 
-                            {/* Payment Method Selector */}
-                            <div className="space-y-2">
-                                <Label className="text-xs">
-                                    Payment Method
-                                </Label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {[
-                                        {
-                                            id: 'cash',
-                                            label: 'Cash',
-                                            icon: DollarSign,
-                                        },
-                                        {
-                                            id: 'mobile_money',
-                                            label: 'Mobile Money',
-                                            icon: Smartphone,
-                                        },
-                                        {
-                                            id: 'card',
-                                            label: 'Card',
-                                            icon: CreditCard,
-                                        },
-                                        {
-                                            id: 'credit',
-                                            label: 'Customer Credit',
-                                            icon: Receipt,
-                                        },
-                                    ].map((m) => (
+                        {/* Waitress selector */}
+                        {waitresses.length > 0 && (
+                            <div className="px-4 pt-3 pb-2 shrink-0" style={{ borderBottom: '1px solid #E8DDD2' }}>
+                                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#9B7A5E' }}>
+                                    Waitress
+                                </p>
+                                <div className="flex flex-wrap gap-1.5">
+                                    <button
+                                        onClick={() => setSelectedWaitressId('')}
+                                        className="rounded-full px-3 py-1 text-xs font-medium transition-all"
+                                        style={
+                                            selectedWaitressId === ''
+                                                ? { background: '#2C1810', color: '#fff' }
+                                                : { background: '#EDE0D0', color: '#5C3A28' }
+                                        }
+                                    >
+                                        Walk-in
+                                    </button>
+                                    {waitresses.map(w => (
                                         <button
-                                            key={m.id}
-                                            type="button"
-                                            onClick={() =>
-                                                form.setData(
-                                                    'payment_method',
-                                                    m.id as any,
-                                                )
+                                            key={w.id}
+                                            onClick={() => setSelectedWaitressId(String(w.id))}
+                                            className="rounded-full px-3 py-1 text-xs font-medium transition-all"
+                                            style={
+                                                selectedWaitressId === String(w.id)
+                                                    ? { background: '#2C1810', color: '#fff' }
+                                                    : { background: '#EDE0D0', color: '#5C3A28' }
                                             }
-                                            className={`flex items-center gap-2 rounded-lg border p-3 text-xs font-semibold transition-all ${
-                                                form.data.payment_method ===
-                                                m.id
-                                                    ? 'border-[#823d21] bg-[#823d21]/10 text-[#823d21] shadow-sm ring-1 ring-[#823d21]'
-                                                    : 'bg-background text-muted-foreground shadow-xs hover:bg-muted hover:shadow-sm'
-                                            }`}
                                         >
-                                            <m.icon className="h-4 w-4 shrink-0" />
-                                            <span>{m.label}</span>
+                                            {w.name.split(' ')[0]}
                                         </button>
                                     ))}
                                 </div>
                             </div>
+                        )}
 
-                            {/* Cash Change Calculator */}
-                            {form.data.payment_method === 'cash' && (
-                                <div className="space-y-3 rounded-lg border bg-muted/20 p-4">
-                                    <div className="grid gap-2">
-                                        <Label
-                                            htmlFor="tendered"
-                                            className="text-xs"
+                        {/* Cart Items */}
+                        <div className="flex-1 overflow-y-auto px-4 py-2">
+                            {cart.length === 0 ? (
+                                <div className="flex h-full flex-col items-center justify-center text-center" style={{ color: '#9B7A5E' }}>
+                                    <ShoppingCart className="mb-2 h-10 w-10 opacity-20" />
+                                    <p className="text-xs font-medium">Cart is empty</p>
+                                    <p className="mt-1 text-[11px] opacity-70">Tap a drink to add it</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    {cart.map(item => (
+                                        <div
+                                            key={item.product.id}
+                                            className="flex items-center gap-2 rounded-xl p-2"
+                                            style={{ background: '#fff', border: '1px solid #E8DDD2' }}
                                         >
-                                            Cash Tendered ($)
-                                        </Label>
-                                        <Input
-                                            id="tendered"
-                                            type="number"
-                                            step="0.50"
-                                            placeholder="e.g. 20.00"
-                                            className="font-mono text-sm shadow-sm"
-                                            value={cashTendered}
-                                            onChange={(e) =>
-                                                setCashTendered(e.target.value)
-                                            }
-                                        />
-                                    </div>
-                                    <div className="flex justify-between border-t pt-1 text-xs font-semibold">
-                                        <span className="text-muted-foreground">
-                                            Change Due to Customer:
-                                        </span>
-                                        <span className="font-mono text-sm text-emerald-600">
-                                            ${cashChange.toFixed(2)}
-                                        </span>
-                                    </div>
+                                            <img
+                                                src={item.product.image_url ?? '/images/drink-item-0.jpg'}
+                                                alt={item.product.name}
+                                                className="h-10 w-10 rounded-lg object-cover shrink-0"
+                                                onError={e => { (e.currentTarget as HTMLImageElement).src = '/images/drink-item-0.jpg'; }}
+                                            />
+                                            <div className="flex-1 min-w-0">
+                                                <p className="truncate text-xs font-semibold" style={{ color: '#1F110B' }}>
+                                                    {item.product.name}
+                                                </p>
+                                                <p className="text-[11px]" style={{ color: '#9B7A5E' }}>
+                                                    ${item.product.price.toFixed(2)}
+                                                </p>
+                                            </div>
+                                            {/* Qty stepper */}
+                                            <div className="flex items-center gap-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => updateQty(item.product.id, -1)}
+                                                    className="flex h-6 w-6 items-center justify-center rounded-full transition-colors hover:bg-gray-100"
+                                                    style={{ border: '1px solid #D0C0B0' }}
+                                                >
+                                                    <Minus className="h-3 w-3" style={{ color: '#5C3A28' }} />
+                                                </button>
+                                                <span className="w-5 text-center text-xs font-bold" style={{ color: '#1F110B' }}>
+                                                    {item.quantity}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => updateQty(item.product.id, 1)}
+                                                    className="flex h-6 w-6 items-center justify-center rounded-full transition-colors hover:bg-gray-100"
+                                                    style={{ border: '1px solid #D0C0B0' }}
+                                                >
+                                                    <Plus className="h-3 w-3" style={{ color: '#5C3A28' }} />
+                                                </button>
+                                            </div>
+                                            {/* Line total */}
+                                            <p className="w-12 text-right text-xs font-bold" style={{ color: '#1F110B' }}>
+                                                ${(item.product.price * item.quantity).toFixed(2)}
+                                            </p>
+                                        </div>
+                                    ))}
                                 </div>
                             )}
+                        </div>
 
-                            {/* Payment Status Selector */}
-                            <div className="grid gap-2">
-                                <Label
-                                    htmlFor="payment_status"
-                                    className="text-xs"
-                                >
-                                    Payment Settlement
-                                </Label>
-                                <Select
-                                    value={form.data.payment_status}
-                                    onValueChange={(value) =>
-                                        form.setData(
-                                            'payment_status',
-                                            value as
-                                                'paid' | 'partial' | 'unpaid',
-                                        )
-                                    }
-                                >
-                                    <SelectTrigger
-                                        id="payment_status"
-                                        className="h-9 w-full text-xs"
-                                    >
-                                        <SelectValue placeholder="Select payment status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="paid">
-                                            Full Payment Received
-                                        </SelectItem>
-                                        <SelectItem value="partial">
-                                            Partial Payment
-                                        </SelectItem>
-                                        <SelectItem value="unpaid">
-                                            Unpaid / Deferred
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
+                        {/* Totals */}
+                        <div className="shrink-0 px-4 py-3" style={{ borderTop: '1px solid #E8DDD2' }}>
+                            <div className="space-y-1 text-xs" style={{ color: '#7A5A42' }}>
+                                <div className="flex justify-between">
+                                    <span>Subtotal</span>
+                                    <span className="font-mono">${subtotal.toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span>Discount</span>
+                                    <span className="font-mono">${discountAmount.toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span>Tax (0%)</span>
+                                    <span className="font-mono">$0.00</span>
+                                </div>
                             </div>
+                            <div className="mt-2 flex items-baseline justify-between border-t pt-2" style={{ borderColor: '#E8DDD2' }}>
+                                <span className="text-sm font-bold" style={{ color: '#1F110B' }}>TOTAL</span>
+                                <span className="font-mono text-2xl font-black" style={{ color: '#8B1A1A' }}>
+                                    ${grandTotal.toFixed(2)}
+                                </span>
+                            </div>
+                        </div>
 
-                            {form.data.payment_status === 'partial' && (
-                                <div className="grid gap-2">
-                                    <Label
-                                        htmlFor="amount_paid"
-                                        className="text-xs"
-                                    >
-                                        Amount Paid ($)
-                                    </Label>
-                                    <Input
-                                        id="amount_paid"
-                                        type="number"
-                                        step="0.01"
-                                        className="shadow-sm"
-                                        value={form.data.amount_paid}
-                                        onChange={(e) =>
-                                            form.setData(
-                                                'amount_paid',
-                                                e.target.value,
-                                            )
-                                        }
-                                        required
-                                    />
-                                </div>
-                            )}
-
-                            <DialogFooter className="pt-2">
-                                <Button
+                        {/* Payment Buttons 2×2 */}
+                        <div className="shrink-0 grid grid-cols-2 gap-2 px-4 pb-2">
+                            {PAYMENT_METHODS.map(pm => (
+                                <button
+                                    key={pm.id}
                                     type="button"
-                                    variant="outline"
-                                    onClick={() => setIsCheckoutOpen(false)}
+                                    onClick={() => setSelectedPayment(pm.id as typeof selectedPayment)}
+                                    className="flex items-center justify-center gap-2 rounded-xl py-3 text-xs font-bold text-white transition-all"
+                                    style={{
+                                        background:   selectedPayment === pm.id ? pm.ring : pm.bg,
+                                        boxShadow:    selectedPayment === pm.id ? `0 0 0 2px ${pm.ring}` : 'none',
+                                        opacity:      selectedPayment === pm.id ? 1 : 0.85,
+                                    }}
                                 >
-                                    Cancel
-                                </Button>
-                                <Button
-                                    type="submit"
-                                    disabled={form.processing}
-                                    className="gap-2 bg-[#823d21] font-semibold text-white hover:bg-[#682e18]"
-                                >
-                                    <CheckCircle2 className="h-4 w-4" />
-                                    {form.processing
-                                        ? 'Processing...'
-                                        : 'Complete Sale & Print Receipt'}
-                                </Button>
-                            </DialogFooter>
-                        </form>
-                    </DialogContent>
-                </Dialog>
+                                    <pm.icon className="h-4 w-4" /> {pm.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Complete Sale CTA */}
+                        <div className="shrink-0 px-4 pb-3">
+                            <button
+                                type="button"
+                                disabled={cart.length === 0 || isProcessing}
+                                onClick={handleCompleteSale}
+                                className="flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-40"
+                                style={{ background: 'linear-gradient(135deg, #C6862A, #BA7A29)' }}
+                            >
+                                <CheckCircle2 className="h-5 w-5" />
+                                {isProcessing ? 'Processing…' : 'Complete Sale'}
+                            </button>
+                        </div>
+
+                        {/* Status footer */}
+                        <div
+                            className="flex items-center justify-between shrink-0 px-4 py-2"
+                            style={{ borderTop: '1px solid #E8DDD2', background: '#FAF6F0' }}
+                        >
+                            <div className="flex items-center gap-1.5">
+                                <span className="flex h-2 w-2 rounded-full bg-green-500" />
+                                <span className="text-[10px] font-medium" style={{ color: '#5C3A28' }}>Online</span>
+                            </div>
+                            <span className="text-[10px]" style={{ color: '#9B7A5E' }}>
+                                {orderSuccess ? '✓ Order saved!' : 'Ready to serve'}
+                            </span>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </>
+
+            {/* Click-away for user menu */}
+            {showUserMenu && (
+                <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
+            )}
+        </div>
     );
 }
 
-PosIndex.layout = (page: React.ReactNode) => (
-    <AppLayout breadcrumbs={[{ title: 'POS Terminal', href: '/pos' }]}>
-        {page}
-    </AppLayout>
-);
+

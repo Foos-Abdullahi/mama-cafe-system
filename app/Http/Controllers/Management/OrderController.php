@@ -4,14 +4,9 @@ namespace App\Http\Controllers\Management;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
-use App\Models\Cancellation;
 use App\Models\Order;
-use App\Models\Payment;
 use App\Models\Product;
-use App\Models\Refund;
 use App\Models\Waitress;
-use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -66,86 +61,6 @@ class OrderController extends Controller
         ]);
     }
 
-    public function create(): Response
-    {
-        $products = Product::where('status', 'active')->get();
-        $waitresses = Waitress::where('status', 'active')->get();
-
-        return Inertia::render('admin/management/orders/create', [
-            'products' => $products,
-            'waitresses' => $waitresses,
-        ]);
-    }
-
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'waitress_id' => 'nullable|exists:waitresses,id',
-            'fixed_number' => 'nullable|integer',
-            'order_type' => 'required|in:dine_in,takeaway',
-            'status' => 'required|in:draft,completed,cancelled,refunded',
-            'payment_status' => 'required|in:paid,partial,unpaid,refunded',
-            'payment_method' => 'nullable|in:cash,mobile_money,card,credit',
-            'amount_paid' => 'nullable|numeric|min:0',
-            'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|exists:products,id',
-            'items.*.quantity' => 'required|integer|min:1',
-        ]);
-
-        $subtotal = 0;
-        $itemsToInsert = [];
-
-        foreach ($validated['items'] as $item) {
-            $product = Product::findOrFail($item['product_id']);
-            $lineTotal = $product->price * $item['quantity'];
-            $subtotal += $lineTotal;
-
-            $itemsToInsert[] = [
-                'product_id' => $product->id,
-                'quantity' => $item['quantity'],
-                'unit_price' => $product->price,
-                'line_total' => $lineTotal,
-            ];
-        }
-
-        $order = Order::create([
-            'order_number' => 'ORD-'.strtoupper(Str::random(6)),
-            'fixed_number' => $validated['fixed_number'] ?? null,
-            'waitress_id' => $validated['waitress_id'] ?? null,
-            'order_type' => $validated['order_type'],
-            'subtotal' => $subtotal,
-            'discount' => 0.00,
-            'tax' => 0.00,
-            'total' => $subtotal,
-            'status' => $validated['status'],
-            'payment_status' => $validated['payment_status'],
-            'completed_at' => $validated['status'] === 'completed' ? now() : null,
-        ]);
-
-        foreach ($itemsToInsert as $itemData) {
-            $order->items()->create($itemData);
-        }
-
-        if (in_array($validated['payment_status'], ['paid', 'partial']) && ! empty($validated['payment_method'])) {
-            $paidAmount = $validated['payment_status'] === 'paid'
-                ? $subtotal
-                : ($validated['amount_paid'] ?? 0);
-
-            Payment::create([
-                'order_id' => $order->id,
-                'method' => $validated['payment_method'],
-                'amount' => $paidAmount,
-                'status' => $validated['payment_status'],
-                'reference' => 'TXN-'.strtoupper(Str::random(8)),
-                'paid_at' => now(),
-            ]);
-        }
-
-        ActivityLog::log('order_create', "Order #{$order->order_number} was created (total: \${$order->total}).");
-
-        return redirect()->route('management.orders.index')->with('success', 'Order created successfully.');
-    }
-
     public function show(Order $order): Response
     {
         $order->load(['waitress', 'items.product', 'payments', 'refund', 'cancellation']);
@@ -153,111 +68,6 @@ class OrderController extends Controller
         return Inertia::render('admin/management/orders/show', [
             'order' => $order,
         ]);
-    }
-
-    public function edit(Order $order): Response
-    {
-        $order->load(['waitress', 'items.product', 'payments']);
-        $products = Product::where('status', 'active')->get();
-        $waitresses = Waitress::where('status', 'active')->get();
-
-        return Inertia::render('admin/management/orders/edit', [
-            'order' => $order,
-            'products' => $products,
-            'waitresses' => $waitresses,
-        ]);
-    }
-
-    public function update(Request $request, Order $order)
-    {
-        $validated = $request->validate([
-            'waitress_id' => 'nullable|exists:waitresses,id',
-            'fixed_number' => 'nullable|integer',
-            'order_type' => 'nullable|in:dine_in,takeaway',
-            'status' => 'required|in:draft,completed,cancelled,refunded',
-            'payment_status' => 'required|in:paid,partial,unpaid,refunded',
-            'payment_method' => 'nullable|in:cash,mobile_money,card,credit',
-            'amount_paid' => 'nullable|numeric|min:0',
-            'items' => 'nullable|array|min:1',
-            'items.*.product_id' => 'required_with:items|exists:products,id',
-            'items.*.quantity' => 'required_with:items|integer|min:1',
-            'reason' => 'nullable|string',
-        ]);
-
-        $previousStatus = $order->status;
-        $subtotal = $order->subtotal;
-
-        if (! empty($validated['items'])) {
-            $subtotal = 0;
-            $itemsToInsert = [];
-
-            foreach ($validated['items'] as $item) {
-                $product = Product::findOrFail($item['product_id']);
-                $lineTotal = $product->price * $item['quantity'];
-                $subtotal += $lineTotal;
-
-                $itemsToInsert[] = [
-                    'product_id' => $product->id,
-                    'quantity' => $item['quantity'],
-                    'unit_price' => $product->price,
-                    'line_total' => $lineTotal,
-                ];
-            }
-
-            $order->items()->delete();
-            foreach ($itemsToInsert as $itemData) {
-                $order->items()->create($itemData);
-            }
-        }
-
-        $order->update([
-            'waitress_id' => $validated['waitress_id'] ?? $order->waitress_id,
-            'fixed_number' => $validated['fixed_number'] ?? $order->fixed_number,
-            'order_type' => $validated['order_type'] ?? $order->order_type,
-            'subtotal' => $subtotal,
-            'total' => $subtotal,
-            'status' => $validated['status'],
-            'payment_status' => $validated['payment_status'],
-            'completed_at' => $validated['status'] === 'completed' ? now() : $order->completed_at,
-        ]);
-
-        if (in_array($validated['payment_status'], ['paid', 'partial'])) {
-            $paidAmount = $validated['payment_status'] === 'paid'
-                ? $subtotal
-                : ($validated['amount_paid'] ?? 0);
-
-            Payment::updateOrCreate(
-                ['order_id' => $order->id],
-                [
-                    'method' => $validated['payment_method'] ?? 'cash',
-                    'amount' => $paidAmount,
-                    'status' => $validated['payment_status'],
-                    'reference' => 'TXN-'.strtoupper(Str::random(8)),
-                    'paid_at' => now(),
-                ]
-            );
-        }
-
-        if ($validated['status'] === 'cancelled' && $previousStatus !== 'cancelled') {
-            Cancellation::create([
-                'order_id' => $order->id,
-                'reason' => $validated['reason'] ?? 'Cancelled by Admin',
-                'cancelled_by' => auth()->id(),
-            ]);
-        }
-
-        if ($validated['status'] === 'refunded' && $previousStatus !== 'refunded') {
-            Refund::create([
-                'order_id' => $order->id,
-                'amount' => $order->total,
-                'reason' => $validated['reason'] ?? 'Refunded by Admin',
-                'processed_by' => auth()->id(),
-            ]);
-        }
-
-        ActivityLog::log('order_update', "Order #{$order->order_number} was updated (status: {$validated['status']}).");
-
-        return redirect()->route('management.orders.index')->with('success', 'Order updated successfully.');
     }
 
     public function destroy(Order $order)

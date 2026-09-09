@@ -1,6 +1,6 @@
 import React from 'react';
 import { Head } from '@inertiajs/react';
-import AppLayout from '@/layouts/app-layout';
+import PosLayout from '@/layouts/pos-layout';
 import { Badge } from '@/components/ui/badge';
 import { Receipt, Clock, ShoppingBag } from 'lucide-react';
 
@@ -115,7 +115,7 @@ export default function PosOrders({ orders, todayTotal, todayCount }: Props) {
 }
 
 PosOrders.layout = (page: React.ReactNode) => (
-    <AppLayout breadcrumbs={[{ title: 'POS Orders', href: '/pos/orders' }]}>
+    <PosLayout title="Order History">
         {page}
-    </AppLayout>
+    </PosLayout>
 );

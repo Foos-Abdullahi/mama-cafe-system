@@ -15,10 +15,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ColumnDef } from '@tanstack/react-table';
 import {
-    Plus,
+    ShoppingBag,
     MoreHorizontal,
     Eye,
-    Edit,
     Trash2,
     Hash,
     Receipt,
@@ -214,12 +213,6 @@ export default function OrdersIndex({ orders, stats }: Props) {
                                 </DropdownMenuItem>
                                 {canEditDelete && (
                                     <>
-                                        <DropdownMenuItem asChild>
-                                            <Link href={`/management/orders/${order.id}/edit`} className="flex items-center cursor-pointer">
-                                                <Edit className="mr-2 h-4 w-4 text-amber-600" />
-                                                Edit Order & Products
-                                            </Link>
-                                        </DropdownMenuItem>
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem onClick={() => setDeleteTarget(order)} className="text-red-600 focus:text-red-600 cursor-pointer">
                                             <Trash2 className="mr-2 h-4 w-4" />
@@ -248,10 +241,9 @@ export default function OrdersIndex({ orders, stats }: Props) {
                         </p>
                     </div>
                     <Button asChild size={'sm'}>
-                        <Link href="/management/orders/create">
-                            <Plus className="h-4 w-4" />
-                            Create
-                            <span className="hidden sm:inline">Order</span>
+                        <Link href="/pos">
+                            <ShoppingBag className="h-4 w-4 mr-1" />
+                            Open POS Terminal
                         </Link>
                     </Button>
                 </div>

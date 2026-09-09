@@ -66,11 +66,15 @@ class PosController extends Controller
                 ];
             });
 
+        $latestOrder = Order::latest('id')->first();
+        $nextOrderNumber = $latestOrder ? (1000 + $latestOrder->id + 1) : 1042;
+
         return Inertia::render('pos/index', [
             'categories' => $categories,
             'products' => $products,
             'waitresses' => $waitresses,
             'recentOrders' => $recentOrders,
+            'nextOrderNumber' => $nextOrderNumber,
         ]);
     }
 

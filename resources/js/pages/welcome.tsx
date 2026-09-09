@@ -967,13 +967,12 @@ export default function Welcome({
                             })}
                         </div>
                     </div>
-
                     {/* =====================================================
     MENU SECTION
 ===================================================== */}
-                    <section className="py-14 sm:py-18" id="menu">
+                    <section id="menu" className="py-14 sm:py-18">
                         <div className="mx-auto w-[92%] max-w-6xl">
-                            <div className="grid grid-cols-1 gap-6 lg:h-[520px] lg:grid-cols-12 lg:gap-6">
+                            <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-start">
                                 {/* =================================================
                 LEFT — OUR MENU
             ================================================= */}
@@ -997,48 +996,60 @@ export default function Welcome({
 
                                     {/* =================================================
                     CATEGORY TABS
-                    Horizontal scrolling is preserved
+                    Horizontal scrolling
                 ================================================= */}
-                                    <div className="menu-category-scroll mb-3 flex shrink-0 gap-2 overflow-x-auto rounded-[16px] border border-[#eadfd6]/80 bg-white/45 p-1.5 pb-2 shadow-[0_8px_22px_rgba(84,49,28,0.06)] backdrop-blur-md">
-                                        {categoryTabs
-                                            .filter((cat) => cat.key !== 'all')
-                                            .map((cat) => {
-                                                const isActive =
-                                                    selectedCategoryKey ===
-                                                    cat.key;
+                                    {/* Categories */}
+                                    <div className="menu-category-scroll mb-3 w-full overflow-x-auto">
+                                        <div className="flex w-max min-w-full gap-2 rounded-[16px] border border-[#eadfd6]/80 bg-white/45 p-2 pb-2 pl-3 shadow-[0_8px_22px_rgba(84,49,28,0.06)] backdrop-blur-md">
+                                            {categoryTabs
+                                                .filter(
+                                                    (cat) => cat.key !== 'all',
+                                                )
+                                                .map((cat) => {
+                                                    const isActive =
+                                                        selectedCategoryKey ===
+                                                        cat.key;
+                                                    const CatIcon = cat.icon;
 
-                                                const CatIcon = cat.icon;
+                                                    return (
+                                                        <button
+                                                            key={cat.key}
+                                                            type="button"
+                                                            title={cat.label}
+                                                            onClick={() =>
+                                                                setSelectedCategoryKey(
+                                                                    cat.key,
+                                                                )
+                                                            }
+                                                            className={`flex w-[112px] shrink-0 items-center justify-center gap-1.5 rounded-[11px] border px-2.5 py-2.5 text-[11px] font-semibold transition sm:w-[120px] sm:text-[12px] ${
+                                                                isActive
+                                                                    ? 'border-[#4a2411] bg-[#4a2411] text-white shadow-[0_6px_14px_rgba(70,35,15,0.16)]'
+                                                                    : 'border-[#eadfd6] bg-white/55 text-[#3d2112] hover:border-[#bfa795] hover:bg-white/75'
+                                                            }`}
+                                                        >
+                                                            <CatIcon className="h-3.5 w-3.5 shrink-0" />
 
-                                                return (
-                                                    <button
-                                                        key={cat.key}
-                                                        type="button"
-                                                        onClick={() =>
-                                                            setSelectedCategoryKey(
-                                                                cat.key,
-                                                            )
-                                                        }
-                                                        className={`flex min-w-max shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-[11px] border px-3 py-2.5 text-[11px] font-semibold transition sm:px-3.5 sm:text-[12px] ${
-                                                            isActive
-                                                                ? 'border-[#4a2411] bg-[#4a2411] text-white shadow-[0_6px_14px_rgba(70,35,15,0.16)]'
-                                                                : 'border-[#eadfd6] bg-white/55 text-[#3d2112] hover:border-[#bfa795] hover:bg-white/75'
-                                                        } `}
-                                                    >
-                                                        <CatIcon className="h-3.5 w-3.5 shrink-0" />
-                                                        <span>{cat.label}</span>
-                                                    </button>
-                                                );
-                                            })}
+                                                            <span className="truncate whitespace-nowrap">
+                                                                {cat.label}
+                                                            </span>
+                                                        </button>
+                                                    );
+                                                })}
+                                        </div>
                                     </div>
 
                                     {/* =================================================
-                    PRODUCTS
-                    4 COLUMNS
-                    Vertical scrolling preserved
-                    Scrollbar hidden
+                    PRODUCT GRID
+
+                    Mobile  : 2 columns
+                    Tablet  : 3 columns
+                    Desktop : 4 columns
+
+                    Vertical scrolling is preserved.
                 ================================================= */}
                                     <div className="menu-product-list grid min-h-0 flex-1 grid-cols-2 gap-3 overflow-y-auto pr-1 pb-1 sm:grid-cols-3 lg:grid-cols-4">
                                         {filteredProducts.length === 0 ? (
+                                            /* EMPTY STATE */
                                             <div className="col-span-full flex min-h-[220px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#d8c2b2] bg-white/70 px-6 py-12 text-center">
                                                 <Coffee className="mx-auto mb-2 h-9 w-9 text-[#a07c65] opacity-50" />
 
@@ -1065,6 +1076,7 @@ export default function Welcome({
                                                 </button>
                                             </div>
                                         ) : (
+                                            /* PRODUCT CARDS */
                                             filteredProducts.map(
                                                 (item, index) => (
                                                     <article
@@ -1072,6 +1084,7 @@ export default function Welcome({
                                                             item.id || item.name
                                                         }
                                                         className="group relative flex min-h-[145px] flex-col overflow-hidden rounded-[14px] border border-[#eadfd6] bg-[#fffaf5] shadow-xs transition-all duration-300 hover:-translate-y-1 hover:border-[#c59e84] hover:shadow-lg"
+                                                        title={item.name}
                                                     >
                                                         {/* PRODUCT IMAGE */}
                                                         <div className="relative h-[105px] w-full shrink-0 overflow-hidden bg-[#faf2ea]">
@@ -1088,20 +1101,25 @@ export default function Welcome({
                                                                 onError={(
                                                                     e,
                                                                 ) => {
-                                                                    (
-                                                                        e.currentTarget as HTMLImageElement
-                                                                    ).src =
+                                                                    e.currentTarget.src =
                                                                         '/images/drink-item-0.jpg';
                                                                 }}
                                                             />
                                                         </div>
 
-                                                        {/* PRODUCT INFO */}
-                                                        <div className="flex flex-1 items-center justify-between gap-2 px-2.5 py-2.5">
-                                                            <h3 className="brand-heading line-clamp-2 text-[12px] leading-tight font-semibold text-[#2c180d] transition-colors group-hover:text-[#823d21] sm:text-[13px]">
+                                                        {/* PRODUCT NAME + PRICE */}
+                                                        <div className="flex min-h-[42px] flex-1 items-center justify-between gap-2 px-2.5 py-2.5">
+                                                            {/* ONE LINE NAME */}
+                                                            <h3
+                                                                title={
+                                                                    item.name
+                                                                }
+                                                                className="brand-heading min-w-0 flex-1 truncate text-[12px] leading-tight font-semibold text-[#2c180d] transition-colors group-hover:text-[#823d21] sm:text-[13px]"
+                                                            >
                                                                 {item.name}
                                                             </h3>
 
+                                                            {/* PRICE */}
                                                             <span className="shrink-0 text-[12px] font-bold text-[#4a2411] sm:text-[13px]">
                                                                 $
                                                                 {Number(
@@ -1118,18 +1136,21 @@ export default function Welcome({
 
                                 {/* =================================================
                 RIGHT — WHY CHOOSE MAMA CAFÉ
-                Same height as Our Menu
+
+                Starts at same top as Our Menu.
+                Image is NOT cropped.
+                Natural aspect ratio is preserved.
             ================================================= */}
-                                <aside
+                                <div
                                     id="why"
-                                    className="relative h-[520px] overflow-hidden rounded-[22px] border border-[#eadfd6] bg-[#30170b] shadow-lg lg:col-span-5"
+                                    className="overflow-hidden bg-transparent lg:col-span-5"
                                 >
                                     <img
                                         src="/images/why-cafe.jpg"
                                         alt="Why choose MaMa Café"
-                                        className="absolute inset-0 h-full w-full object-cover"
+                                        className="h-55 w-full"
                                     />
-                                </aside>
+                                </div>
                             </div>
                         </div>
                     </section>

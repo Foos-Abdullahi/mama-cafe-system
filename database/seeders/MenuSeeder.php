@@ -18,71 +18,51 @@ class MenuSeeder extends Seeder
                 'name' => 'Hot Coffee',
                 'description' => 'Freshly brewed artisanal hot coffees and espresso beverages.',
                 'products' => [
-                    ['name' => 'Espresso', 'price' => 0.75, 'description' => 'Rich single shot of espresso.'],
-                    ['name' => 'Americano', 'price' => 0.75, 'description' => 'Espresso diluted with hot water.'],
-                    ['name' => 'Cappuccino', 'price' => 1.00, 'description' => 'Espresso with steamed milk foam.'],
-                    ['name' => 'Latte', 'price' => 0.75, 'description' => 'Espresso with creamy steamed milk.'],
-                    ['name' => 'Macchiato', 'price' => 0.75, 'description' => 'Espresso topped with a dollop of foamed milk.'],
-                    ['name' => 'Caramel latte', 'price' => 1.00, 'description' => 'Latte with sweet caramel syrup.'],
-                    ['name' => 'Vanilla latte', 'price' => 1.00, 'description' => 'Latte flavored with smooth vanilla.'],
-                    ['name' => 'Spanish latte', 'price' => 1.00, 'description' => 'Espresso with condensed milk and steamed milk.'],
-                    ['name' => 'Matcha', 'price' => 1.25, 'description' => 'Warm Japanese green tea latte.'],
+                    ['name' => 'Espresso', 'price' => 2.50, 'description' => 'Rich single shot of premium dark roast espresso.', 'image_url' => 'https://images.unsplash.com/photo-1510591509098-f4fdc6d0ff04?auto=format&fit=crop&w=600&q=80'],
+                    ['name' => 'Americano', 'price' => 3.00, 'description' => 'Espresso diluted with hot filtered water.', 'image_url' => 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=600&q=80'],
+                    ['name' => 'Cappuccino', 'price' => 4.00, 'description' => 'Espresso with rich steamed milk foam.', 'image_url' => 'https://images.unsplash.com/photo-1534778101976-62847782c213?auto=format&fit=crop&w=600&q=80'],
+                    ['name' => 'Latte', 'price' => 4.25, 'description' => 'Espresso with silky smooth steamed milk.', 'image_url' => 'https://images.unsplash.com/photo-1541167760496-1628856ab772?auto=format&fit=crop&w=600&q=80'],
+                    ['name' => 'Caramel Latte', 'price' => 4.75, 'description' => 'Latte infused with sweet caramel syrup.', 'image_url' => 'https://images.unsplash.com/photo-1485808191679-5f86510681a2?auto=format&fit=crop&w=600&q=80'],
+                    ['name' => 'Spanish Latte', 'price' => 4.50, 'description' => 'Espresso with condensed milk and steamed fresh milk.', 'image_url' => 'https://images.unsplash.com/photo-1541167760496-1628856ab772?auto=format&fit=crop&w=600&q=80'],
                 ],
             ],
             [
                 'name' => 'Hot Tea',
                 'description' => 'Traditional hot teas, spiced Somali teas, and cozy warm drinks.',
                 'products' => [
-                    ['name' => 'Loos tea', 'price' => 0.75, 'description' => 'Fresh loose leaf brewed tea.'],
-                    ['name' => 'Somali tea', 'price' => 0.50, 'description' => 'Traditional Somali spiced tea with milk and cardamom.'],
-                    ['name' => 'Qaxwo somali', 'price' => 0.50, 'description' => 'Traditional Somali spiced coffee with ginger.'],
-                    ['name' => 'Hot Chocolate', 'price' => 0.75, 'description' => 'Rich and velvety hot chocolate.'],
-                    ['name' => 'Green tea', 'price' => 0.50, 'description' => 'Steamed antioxidant-rich green tea.'],
-                    ['name' => 'Shaax daqar', 'price' => 0.75, 'description' => 'Specialty spiced traditional tea.'],
+                    ['name' => 'Somali Tea (Shaax)', 'price' => 2.00, 'description' => 'Traditional Somali spiced tea with fresh milk and cardamom.', 'image_url' => 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&w=600&q=80'],
+                    ['name' => 'Qaxwo Somali', 'price' => 2.00, 'description' => 'Traditional Somali spiced coffee infused with ginger.', 'image_url' => 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=600&q=80'],
+                    ['name' => 'Hot Chocolate', 'price' => 3.50, 'description' => 'Rich and velvety Dutch chocolate drink.', 'image_url' => 'https://images.unsplash.com/photo-1542990253-0d0f5be5f0ed?auto=format&fit=crop&w=600&q=80'],
+                    ['name' => 'Green Tea', 'price' => 2.50, 'description' => 'Steamed antioxidant-rich organic green tea.', 'image_url' => 'https://images.unsplash.com/photo-1627435601361-ec25f5b1d0e5?auto=format&fit=crop&w=600&q=80'],
                 ],
             ],
             [
                 'name' => 'Boba Tea',
-                'description' => 'Refreshing flavored milk teas served with chewy boba pearls.',
+                'description' => 'Refreshing flavored milk teas served with chewy tapioca pearls.',
                 'products' => [
-                    ['name' => 'Blueberry With boba', 'price' => 1.75, 'description' => 'Blueberry milk tea with tapioca pearls.'],
-                    ['name' => 'Mango with boba', 'price' => 1.75, 'description' => 'Sweet tropical mango milk tea with boba pearls.'],
-                    ['name' => 'Vanilla Milk boba', 'price' => 1.75, 'description' => 'Creamy vanilla milk tea with chewy boba pearls.'],
-                    ['name' => 'Strawberry Milk boba', 'price' => 1.75, 'description' => 'Fresh strawberry milk tea with boba.'],
-                    ['name' => 'Lutos Milk boba', 'price' => 1.75, 'description' => 'Lotus Biscoff flavored milk tea with boba pearls.'],
-                    ['name' => 'Biskut Milk boba', 'price' => 1.50, 'description' => 'Crunchy biscuit infused milk tea with boba.'],
-                    ['name' => 'Chocolate Milk boba', 'price' => 1.75, 'description' => 'Decadent chocolate milk tea with tapioca pearls.'],
+                    ['name' => 'Brown Sugar Boba Milk Tea', 'price' => 5.50, 'description' => 'Signature black tea with brown sugar boba pearls & fresh cream.', 'image_url' => 'https://images.unsplash.com/photo-1558857563-b371033873b8?auto=format&fit=crop&w=600&q=80'],
+                    ['name' => 'Matcha Boba Latte', 'price' => 5.75, 'description' => 'Ceremonial grade Japanese matcha green tea with tapioca pearls.', 'image_url' => 'https://images.unsplash.com/photo-1536256263959-770b48d82b0a?auto=format&fit=crop&w=600&q=80'],
+                    ['name' => 'Taro Bubble Tea', 'price' => 5.50, 'description' => 'Creamy purple taro tea with tapioca pearls.', 'image_url' => 'https://images.unsplash.com/photo-1527156231393-7023794f363c?auto=format&fit=crop&w=600&q=80'],
+                    ['name' => 'Strawberry Milk Boba', 'price' => 5.50, 'description' => 'Fresh strawberry infused milk tea with boba.', 'image_url' => 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=600&q=80'],
+                    ['name' => 'Mango Milk Boba', 'price' => 5.50, 'description' => 'Sweet tropical mango milk tea with boba pearls.', 'image_url' => 'https://images.unsplash.com/photo-1505252585461-04db1eb84625?auto=format&fit=crop&w=600&q=80'],
                 ],
             ],
             [
                 'name' => 'Cold Drinks',
                 'description' => 'Refreshing iced coffees, iced lattes, and iced matcha beverages.',
                 'products' => [
-                    ['name' => 'Americano', 'price' => 1.00, 'description' => 'Chilled espresso poured over iced water.'],
-                    ['name' => 'Latte Ice Coffee', 'price' => 1.00, 'description' => 'Iced espresso with cold fresh milk.'],
-                    ['name' => 'Caramel latte', 'price' => 1.25, 'description' => 'Iced latte infused with golden caramel syrup.'],
-                    ['name' => 'Vanilla latte', 'price' => 1.25, 'description' => 'Iced latte infused with fragrant vanilla syrup.'],
-                    ['name' => 'Chocolate latte', 'price' => 1.25, 'description' => 'Iced mocha latte with rich chocolate.'],
-                    ['name' => 'Matcha', 'price' => 1.50, 'description' => 'Iced Japanese matcha green tea latte.'],
-                    ['name' => 'Strawberry Matcha', 'price' => 1.50, 'description' => 'Layered iced matcha with strawberry puree.'],
-                    ['name' => 'Mango Matcha', 'price' => 1.50, 'description' => 'Layered iced matcha with sweet mango puree.'],
-                    ['name' => 'Vanilla Matcha', 'price' => 1.50, 'description' => 'Iced matcha blended with smooth vanilla.'],
+                    ['name' => 'Iced Spanish Latte', 'price' => 4.75, 'description' => 'Chilled espresso over ice with condensed milk.', 'image_url' => 'https://images.unsplash.com/photo-1517701604599-bb29b565090c?auto=format&fit=crop&w=600&q=80'],
+                    ['name' => 'Iced Vanilla Latte', 'price' => 4.50, 'description' => 'Iced espresso with cold fresh milk and vanilla.', 'image_url' => 'https://images.unsplash.com/photo-1517701604599-bb29b565090c?auto=format&fit=crop&w=600&q=80'],
+                    ['name' => 'Iced Strawberry Matcha', 'price' => 5.25, 'description' => 'Layered iced matcha with strawberry puree.', 'image_url' => 'https://images.unsplash.com/photo-1536256263959-770b48d82b0a?auto=format&fit=crop&w=600&q=80'],
                 ],
             ],
             [
                 'name' => 'Shakes',
                 'description' => 'Creamy thick milkshakes, fruit shakes, and blended specialty treats.',
                 'products' => [
-                    ['name' => 'Banana shake', 'price' => 1.00, 'description' => 'Freshly blended creamy banana shake.'],
-                    ['name' => 'Mango shake', 'price' => 1.25, 'description' => 'Sweet ripe mango fruit shake.'],
-                    ['name' => 'Timir Milk shake', 'price' => 1.00, 'description' => 'Traditional sweet date (timir) milkshake.'],
-                    ['name' => 'loos Milk shake', 'price' => 1.25, 'description' => 'Nutty peanut/loos flavored creamy milkshake.'],
-                    ['name' => 'Vanilla Milkshake', 'price' => 1.25, 'description' => 'Classic rich vanilla bean milkshake.'],
-                    ['name' => 'Strawberry Milkshake', 'price' => 1.25, 'description' => 'Fresh strawberry creamy milkshake.'],
-                    ['name' => 'Lutos Milkshake', 'price' => 1.25, 'description' => 'Lotus Biscoff cookie butter milkshake.'],
-                    ['name' => 'Biskut Milkshake', 'price' => 1.25, 'description' => 'Crushed biscuit blended milkshake.'],
-                    ['name' => 'Chocolate Milkshake', 'price' => 1.25, 'description' => 'Decadent chocolate fudge milkshake.'],
-                    ['name' => 'Blueberry Milkshake', 'price' => 1.25, 'description' => 'Sweet and tangy blueberry milkshake.'],
+                    ['name' => 'Banana Milkshake', 'price' => 4.25, 'description' => 'Freshly blended creamy banana shake.', 'image_url' => 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=600&q=80'],
+                    ['name' => 'Mango Smoothie Shake', 'price' => 4.50, 'description' => 'Sweet ripe mango blended fruit shake.', 'image_url' => 'https://images.unsplash.com/photo-1505252585461-04db1eb84625?auto=format&fit=crop&w=600&q=80'],
+                    ['name' => 'Chocolate Fudge Shake', 'price' => 4.75, 'description' => 'Decadent rich chocolate fudge milkshake.', 'image_url' => 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=600&q=80'],
                 ],
             ],
         ];
@@ -97,32 +77,15 @@ class MenuSeeder extends Seeder
             );
 
             foreach ($categoryData['products'] as $productData) {
-                $name = strtolower($productData['name']);
-                $img = '/images/drink-item-0.jpg';
-
-                if (str_contains($name, 'boba')) {
-                    $img = '/images/boba_drink.jpg';
-                } elseif (str_contains($name, 'chocolate') || str_contains($name, 'choco')) {
-                    $img = '/images/iced-chocolate.jpg';
-                } elseif (str_contains($name, 'shake')) {
-                    $img = '/images/drink-item-3.jpg';
-                } elseif (str_contains($name, 'ice') || str_contains($name, 'iced') || str_contains($name, 'cold')) {
-                    $img = '/images/iced_coffee.jpg';
-                } elseif (str_contains($name, 'latte') || str_contains($name, 'cappuccino')) {
-                    $img = '/images/drink-item-1.jpg';
-                } elseif (str_contains($name, 'matcha')) {
-                    $img = '/images/drink-item-2.jpg';
-                }
-
                 Product::updateOrCreate(
                     [
-                        'category_id' => $category->id,
                         'name' => $productData['name'],
                     ],
                     [
+                        'category_id' => $category->id,
                         'price' => $productData['price'],
                         'description' => $productData['description'],
-                        'image_url' => $img,
+                        'image_url' => $productData['image_url'],
                         'status' => 'active',
                     ]
                 );

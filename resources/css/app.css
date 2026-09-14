@@ -383,5 +383,16 @@
 }
 
 .mama-script {
-    font-family: 'Great Vibes', 'Brush Script MT', 'Segoe Script', cursive, serif !important;
+    font-family:
+        'Great Vibes', 'Brush Script MT', 'Segoe Script', cursive, serif !important;
+}
+
+/* Keep POS panels scrollable without reserving visual space for native bars. */
+.pos-scrollbar-hidden {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.pos-scrollbar-hidden::-webkit-scrollbar {
+    display: none;
 }

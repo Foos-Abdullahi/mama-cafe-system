@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Head, useForm, Link } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
-import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -51,7 +50,7 @@ export default function DailyWaitressesEdit({
             return {
                 waitress_id: w.id,
                 name: w.name,
-                assigned_number: saved ? saved.assigned_number : (w.current_number || cafeFixedNumbers[0] || ''),
+                assigned_number: saved ? saved.assigned_number : '',
                 is_active: saved ? Boolean(saved.is_active) : false,
             };
         });
@@ -71,6 +70,36 @@ export default function DailyWaitressesEdit({
         const updated = assignments.map((item) => (item.waitress_id === id ? { ...item, assigned_number: num } : item));
         setAssignments(updated);
         form.setData('assignments', updated);
+    };
+
+    // Pool of all configured numbers
+    const allPoolNumbers = Array.from(
+        new Set([
+            ...cafeFixedNumbers,
+            ...assignments.map((a) => a.assigned_number).filter(Boolean),
+        ]),
+    ).sort((a, b) => (Number(a) || 0) - (Number(b) || 0));
+
+    // Get numbers currently taken by OTHER active waitresses
+    const getTakenByOthers = (excludeWaitressId: number): Set<string> => {
+        return new Set(
+            assignments
+                .filter((a) => a.waitress_id !== excludeWaitressId && a.is_active && a.assigned_number)
+                .map((a) => a.assigned_number),
+        );
+    };
+
+    // Get selectable options for a specific waitress
+    const getSelectableNumbers = (waitressId: number, currentVal: string): string[] => {
+        const takenByOthers = getTakenByOthers(waitressId);
+        const options = allPoolNumbers.filter((num) => !takenByOthers.has(num));
+
+        if (currentVal && !options.includes(currentVal) && !takenByOthers.has(currentVal)) {
+            options.push(currentVal);
+            options.sort((a, b) => (Number(a) || 0) - (Number(b) || 0));
+        }
+
+        return options;
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -102,112 +131,111 @@ export default function DailyWaitressesEdit({
                     </Link>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="rounded-xl border border-border bg-card p-5 md:p-6 shadow-xs space-y-6">
-                        <div className="flex items-center justify-between border-b border-border pb-3">
-                            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                                Waitress Shift Roster Table
-                            </h2>
-                            <span className="text-xs font-mono font-bold text-foreground">
-                                Total Revenue: ${dailyClosing.total_sales.toFixed(2)} ({dailyClosing.total_orders} Orders)
-                            </span>
+                {/* Single Form Card - Requirement 1 */}
+                <form onSubmit={handleSubmit} className="rounded-xl border border-border bg-card p-5 md:p-6 shadow-xs space-y-6">
+                    <div className="flex items-center justify-between border-b border-border pb-3">
+                        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            Waitress Shift Roster Table
+                        </h2>
+                        <span className="text-xs font-mono font-bold text-foreground">
+                            Total Revenue: ${dailyClosing.total_sales.toFixed(2)} ({dailyClosing.total_orders} Orders)
+                        </span>
+                    </div>
+
+                    {/* Roster Selection Table */}
+                    <div className="divide-y divide-border border-b border-border">
+                        <div className="bg-muted/40 px-4 py-2.5 grid grid-cols-12 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                            <div className="col-span-2 md:col-span-1 text-center">Active?</div>
+                            <div className="col-span-5 md:col-span-5">Waitress Name &amp; Contact</div>
+                            <div className="col-span-5 md:col-span-6">Assigned Café Number for Today</div>
                         </div>
 
-                        {/* Waitresses Selection List */}
-                        <div className="rounded-lg border overflow-hidden">
-                            <div className="bg-muted/40 px-4 py-2.5 border-b grid grid-cols-12 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                <div className="col-span-2 md:col-span-1 text-center">Active?</div>
-                                <div className="col-span-5 md:col-span-5">Waitress Name &amp; Contact</div>
-                                <div className="col-span-5 md:col-span-6">Assigned Café Number for Today</div>
-                            </div>
+                        {assignments.length > 0 ? (
+                            assignments.map((item) => {
+                                const originalWaitress = waitresses.find((w) => w.id === item.waitress_id);
+                                const selectableNumbers = getSelectableNumbers(item.waitress_id, item.assigned_number);
 
-                            <div className="divide-y">
-                                {assignments.length > 0 ? (
-                                    assignments.map((item) => {
-                                        const originalWaitress = waitresses.find((w) => w.id === item.waitress_id);
-                                        return (
-                                            <div
-                                                key={item.waitress_id}
-                                                className={`px-4 py-3.5 grid grid-cols-12 items-center transition-colors ${
-                                                    item.is_active ? 'bg-card' : 'bg-muted/10 opacity-60'
-                                                }`}
+                                return (
+                                    <div
+                                        key={item.waitress_id}
+                                        className={`px-4 py-3.5 grid grid-cols-12 items-center transition-colors ${
+                                            item.is_active ? 'bg-card' : 'bg-muted/10 opacity-60'
+                                        }`}
+                                    >
+                                        {/* Active Checkbox */}
+                                        <div className="col-span-2 md:col-span-1 flex justify-center">
+                                            <input
+                                                type="checkbox"
+                                                id={`edit-active-${item.waitress_id}`}
+                                                checked={item.is_active}
+                                                onChange={(e) => handleToggleActive(item.waitress_id, e.target.checked)}
+                                                className="h-4 w-4 rounded border-gray-300 text-[#823d21] focus:ring-[#823d21] cursor-pointer"
+                                            />
+                                        </div>
+
+                                        {/* Waitress Name */}
+                                        <div className="col-span-5 md:col-span-5">
+                                            <label
+                                                htmlFor={`edit-active-${item.waitress_id}`}
+                                                className="font-medium text-sm text-foreground cursor-pointer block"
                                             >
-                                                {/* Active Checkbox */}
-                                                <div className="col-span-2 md:col-span-1 flex justify-center">
-                                                    <input
-                                                        type="checkbox"
-                                                        id={`edit-active-${item.waitress_id}`}
-                                                        checked={item.is_active}
-                                                        onChange={(e) => handleToggleActive(item.waitress_id, e.target.checked)}
-                                                        className="h-4 w-4 rounded border-gray-300 text-[#823d21] focus:ring-[#823d21] cursor-pointer"
-                                                    />
-                                                </div>
+                                                {item.name}
+                                            </label>
+                                            <span className="text-xs text-muted-foreground">
+                                                {originalWaitress?.phone || 'No phone recorded'}
+                                            </span>
+                                        </div>
 
-                                                {/* Waitress Name */}
-                                                <div className="col-span-5 md:col-span-5">
-                                                    <label
-                                                        htmlFor={`edit-active-${item.waitress_id}`}
-                                                        className="font-medium text-sm text-foreground cursor-pointer block"
-                                                    >
-                                                        {item.name}
-                                                    </label>
-                                                    <span className="text-xs text-muted-foreground">
-                                                        {originalWaitress?.phone || 'No phone recorded'}
-                                                    </span>
-                                                </div>
-
-                                                {/* Café Number Select */}
-                                                <div className="col-span-5 md:col-span-6">
-                                                    {item.is_active ? (
-                                                        <Select
-                                                            value={item.assigned_number}
-                                                            onValueChange={(val) => handleNumberChange(item.waitress_id, val)}
-                                                        >
-                                                            <SelectTrigger className="w-full max-w-[260px] h-9">
-                                                                <SelectValue placeholder="Select assigned number..." />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                                {cafeFixedNumbers.map((num) => (
-                                                                    <SelectItem key={num} value={num}>
-                                                                        Café Number #{num}
-                                                                    </SelectItem>
-                                                                ))}
-                                                            </SelectContent>
-                                                        </Select>
-                                                    ) : (
-                                                        <Badge variant="outline" className="text-muted-foreground text-xs font-normal">
-                                                            Off Duty Today
-                                                        </Badge>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        );
-                                    })
-                                ) : (
-                                    <div className="p-6 text-center text-xs text-muted-foreground">
-                                        No waitresses registered in the system yet.
+                                        {/* Café Number Select */}
+                                        <div className="col-span-5 md:col-span-6">
+                                            {item.is_active ? (
+                                                <Select
+                                                    value={item.assigned_number}
+                                                    onValueChange={(val) => handleNumberChange(item.waitress_id, val)}
+                                                >
+                                                    <SelectTrigger className="w-full max-w-[260px] h-9">
+                                                        <SelectValue placeholder="Select assigned number..." />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {selectableNumbers.map((num) => (
+                                                            <SelectItem key={num} value={num}>
+                                                                Café Number #{num}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            ) : (
+                                                <Badge variant="outline" className="text-muted-foreground text-xs font-normal">
+                                                    Off Duty Today
+                                                </Badge>
+                                            )}
+                                        </div>
                                     </div>
-                                )}
+                                );
+                            })
+                        ) : (
+                            <div className="p-6 text-center text-xs text-muted-foreground">
+                                No waitresses registered in the system yet.
                             </div>
-                        </div>
+                        )}
+                    </div>
 
-                        {/* Footer Actions */}
-                        <div className="flex items-center justify-end gap-3 border-t border-border pt-4">
-                            <Link href="/finance/daily-closing">
-                                <Button type="button" variant="outline" size="sm" className="shadow-xs">
-                                    Cancel
-                                </Button>
-                            </Link>
-                            <Button
-                                type="submit"
-                                disabled={form.processing}
-                                size="sm"
-                                className="bg-[#823d21] text-white hover:bg-[#682e18] shadow-xs min-w-[150px] gap-1.5"
-                            >
-                                <Save className="h-4 w-4" />
-                                {form.processing ? 'Saving...' : 'Update Daily Roster'}
+                    {/* Footer Actions */}
+                    <div className="flex items-center justify-end gap-3 pt-2">
+                        <Link href="/finance/daily-closing">
+                            <Button type="button" variant="outline" size="sm" className="shadow-xs">
+                                Cancel
                             </Button>
-                        </div>
+                        </Link>
+                        <Button
+                            type="submit"
+                            disabled={form.processing}
+                            size="sm"
+                            className="bg-[#823d21] text-white hover:bg-[#682e18] shadow-xs min-w-[150px] gap-1.5"
+                        >
+                            <Save className="h-4 w-4" />
+                            {form.processing ? 'Saving...' : 'Update Daily Roster'}
+                        </Button>
                     </div>
                 </form>
             </div>

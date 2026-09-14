@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useForm, Head } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import InputError from '@/components/input-error';
@@ -7,26 +7,36 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Save, Store, Hash, Edit, X, Plus, Trash2, Percent } from 'lucide-react';
 
+interface WaitressItem {
+    id: number;
+    name: string;
+    phone: string;
+    status: string;
+    assigned_number: string;
+}
+
 interface SystemSettings {
     cafe_name: string;
     cafe_phone: string;
     cafe_address: string;
     currency: string;
     tax_rate: string;
+    vat_rate: string;
     default_commission_rate: string;
     commission_rates?: string;
-    cafe_fixed_numbers: string;
+    cafe_waitress_numbers: string;
 }
 
 interface Props {
     settings: SystemSettings;
+    waitresses?: WaitressItem[];
 }
 
-export default function SystemSettingsIndex({ settings }: Props) {
+export default function SystemSettingsIndex({ settings, waitresses = [] }: Props) {
     const [isEditing, setIsEditing] = useState(false);
 
-    // Parse fixed numbers into an array of strings
-    const initialNumbers = (settings.cafe_fixed_numbers || '101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 150, 456543')
+    // Parse waitress numbers into an array of strings
+    const initialNumbers = (settings.cafe_waitress_numbers || '')
         .split(',')
         .map((n) => n.trim())
         .filter(Boolean);
@@ -46,9 +56,10 @@ export default function SystemSettingsIndex({ settings }: Props) {
         cafe_address: settings.cafe_address || '',
         currency: settings.currency || 'USD ($)',
         tax_rate: settings.tax_rate || '0',
+        vat_rate: settings.vat_rate || '0',
         default_commission_rate: settings.default_commission_rate || '15',
         commission_rates: settings.commission_rates || '10, 12, 15, 18, 20',
-        cafe_fixed_numbers: settings.cafe_fixed_numbers || '101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 150, 456543',
+        cafe_waitress_numbers: settings.cafe_waitress_numbers || '',
     });
 
     // Sync state when reset or canceled
@@ -64,7 +75,7 @@ export default function SystemSettingsIndex({ settings }: Props) {
         const updated = [...numberInputs];
         updated[index] = val;
         setNumberInputs(updated);
-        form.setData('cafe_fixed_numbers', updated.filter(Boolean).join(', '));
+        form.setData('cafe_waitress_numbers', updated.filter(Boolean).join(', '));
     };
 
     const addNumberInput = () => {
@@ -75,7 +86,7 @@ export default function SystemSettingsIndex({ settings }: Props) {
     const removeNumberInput = (index: number) => {
         const updated = numberInputs.filter((_, i) => i !== index);
         setNumberInputs(updated);
-        form.setData('cafe_fixed_numbers', updated.filter(Boolean).join(', '));
+        form.setData('cafe_waitress_numbers', updated.filter(Boolean).join(', '));
     };
 
     // Commission Inputs Management
@@ -99,13 +110,12 @@ export default function SystemSettingsIndex({ settings }: Props) {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        // Prepare combined strings before submit
         const cleanedNumbers = numberInputs.map((n) => n.trim()).filter(Boolean).join(', ');
         const cleanedCommissions = commissionInputs.map((c) => c.trim()).filter(Boolean).join(', ');
 
         form.transform((data) => ({
             ...data,
-            cafe_fixed_numbers: cleanedNumbers,
+            cafe_waitress_numbers: cleanedNumbers,
             commission_rates: cleanedCommissions,
         }));
 
@@ -126,7 +136,7 @@ export default function SystemSettingsIndex({ settings }: Props) {
                     <div>
                         <h1 className="text-lg font-semibold text-foreground tracking-tight">General System Settings</h1>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                            Configure cafe identity, waitress fixed numbers, currency, and available commission rates.
+                            Configure cafe identity, waitress numbers, currency, VAT, and available commission rates.
                         </p>
                     </div>
 
@@ -222,19 +232,88 @@ export default function SystemSettingsIndex({ settings }: Props) {
                             </div>
                         </div>
 
-                        {/* Fixed Numbers & Commission Configuration */}
+                        {/* Financial Configuration */}
+                        <div className="rounded-xl border bg-card p-5 md:p-6 shadow-xs space-y-6">
+                            <div className="flex items-center gap-2 border-b border-border pb-3">
+                                <Percent className="h-5 w-5 text-[#823d21]" />
+                                <h2 className="font-semibold text-base text-foreground">Financial Configuration</h2>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="currency" className="text-xs font-medium">
+                                        Operating Currency <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Input
+                                        id="currency"
+                                        disabled={!isEditing}
+                                        className={`h-10 ${!isEditing ? 'bg-muted/50 cursor-not-allowed' : ''}`}
+                                        value={form.data.currency}
+                                        onChange={(e) => form.setData('currency', e.target.value)}
+                                        required
+                                    />
+                                    <InputError message={form.errors.currency} />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="tax_rate" className="text-xs font-medium">
+                                        Tax Rate (%) <span className="text-red-500">*</span>
+                                    </Label>
+                                    <div className="relative">
+                                        <Input
+                                            id="tax_rate"
+                                            type="number"
+                                            step="0.1"
+                                            min="0"
+                                            max="100"
+                                            disabled={!isEditing}
+                                            className={`h-10 pr-8 ${!isEditing ? 'bg-muted/50 cursor-not-allowed' : ''}`}
+                                            value={form.data.tax_rate}
+                                            onChange={(e) => form.setData('tax_rate', e.target.value)}
+                                            required
+                                        />
+                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">%</span>
+                                    </div>
+                                    <InputError message={form.errors.tax_rate} />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="vat_rate" className="text-xs font-medium">
+                                        VAT Rate (%) <span className="text-red-500">*</span>
+                                    </Label>
+                                    <div className="relative">
+                                        <Input
+                                            id="vat_rate"
+                                            type="number"
+                                            step="0.1"
+                                            min="0"
+                                            max="100"
+                                            disabled={!isEditing}
+                                            className={`h-10 pr-8 ${!isEditing ? 'bg-muted/50 cursor-not-allowed' : ''}`}
+                                            value={form.data.vat_rate}
+                                            onChange={(e) => form.setData('vat_rate', e.target.value)}
+                                            required
+                                        />
+                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">%</span>
+                                    </div>
+                                    <InputError message={form.errors.vat_rate} />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Waitress Numbers & Commission Configuration */}
                         <div className="rounded-xl border bg-card p-5 md:p-6 shadow-xs space-y-6">
                             <div className="flex items-center gap-2 border-b border-border pb-3">
                                 <Hash className="h-5 w-5 text-[#823d21]" />
-                                <h2 className="font-semibold text-base text-foreground">Fixed Numbers & Commission Configuration</h2>
+                                <h2 className="font-semibold text-base text-foreground">Waitress Numbers & Commission Configuration</h2>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                {/* 1. Waitress Fixed Numbers Input List */}
+                                {/* 1. Waitress Numbers Input List */}
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between border-b border-border/60 pb-2">
                                         <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                                            Café Waitress Fixed Numbers ({numberInputs.length})
+                                            Waitress Numbers ({numberInputs.length})
                                         </Label>
                                         {isEditing && (
                                             <Button
@@ -244,14 +323,14 @@ export default function SystemSettingsIndex({ settings }: Props) {
                                                 className="h-8 gap-1.5 text-xs bg-[#823d21] text-white hover:bg-[#682e18]"
                                             >
                                                 <Plus className="h-3.5 w-3.5" />
-                                                Add Waitress Number
+                                                Add Number
                                             </Button>
                                         )}
                                     </div>
 
                                     <div className="space-y-3.5 max-h-[360px] overflow-y-auto pr-1">
                                         {numberInputs.length === 0 ? (
-                                            <p className="text-xs text-muted-foreground italic">No waitress numbers configured. Click Add Waitress Number to create one.</p>
+                                            <p className="text-xs text-muted-foreground italic">No waitress numbers configured. Click Add Number to create one.</p>
                                         ) : (
                                             numberInputs.map((num, idx) => (
                                                 <div key={idx} className="flex items-center gap-2">
@@ -282,9 +361,9 @@ export default function SystemSettingsIndex({ settings }: Props) {
                                         )}
                                     </div>
                                     <p className="text-[11px] text-muted-foreground">
-                                        Each number input represents an available floor card number for waitresses.
+                                        Each number represents an available café number for daily waitress assignments.
                                     </p>
-                                    <InputError message={form.errors.cafe_fixed_numbers} />
+                                    <InputError message={form.errors.cafe_waitress_numbers} />
                                 </div>
 
                                 {/* 2. Commission Rates Input List */}
@@ -301,14 +380,14 @@ export default function SystemSettingsIndex({ settings }: Props) {
                                                 className="h-8 gap-1.5 text-xs bg-[#823d21] text-white hover:bg-[#682e18]"
                                             >
                                                 <Plus className="h-3.5 w-3.5" />
-                                                Add Commission Rate
+                                                Add Commission
                                             </Button>
                                         )}
                                     </div>
 
                                     <div className="space-y-3.5 max-h-[360px] overflow-y-auto pr-1">
                                         {commissionInputs.length === 0 ? (
-                                            <p className="text-xs text-muted-foreground italic">No commission rates configured. Click Add Commission Rate to create one.</p>
+                                            <p className="text-xs text-muted-foreground italic">No commission rates configured. Click Add Commission to create one.</p>
                                         ) : (
                                             commissionInputs.map((rate, idx) => (
                                                 <div key={idx} className="flex items-center gap-2">
@@ -341,28 +420,51 @@ export default function SystemSettingsIndex({ settings }: Props) {
                                         )}
                                     </div>
                                     <p className="text-[11px] text-muted-foreground">
-                                        These commission rates will appear as options in the dropdown when adding or editing a waitress.
+                                        These rates will appear as options in the dropdown when adding or editing a waitress.
                                     </p>
                                     <InputError message={form.errors.commission_rates} />
                                 </div>
                             </div>
+                        </div>
 
-                            {/* Currency */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-border/60">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="currency" className="text-xs font-medium">
-                                        Operating Currency <span className="text-red-500">*</span>
-                                    </Label>
-                                    <Input
-                                        id="currency"
-                                        disabled={!isEditing}
-                                        className={`h-10 ${!isEditing ? 'bg-muted/50 cursor-not-allowed' : ''}`}
-                                        value={form.data.currency}
-                                        onChange={(e) => form.setData('currency', e.target.value)}
-                                        required
-                                    />
-                                    <InputError message={form.errors.currency} />
+                        {/* Registered Waitresses & Assigned Numbers Overview */}
+                        <div className="rounded-xl border bg-card p-5 md:p-6 shadow-xs space-y-4">
+                            <div className="flex items-center justify-between border-b border-border pb-3">
+                                <div>
+                                    <h2 className="font-semibold text-base text-foreground">Registered Waitresses &amp; Assigned Café Numbers</h2>
+                                    <p className="text-xs text-muted-foreground mt-0.5">
+                                        View all registered café waitresses and their current assigned numbers.
+                                    </p>
                                 </div>
+                            </div>
+
+                            <div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
+                                {waitresses.length > 0 ? (
+                                    waitresses.map((w) => (
+                                        <div key={w.id} className="p-3.5 flex items-center justify-between bg-card text-xs">
+                                            <div className="flex items-center gap-3">
+                                                <div>
+                                                    <p className="font-semibold text-foreground text-sm">{w.name}</p>
+                                                    <p className="text-muted-foreground text-[11px]">{w.phone || 'No phone'}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-xs text-muted-foreground">Assigned Café Number:</span>
+                                                {w.assigned_number !== '—' ? (
+                                                    <span className="font-mono font-bold bg-[#823d21] text-white px-2.5 py-1 rounded-full text-xs">
+                                                        #{w.assigned_number}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-xs text-muted-foreground italic">Unassigned</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="p-4 text-center text-xs text-muted-foreground italic">
+                                        No waitresses registered in the system.
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -412,4 +514,3 @@ SystemSettingsIndex.layout = (page: React.ReactNode) => (
         {page}
     </AppLayout>
 );
-

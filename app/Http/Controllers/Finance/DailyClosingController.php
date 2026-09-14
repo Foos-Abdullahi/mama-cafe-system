@@ -89,13 +89,17 @@ class DailyClosingController extends Controller
         ]);
     }
 
-    public function create(): Response
+    public function create(): Response|RedirectResponse
     {
         $today = now()->format('Y-m-d');
-        $todayOrders = Order::whereDate('created_at', $today)->where('status', 'completed')->get();
         $todayClosing = DailyClosing::whereDate('closing_date', $today)->first();
 
-        $rawNumbers = Setting::getByKey('cafe_fixed_numbers', '101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 150, 456543');
+        if ($todayClosing) {
+            return redirect()->route('finance.daily-closing.edit', $todayClosing->id);
+        }
+
+        $todayOrders = Order::whereDate('created_at', $today)->where('status', 'completed')->get();
+        $rawNumbers = Setting::getByKey('cafe_waitress_numbers', '');
         $cafeFixedNumbers = array_values(array_filter(array_map('trim', explode(',', $rawNumbers))));
 
         $waitresses = Waitress::with('fixedNumbers')->orderBy('name')->get()->map(function ($w) {
@@ -203,6 +207,17 @@ class DailyClosingController extends Controller
             ]
         );
 
+        // Validate uniqueness: no two active waitresses can share the same number
+        $activeNumbers = array_filter(
+            array_column(
+                array_filter($validated['assignments'], fn ($a) => ! empty($a['is_active']) && ! empty($a['assigned_number'])),
+                'assigned_number'
+            )
+        );
+        if (count($activeNumbers) !== count(array_unique($activeNumbers))) {
+            return redirect()->back()->withErrors(['assignments' => 'Each active waitress must have a unique café number.'])->withInput();
+        }
+
         ActivityLog::log('daily_closing', "Daily waitress shift numbers saved for {$date}.");
 
         return redirect()->route('finance.daily-closing.index')->with('success', 'Daily waitress roster saved successfully!');
@@ -210,7 +225,7 @@ class DailyClosingController extends Controller
 
     public function edit(DailyClosing $dailyClosing): Response
     {
-        $rawNumbers = Setting::getByKey('cafe_fixed_numbers', '101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 150, 456543');
+        $rawNumbers = Setting::getByKey('cafe_waitress_numbers', '');
         $cafeFixedNumbers = array_values(array_filter(array_map('trim', explode(',', $rawNumbers))));
 
         $waitresses = Waitress::with('fixedNumbers')->orderBy('name')->get()->map(function ($w) {

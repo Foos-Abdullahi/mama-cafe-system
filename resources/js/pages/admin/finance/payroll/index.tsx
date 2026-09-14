@@ -98,6 +98,16 @@ export default function PayrollIndex({ waitresses, payoutHistory, stats }: Props
             header: () => <span className="text-right block">Action</span>,
             cell: ({ row }) => {
                 const w = row.original;
+                const unpaid = Number(w.unpaid_commission);
+                if (unpaid <= 0) {
+                    return (
+                        <div className="text-right">
+                            <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-semibold bg-emerald-50 border border-emerald-200 rounded px-2.5 py-1">
+                                ✓ Fully Paid
+                            </span>
+                        </div>
+                    );
+                }
                 return (
                     <div className="text-right">
                         <Link href={`/finance/payroll/create?waitress_id=${w.id}`}>

@@ -18,10 +18,15 @@ import {
     ArrowRight,
     Check,
     Search,
+    ShoppingCart,
+    ChevronLeft,
+    ChevronRight,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { login } from '@/routes';
+import { UpwardRibbonBanner } from '@/components/cafe/UpwardRibbonBanner';
+
 
 /*
 |--------------------------------------------------------------------------
@@ -51,8 +56,38 @@ export interface WelcomeProps {
     products?: BackendProduct[];
 }
 
-type NavigationSection =
-    'home' | 'menu' | 'about' | 'why' | 'gallery' | 'contact';
+const STORY_SLIDES = [
+    {
+        subtitle: 'OUR STORY',
+        title: 'A little cup of happiness, every day.',
+        paragraph1:
+            'MaMa Café is a warm neighborhood café serving fresh coffee, boba, ice chocolate, shakes and tea in the heart of Mogadishu.',
+        paragraph2:
+            'We believe a great drink should taste amazing, look beautiful and be served with a smile.',
+        image: '/images/hero/MaMaCaféBobaTrio_Splash-removebg-preview.png',
+        badge: 'Crafted with Love',
+    },
+    {
+        subtitle: 'OUR PASSION',
+        title: 'Fresh ingredients, unforgettable flavors.',
+        paragraph1:
+            'From rich espresso beans to handcrafted boba pearls, every ingredient is carefully chosen for maximum quality and freshness.',
+        paragraph2:
+            'Experience the magic of handcrafted drinks prepared with care by our dedicated baristas.',
+        image: '/images/hero/MaMaCaféCoffee_andChocolateStillLife.png',
+        badge: '100% Fresh Daily',
+    },
+    {
+        subtitle: 'OUR COMMUNITY',
+        title: 'Serving warmth across Mogadishu.',
+        paragraph1:
+            'Located in Dahablaha Bakaro Market, we are proud to be Mogadishu\'s favorite cozy spot for friends, families, and coffee lovers.',
+        paragraph2:
+            'Join us today and discover your new favorite signature drink!',
+        image: '/images/mama-cup-cutout.png',
+        badge: 'Mogadishu\'s Choice',
+    },
+];
 
 /*
 |--------------------------------------------------------------------------
@@ -375,19 +410,27 @@ const getCategoryIcon = (name: string): LucideIcon => {
 const getProductImage = (name: string, index: number): string => {
     const lower = name.toLowerCase();
 
-    if (lower.includes('boba')) {
+    if (lower.includes('boba') || lower.includes('milk tea') || lower.includes('blueberry') || lower.includes('mango') || lower.includes('strawberry') || lower.includes('lotus') || lower.includes('vanilla milk')) {
         return '/images/boba_drink.jpg';
     }
 
-    if (lower.includes('chocolate') || lower.includes('cocoa')) {
+    if (lower.includes('chocolate') || lower.includes('cocoa') || lower.includes('mocha')) {
         return '/images/iced-chocolate.jpg';
+    }
+
+    if (lower.includes('shake') || lower.includes('milkshake')) {
+        return '/images/drink-item-1.jpg';
+    }
+
+    if (lower.includes('iced') || lower.includes('cold') || lower.includes('caramel') || lower.includes('matcha')) {
+        return '/images/iced_coffee.jpg';
     }
 
     const fallbacks = [
         '/images/drink-item-0.jpg',
         '/images/drink-item-1.jpg',
-        '/images/drink-item-2.jpg',
         '/images/boba_drink.jpg',
+        '/images/iced_coffee.jpg',
     ];
 
     return fallbacks[index % fallbacks.length];
@@ -466,8 +509,47 @@ export default function Welcome({
         useState<string>('all');
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
-    const [activeNavigation, setActiveNavigation] =
-        useState<NavigationSection | null>(null);
+    const [currentStorySlide, setCurrentStorySlide] = useState(0);
+    const [activeSection, setActiveSection] = useState<string>('home');
+
+    // Auto-advance Our Story slideshow every 4.5 seconds
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setCurrentStorySlide((prev) => (prev + 1) % STORY_SLIDES.length);
+        }, 4500);
+        return () => clearInterval(timer);
+    }, []);
+
+    // Track active section for nav underline using IntersectionObserver
+    useEffect(() => {
+        // Map nav ids to the actual DOM element ids (home -> hero-section)
+        const sectionMap: Record<string, string> = {
+            home: 'hero-section',
+            menu: 'menu',
+            about: 'about',
+            why: 'why',
+            gallery: 'gallery',
+            contact: 'contact',
+        };
+        const observers: IntersectionObserver[] = [];
+
+        Object.entries(sectionMap).forEach(([navId, domId]) => {
+            const el = document.getElementById(domId);
+            if (!el) { return; }
+            const obs = new IntersectionObserver(
+                ([entry]) => {
+                    if (entry.isIntersecting) {
+                        setActiveSection(navId);
+                    }
+                },
+                { threshold: 0.15, rootMargin: '-68px 0px 0px 0px' },
+            );
+            obs.observe(el);
+            observers.push(obs);
+        });
+
+        return () => observers.forEach((obs) => obs.disconnect());
+    }, []);
 
     // Filter products based on selected tab and search query
     const filteredProducts = useMemo(() => {
@@ -548,10 +630,12 @@ export default function Welcome({
                     }
                 `}</style>
                 {/* =====================================================
-                    TOP BAR (Modern, Compact, Professional - max-w-6xl)
+                    TOP BAR + STICKY HEADER (both stick together on scroll)
                 ===================================================== */}
-                <div className="hidden border-b border-[#3c2114] bg-[#28160d] text-[13px] text-[#fff5ea]">
-                    <div className="mx-auto flex h-[40px] w-[92%] max-w-6xl items-center justify-between">
+                <div className="sticky top-0 z-40">
+                {/* TOP BAR */}
+                <div className="border-b border-[#3c2114] bg-[#28160d] text-[13px] text-[#fff5ea]">
+                    <div className="mx-auto flex h-[40px] w-[98%] max-w-[1560px] items-center justify-between">
                         <div className="flex items-center gap-2 font-normal text-[#f5ebd9]">
                             <MapPin className="h-3.5 w-3.5 shrink-0 text-[#e5c78d]" />
                             <span className="text-[12px] sm:text-[13px]">
@@ -599,75 +683,50 @@ export default function Welcome({
                                 <Phone className="h-3.5 w-3.5 text-[#e5c78d]" />
                                 <span>+252 61 3399977</span>
                             </a>
-
-                            {/* Staff Sign In */}
-                            <Link
-                                href={login()}
-                                className="hidden rounded-full border border-[#f5ebd9]/30 px-2.5 py-0.5 text-[11px] font-medium text-[#f5ebd9]/90 transition hover:border-white hover:text-white md:inline-block"
-                            >
-                                Order Now
-                            </Link>
                         </div>
                     </div>
                 </div>
                 {/* =====================================================
-                    STICKY HEADER & NAV (max-w-6xl, Staff Login button)
+                    STICKY HEADER & NAV
                 ===================================================== */}
-                <header className="sticky top-0 z-40 hidden border-b border-[#eaded3] bg-[#fffaf5]/95 backdrop-blur-md">
-                    <div className="mx-auto flex h-[60px] w-[92%] max-w-6xl items-center justify-between sm:h-[68px]">
+                <header className="border-b border-[#eaded3] bg-[#fffaf5]/95 backdrop-blur-md">
+                    <div className="mx-auto flex h-[60px] w-[98%] max-w-[1560px] items-center justify-between sm:h-[68px]">
                         {/* Logo */}
                         <a
                             href="#home"
-                            className="group flex flex-col leading-none text-[#2c180d] no-underline"
+                            className="group flex items-center no-underline"
                             aria-label="MaMa Café home"
                         >
-                            <span className="brand-heading flex items-center gap-1.5 text-[22px] font-bold tracking-tight text-[#2c180d] sm:text-[24px]">
-                                MaMa Café
-                                <Coffee className="inline h-4 w-4 -translate-y-0.5 text-[#5b2d17]" />
-                            </span>
-                            <small className="mt-0.5 text-[9px] font-bold tracking-[0.2em] text-[#5b2d17]">
-                                COFFEE · BOBA · ICE CHOCOLATE
-                            </small>
+                            <img
+                                src="/images/hero/MaMaCaféCoffeehouseLogo.png"
+                                alt="MaMa Café — Coffee, Boba, Ice Chocolate"
+                                className="h-[42px] sm:h-[50px] w-auto object-contain block"
+                            />
                         </a>
 
                         {/* Desktop Navigation */}
                         <nav className="hidden items-center gap-7 text-[14px] font-medium text-[#2c180d] lg:flex">
-                            <a
-                                href="#home"
-                                className="border-b-2 border-[#5b2d17] py-2 font-semibold transition hover:text-[#5b2d17]"
-                            >
-                                Home
-                            </a>
-                            <a
-                                href="#menu"
-                                className="border-b-2 border-transparent py-2 transition hover:text-[#5b2d17]"
-                            >
-                                Menu
-                            </a>
-                            <a
-                                href="#about"
-                                className="border-b-2 border-transparent py-2 transition hover:text-[#5b2d17]"
-                            >
-                                About Us
-                            </a>
-                            <a
-                                href="#why"
-                                className="border-b-2 border-transparent py-2 transition hover:text-[#5b2d17]"
-                            >
-                                Why Choose Us
-                            </a>
-                            <a
-                                href="#gallery"
-                                className="border-b-2 border-transparent py-2 transition hover:text-[#5b2d17]"
-                            >
-                                Gallery
-                            </a>
-                            <a
-                                href="#contact"
-                                className="border-b-2 border-transparent py-2 transition hover:text-[#5b2d17]"
-                            >
-                                Contact
-                            </a>
+                            {[
+                                { id: 'home', label: 'Home' },
+                                { id: 'menu', label: 'Menu' },
+                                { id: 'about', label: 'About Us' },
+                                { id: 'why', label: 'Why Choose Us' },
+                                { id: 'gallery', label: 'Gallery' },
+                                { id: 'contact', label: 'Contact' },
+                            ].map(({ id, label }) => (
+                                <a
+                                    key={id}
+                                    href={`#${id}`}
+                                    className={[
+                                        'border-b-2 py-2 transition hover:text-[#5b2d17]',
+                                        activeSection === id
+                                            ? 'border-[#5b2d17] font-semibold text-[#5b2d17]'
+                                            : 'border-transparent',
+                                    ].join(' ')}
+                                >
+                                    {label}
+                                </a>
+                            ))}
                         </nav>
 
                         {/* Header Actions - Staff Login button */}
@@ -677,7 +736,7 @@ export default function Welcome({
                                 className="flex items-center gap-1.5 rounded-full bg-[#4b2512] px-4 py-2 text-[13px] font-semibold text-white shadow-xs transition hover:scale-[1.02] hover:bg-[#391b0c] active:scale-95 sm:px-5"
                             >
                                 <span>Order Now</span>
-                                <ArrowRight className="h-3.5 w-3.5" />
+                                <ShoppingCart className="h-3.5 w-3.5" />
                             </Link>
 
                             {/* Mobile Hamburger Toggle */}
@@ -749,239 +808,36 @@ export default function Welcome({
                         </div>
                     )}
                 </header>
+                </div>
                 <main id="home">
-                    <section className="relative">
+                    {/* =====================================================
+                        HERO SECTION — heroSection.png image under Header 2
+                    ===================================================== */}
+                    <section id="hero-section" className="relative w-full bg-[#FAF0E4]">
                         <img
-                            src="/images/mama-cafe-home-header.jpeg"
-                            alt=""
-                            className="block h-auto w-full"
+                            src="/images/hero/heroSection.png"
+                            alt="MaMa Café Hero Section — Coffee, Boba, Ice Chocolate"
+                            className="w-full block"
+                            style={{ height: 'auto', minHeight: '420px', objectFit: 'cover', objectPosition: 'center top' }}
                         />
-
-                        <nav aria-label="Main navigation">
-                            <span
-                                aria-hidden="true"
-                                className="absolute top-[15.2%] left-[34.3%] h-[0.45%] w-[3.2%] bg-[#f9efe4]"
-                            />
-                            <a
-                                href="#home"
-                                onClick={() => setActiveNavigation('home')}
-                                className="absolute top-[6.6%] left-[34%] h-[12%] w-[5.5%]"
-                                aria-label="Home"
-                            />
-                            <a
-                                href="#menu"
-                                onClick={() => setActiveNavigation('menu')}
-                                className="absolute top-[6.6%] left-[40%] h-[12%] w-[5.5%]"
-                                aria-label="Menu"
-                            />
-                            <a
-                                href="#about"
-                                onClick={() => setActiveNavigation('about')}
-                                className="absolute top-[6.6%] left-[46%] h-[12%] w-[7%]"
-                                aria-label="About Us"
-                            />
-                            <a
-                                href="#why"
-                                onClick={() => setActiveNavigation('why')}
-                                className="absolute top-[6.6%] left-[53%] h-[12%] w-[10%]"
-                                aria-label="Why Choose Us"
-                            />
-                            <a
-                                href="#gallery"
-                                onClick={() => setActiveNavigation('gallery')}
-                                className="absolute top-[6.6%] left-[63%] h-[12%] w-[7%]"
-                                aria-label="Gallery"
-                            />
-                            <a
-                                href="#contact"
-                                onClick={() => setActiveNavigation('contact')}
-                                className="absolute top-[6.6%] left-[70%] h-[12%] w-[7%]"
-                                aria-label="Contact"
-                            />
-                            <a
-                                href="tel:+252613399977"
-                                className="absolute top-0 left-[84%] h-[6.4%] w-[13%]"
-                                aria-label="Call MaMa Café on +252 61 3399977"
-                            />
-                            <Link
-                                href={login()}
-                                className="absolute top-[7%] left-[83%] h-[10%] w-[12%]"
-                                aria-label="Order Now"
-                            />
-                            {activeNavigation &&
-                                activeNavigation !== 'home' && (
-                                    <span
-                                        aria-hidden="true"
-                                        className="absolute top-[15.2%] h-[0.45%] bg-[#5b2d17]"
-                                        style={{
-                                            left: {
-                                                menu: '40.3%',
-                                                about: '46.3%',
-                                                why: '54.0%',
-                                                gallery: '64.0%',
-                                                contact: '70.4%',
-                                            }[activeNavigation],
-                                            width: {
-                                                menu: '2.6%',
-                                                about: '4.4%',
-                                                why: '7.2%',
-                                                gallery: '3.7%',
-                                                contact: '4.1%',
-                                            }[activeNavigation],
-                                        }}
-                                    />
-                                )}
-                            {activeNavigation === 'home' && (
-                                <span
-                                    aria-hidden="true"
-                                    className="absolute top-[15.2%] left-[34.3%] h-[0.45%] w-[3.2%] bg-[#5b2d17]"
-                                />
-                            )}
-                        </nav>
                     </section>
 
                     {/* =====================================================
-                        HERO SECTION (Seamless #EECAA5 and #FBEFE0 gradient)
+                        MENU & WHY CHOOSE SECTION
                     ===================================================== */}
-                    <section className="relative hidden overflow-hidden bg-[radial-gradient(ellipse_at_70%_50%,#EECAA5_0%,#F6DFCA_45%,#FBEFE0_100%)] py-12 lg:py-16">
-                        {/* Soft decorative leaf contours */}
-                        <div className="pointer-events-none absolute top-6 right-0 h-[50px] w-[100px] rotate-[-25deg] rounded-[100%_0_100%_0] border border-[#d8a16f]/40" />
-                        <div className="pointer-events-none absolute bottom-12 -left-6 h-[50px] w-[100px] rotate-[40deg] rounded-[100%_0_100%_0] border border-[#d8a16f]/40" />
-
-                        <div className="mx-auto grid w-[92%] max-w-6xl grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-10">
-                            {/* Hero Copy (Left) */}
-                            <div className="z-10 flex flex-col items-start lg:col-span-5 xl:col-span-5">
-                                <p
-                                    className="fresh-drinks-text mb-2 inline-block rounded-full bg-[#4a2411] px-3.5 py-1.5 tracking-wide uppercase shadow-xs"
-                                    style={{
-                                        fontFamily:
-                                            '"Roboto Variable", Roboto, "Helvetica Neue", Helvetica, sans-serif',
-                                        fontStyle: 'normal',
-                                        fontWeight: 400,
-                                        fontSize: '16px',
-                                        lineHeight: '16px',
-                                        color: 'rgb(250, 250, 250)',
-                                    }}
-                                >
-                                    Fresh Drinks, Good Mood ♥
-                                </p>
-
-                                <h1 className="brand-heading my-2 text-[48px] leading-[0.88] tracking-tight text-[#2c180d] sm:text-[60px] lg:text-[68px]">
-                                    MaMa
-                                    <br />
-                                    <em className="ml-6 font-normal italic sm:ml-10">
-                                        Café
-                                    </em>
-                                </h1>
-
-                                {/* Ribbon */}
-                                <div className="mt-3 inline-block">
-                                    <div
-                                        className="bg-[#542713] px-5 py-1.5 text-[10px] font-bold tracking-[0.18em] text-white shadow-xs"
-                                        style={{
-                                            clipPath:
-                                                'polygon(3% 0, 97% 0, 100% 50%, 97% 100%, 3% 100%, 0 50%)',
-                                        }}
-                                    >
-                                        COFFEE &nbsp;•&nbsp; BOBA &nbsp;•&nbsp;
-                                        ICE CHOCOLATE
-                                    </div>
-                                </div>
-
-                                <p className="my-3 max-w-sm text-[13px] leading-relaxed text-[#553b2c] sm:text-[14px]">
-                                    Made with love, served with happiness.
-                                    <br />
-                                    Every drink is freshly prepared just for
-                                    you.
-                                </p>
-
-                                {/* CTA Buttons */}
-                                <div className="mt-1 flex flex-wrap items-center gap-3">
-                                    <a
-                                        href="#menu"
-                                        className="flex items-center gap-1.5 rounded-full bg-[#4a2411] px-5 py-2 text-[13px] font-semibold text-white shadow-xs transition hover:scale-[1.02] hover:bg-[#34180a] active:scale-95"
-                                    >
-                                        <Coffee className="h-3.5 w-3.5" />
-                                        <span>Explore Menu</span>
-                                    </a>
-
-                                    <a
-                                        href="#about"
-                                        className="flex items-center gap-1.5 rounded-full border border-[#32190d] bg-[#fffaf5] px-5 py-2 text-[13px] font-semibold text-[#32190d] transition hover:scale-[1.02] hover:bg-[#f7efe6] active:scale-95"
-                                    >
-                                        <Play className="h-3 w-3 fill-current" />
-                                        <span>Our Story</span>
-                                    </a>
-                                </div>
-                            </div>
-
-                            {/* Hero Visual (Right) - Transparent Background, Medium-Large sizing */}
-                            <div className="flex items-center justify-center lg:col-span-7 xl:col-span-7">
-                                <div className="relative w-full max-w-[640px] lg:max-w-[700px]">
-                                    <img
-                                        src="/images/hero-drinks-clean.png"
-                                        alt="MaMa Café Signature Drinks"
-                                        className="h-auto w-full object-contain drop-shadow-md transition-transform duration-500 hover:scale-[1.02]"
-                                        onError={(e) => {
-                                            (
-                                                e.currentTarget as HTMLImageElement
-                                            ).src =
-                                                '/images/hero-drinks-banner.jpg';
-                                        }}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* =====================================================
-                        QUALITY BADGES (5 PILL FLOATING BAR - max-w-6xl)
-                    ===================================================== */}
-                    <div className="relative z-20 mx-auto -mt-5 hidden w-[92%] max-w-6xl sm:-mt-7">
-                        <div className="grid grid-cols-1 gap-3 rounded-[20px] border border-[#eaded3] bg-[#fffaf5]/95 p-3.5 shadow-[0_8px_25px_rgba(70,35,15,0.06)] backdrop-blur-xs sm:grid-cols-2 sm:p-5 lg:grid-cols-5 lg:gap-0">
-                            {FEATURES.map((item, index) => {
-                                const IconComponent = item.icon;
-
-                                return (
-                                    <div
-                                        key={item.title}
-                                        className={`flex items-center gap-3 px-2.5 py-1 ${
-                                            index !== FEATURES.length - 1
-                                                ? 'lg:border-r lg:border-dotted lg:border-[#bfa795]'
-                                                : ''
-                                        }`}
-                                    >
-                                        <div className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full bg-[#4a2411] text-white shadow-xs">
-                                            <IconComponent className="h-4 w-4" />
-                                        </div>
-                                        <div>
-                                            <strong className="block text-[13px] font-bold text-[#2c180d] sm:text-[14px]">
-                                                {item.title}
-                                            </strong>
-                                            <p className="mt-0.5 text-[11.5px] leading-tight text-[#725f53]">
-                                                {item.desc}
-                                            </p>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                    {/* =====================================================
-    MENU SECTION
-===================================================== */}
-                    <section id="menu" className="py-14 sm:py-18">
-                        <div className="mx-auto w-[92%] max-w-6xl">
-                            <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-start">
+                    <section id="menu" className="py-10 sm:py-14">
+                        <div className="mx-auto w-[98%] max-w-[1560px]">
+                            <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:items-start">
                                 {/* =================================================
-                LEFT — OUR MENU
-            ================================================= */}
-                                <div className="flex min-h-0 flex-col lg:col-span-7 lg:h-[520px]">
+                                    LEFT — OUR MENU (5 Categories + menu-strip.jpg)
+                                ================================================= */}
+                                <div className="flex flex-col lg:col-span-6">
                                     {/* MENU HEADER */}
-                                    <div className="mb-3 flex shrink-0 items-end justify-between">
+                                    <div className="mb-3.5 flex items-end justify-between">
                                         <div>
-                                            <h2 className="brand-heading m-0 text-[22px] leading-tight font-bold text-[#2c180d] sm:text-[28px]">
-                                                Our Menu
+                                            <h2 className="brand-heading m-0 flex items-center gap-2 text-[22px] leading-tight font-bold text-[#2c180d] sm:text-[28px]">
+                                                <span>Our Menu</span>
+                                                <Leaf className="h-5 w-5 sm:h-6 sm:w-6 text-[#3c1d0c] inline-block -translate-y-0.5" />
                                             </h2>
                                         </div>
 
@@ -994,214 +850,152 @@ export default function Welcome({
                                         </a>
                                     </div>
 
-                                    {/* =================================================
-                    CATEGORY TABS
-                    Horizontal scrolling
-                ================================================= */}
-                                    {/* Categories */}
-                                    <div className="menu-category-scroll mb-3 w-full overflow-x-auto">
-                                        <div className="flex w-max min-w-full gap-2 rounded-[16px] border border-[#eadfd6]/80 bg-white/45 p-2 pb-2 pl-3 shadow-[0_8px_22px_rgba(84,49,28,0.06)] backdrop-blur-md">
-                                            {categoryTabs
-                                                .filter(
-                                                    (cat) => cat.key !== 'all',
-                                                )
-                                                .map((cat) => {
-                                                    const isActive =
-                                                        selectedCategoryKey ===
-                                                        cat.key;
-                                                    const CatIcon = cat.icon;
+                                    {/* 5 Category Buttons (Interactive Selectable + Hover Dark Pill Style) */}
+                                    <div className="mb-4 flex flex-wrap items-center gap-2 sm:gap-2.5">
+                                        {FALLBACK_CATEGORIES.map((cat) => {
+                                            const isActive = selectedCategoryKey === cat.key;
+                                            const CatIcon = cat.icon;
 
-                                                    return (
-                                                        <button
-                                                            key={cat.key}
-                                                            type="button"
-                                                            title={cat.label}
-                                                            onClick={() =>
-                                                                setSelectedCategoryKey(
-                                                                    cat.key,
-                                                                )
-                                                            }
-                                                            className={`flex w-[112px] shrink-0 items-center justify-center gap-1.5 rounded-[11px] border px-2.5 py-2.5 text-[11px] font-semibold transition sm:w-[120px] sm:text-[12px] ${
-                                                                isActive
-                                                                    ? 'border-[#4a2411] bg-[#4a2411] text-white shadow-[0_6px_14px_rgba(70,35,15,0.16)]'
-                                                                    : 'border-[#eadfd6] bg-white/55 text-[#3d2112] hover:border-[#bfa795] hover:bg-white/75'
-                                                            }`}
-                                                        >
-                                                            <CatIcon className="h-3.5 w-3.5 shrink-0" />
-
-                                                            <span className="truncate whitespace-nowrap">
-                                                                {cat.label}
-                                                            </span>
-                                                        </button>
-                                                    );
-                                                })}
-                                        </div>
+                                            return (
+                                                <button
+                                                    key={cat.key}
+                                                    type="button"
+                                                    onClick={() => setSelectedCategoryKey(cat.key)}
+                                                    className={`flex items-center gap-2 rounded-[14px] px-3.5 py-2.5 text-[12px] font-bold transition-all duration-300 shadow-xs sm:px-4 sm:text-[13px] ${
+                                                        isActive
+                                                            ? 'bg-[#3c1d0c] text-white shadow-md scale-[1.02]'
+                                                            : 'bg-[#fffaf5] border border-[#eadfd6] text-[#3c1d0c] hover:bg-[#3c1d0c] hover:text-white'
+                                                    }`}
+                                                >
+                                                    <CatIcon className="h-4 w-4 shrink-0" />
+                                                    <span>{cat.label}</span>
+                                                </button>
+                                            );
+                                        })}
                                     </div>
 
-                                    {/* =================================================
-                    PRODUCT GRID
-
-                    Mobile  : 2 columns
-                    Tablet  : 3 columns
-                    Desktop : 4 columns
-
-                    Vertical scrolling is preserved.
-                ================================================= */}
-                                    <div className="menu-product-list grid min-h-0 flex-1 grid-cols-2 gap-3 overflow-y-auto pr-1 pb-1 sm:grid-cols-3 lg:grid-cols-4">
-                                        {filteredProducts.length === 0 ? (
-                                            /* EMPTY STATE */
-                                            <div className="col-span-full flex min-h-[220px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#d8c2b2] bg-white/70 px-6 py-12 text-center">
-                                                <Coffee className="mx-auto mb-2 h-9 w-9 text-[#a07c65] opacity-50" />
-
-                                                <h4 className="brand-heading text-[16px] font-bold text-[#2c180d]">
-                                                    No drinks found
-                                                </h4>
-
-                                                <p className="mx-auto mt-1 max-w-xs text-[12px] text-[#725f53]">
-                                                    No drinks matched "
-                                                    {searchQuery}".
-                                                </p>
-
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setSearchQuery('');
-                                                        setSelectedCategoryKey(
-                                                            'all',
-                                                        );
-                                                    }}
-                                                    className="mt-3 rounded-xl bg-[#4a2411] px-4 py-1.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#381b0c]"
-                                                >
-                                                    View All Drinks
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            /* PRODUCT CARDS */
-                                            filteredProducts.map(
-                                                (item, index) => (
-                                                    <article
-                                                        key={
-                                                            item.id || item.name
-                                                        }
-                                                        className="group relative flex min-h-[145px] flex-col overflow-hidden rounded-[14px] border border-[#eadfd6] bg-[#fffaf5] shadow-xs transition-all duration-300 hover:-translate-y-1 hover:border-[#c59e84] hover:shadow-lg"
-                                                        title={item.name}
-                                                    >
-                                                        {/* PRODUCT IMAGE */}
-                                                        <div className="relative h-[105px] w-full shrink-0 overflow-hidden bg-[#faf2ea]">
-                                                            <img
-                                                                src={
-                                                                    item.image_url ||
-                                                                    getProductImage(
-                                                                        item.name,
-                                                                        index,
-                                                                    )
-                                                                }
-                                                                alt={item.name}
-                                                                className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
-                                                                onError={(
-                                                                    e,
-                                                                ) => {
-                                                                    e.currentTarget.src =
-                                                                        '/images/drink-item-0.jpg';
-                                                                }}
-                                                            />
-                                                        </div>
-
-                                                        {/* PRODUCT NAME + PRICE */}
-                                                        <div className="flex min-h-[42px] flex-1 items-center justify-between gap-2 px-2.5 py-2.5">
-                                                            {/* ONE LINE NAME */}
-                                                            <h3
-                                                                title={
-                                                                    item.name
-                                                                }
-                                                                className="brand-heading min-w-0 flex-1 truncate text-[12px] leading-tight font-semibold text-[#2c180d] transition-colors group-hover:text-[#823d21] sm:text-[13px]"
-                                                            >
-                                                                {item.name}
-                                                            </h3>
-
-                                                            {/* PRICE */}
-                                                            <span className="shrink-0 text-[12px] font-bold text-[#4a2411] sm:text-[13px]">
-                                                                $
-                                                                {Number(
-                                                                    item.price,
-                                                                ).toFixed(2)}
-                                                            </span>
-                                                        </div>
-                                                    </article>
-                                                ),
-                                            )
-                                        )}
+                                    {/* menu-strip.jpg image (Full view under 5 category tabs) */}
+                                    <div className="overflow-hidden rounded-[20px] border border-[#eadfd6] shadow-md transition-transform duration-300 hover:shadow-lg">
+                                        <img
+                                            src="/images/hero/menu-strip.jpg"
+                                            alt="MaMa Café Signature Menu Strip"
+                                            className="h-auto w-full object-cover"
+                                        />
                                     </div>
                                 </div>
 
                                 {/* =================================================
-                RIGHT — WHY CHOOSE MAMA CAFÉ
-
-                Starts at same top as Our Menu.
-                Image is NOT cropped.
-                Natural aspect ratio is preserved.
-            ================================================= */}
+                                    RIGHT — WHY CHOOSE MAMA CAFÉ (whyMamaCafe.png with WhatsApp button on bottom right)
+                                ================================================= */}
                                 <div
                                     id="why"
-                                    className="overflow-hidden bg-transparent lg:col-span-5"
+                                    className="relative overflow-hidden rounded-[20px] border border-[#3d2012]/10 shadow-lg lg:col-span-6 self-start"
                                 >
                                     <img
-                                        src="/images/why-cafe.jpg"
-                                        alt="Why choose MaMa Café"
-                                        className="h-55 w-full"
+                                        src="/images/hero/whyMamaCafe.png"
+                                        alt="Why Choose MaMa Café"
+                                        className="h-auto w-full block rounded-[20px] object-contain"
                                     />
-                                </div>
-                            </div>
-                        </div>
-                    </section>
 
-                    {/* =====================================================
-                        ABOUT US SECTION (max-w-6xl)
-                    ===================================================== */}
-                    <section className="bg-[#f4e6d8] py-14 sm:py-18" id="about">
-                        <div className="mx-auto w-[92%] max-w-6xl">
-                            <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12">
-                                {/* Left Card */}
-                                <div className="rounded-[22px] bg-[#fffaf5] p-6 shadow-xs sm:p-8 lg:col-span-7">
-                                    <p className="brand-heading m-0 text-[13px] font-semibold tracking-widest text-[#4b2512] uppercase">
-                                        Our Story
-                                    </p>
-                                    <h2 className="brand-heading my-2 text-[20px] leading-tight font-bold text-[#2c180d] sm:text-[26px]">
-                                        A little cup of happiness, every day.
-                                    </h2>
-                                    <p className="mt-2 text-[13px] leading-relaxed text-[#553b2c]">
-                                        MaMa Café is a warm neighborhood café
-                                        serving fresh coffee, boba, ice
-                                        chocolate, shakes and tea in the heart
-                                        of Mogadishu.
-                                    </p>
-                                    <p className="mt-2 mb-4 text-[13px] leading-relaxed text-[#553b2c]">
-                                        We believe a great drink should taste
-                                        amazing, look beautiful and be served
-                                        with a smile.
-                                    </p>
+                                    {/* Floating Order on WhatsApp button inside image on bottom right */}
                                     <a
-                                        href="#contact"
-                                        className="inline-flex items-center gap-1.5 rounded-full bg-[#4a2411] px-5 py-2 text-[13px] font-semibold text-white shadow-xs transition hover:scale-[1.02] hover:bg-[#34180a]"
+                                        href="https://wa.me/252613399977?text=Hello%20MaMa%20Cafe%2C%20I%20would%20like%20to%20place%20an%20order."
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="absolute bottom-2.5 right-2.5 z-10 flex items-center gap-1.5 rounded-full bg-[#1c120c]/90 px-3 py-1.5 text-[11px] font-bold text-white shadow-xl backdrop-blur-md transition-all duration-300 hover:scale-105 hover:bg-[#120a06] sm:bottom-3.5 sm:right-3.5 sm:px-3.5 sm:py-2 sm:text-[12px]"
                                     >
-                                        <span>Visit Us</span>
-                                        <ArrowRight className="h-3.5 w-3.5" />
+                                        <MessageCircle className="h-3.5 w-3.5 shrink-0 fill-current text-[#25D366]" />
+                                        <span>Order on WhatsApp</span>
                                     </a>
                                 </div>
+                            </div>
+                        </div>
+                    </section>
 
-                                {/* Right Graphic Stamp */}
-                                <div className="relative flex min-h-[260px] items-center justify-center overflow-hidden rounded-[22px] bg-gradient-to-br from-[#5b2d17] to-[#2c160d] p-6 shadow-xs lg:col-span-5">
-                                    <div className="flex h-[160px] w-[160px] rotate-[-8deg] flex-col items-center justify-center rounded-full border-2 border-[#d8a16f] text-center text-[#f7dfc3] shadow-inner">
-                                        <span className="brand-heading text-[32px] leading-none font-bold">
-                                            MaMa
-                                        </span>
-                                        <small className="brand-heading text-[20px] leading-none">
-                                            Café
-                                        </small>
+                    {/* =====================================================
+                        ABOUT US / OUR STORY SECTION (3 SLIDES ANIMATED CAROUSEL)
+                    ===================================================== */}
+                    <section className="relative overflow-hidden bg-[#f4e6d8] py-14 sm:py-18" id="about">
+                        <div className="mx-auto w-[98%] max-w-[1560px]">
+                            {/* Slideshow Container */}
+                            <div className="relative overflow-hidden rounded-[24px] bg-[#fffaf5] p-6 shadow-md sm:p-10">
+                                <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12">
+                                    {/* Left Text */}
+                                    <div className="transition-all duration-500 lg:col-span-7">
+                                        <div className="inline-block rounded-full bg-[#4b2512]/10 px-3 py-1 text-[11px] font-bold tracking-widest text-[#4b2512] uppercase">
+                                            {STORY_SLIDES[currentStorySlide].badge}
+                                        </div>
+                                        <h2 className="brand-heading my-3 text-[22px] leading-tight font-bold text-[#2c180d] sm:text-[28px]">
+                                            {STORY_SLIDES[currentStorySlide].title}
+                                        </h2>
+                                        <p className="text-[13px] leading-relaxed text-[#553b2c] sm:text-[14px]">
+                                            {STORY_SLIDES[currentStorySlide].paragraph1}
+                                        </p>
+                                        <p className="mt-2 mb-5 text-[13px] leading-relaxed text-[#553b2c] sm:text-[14px]">
+                                            {STORY_SLIDES[currentStorySlide].paragraph2}
+                                        </p>
+                                        <div className="flex items-center gap-3">
+                                            <a
+                                                href="#contact"
+                                                className="inline-flex items-center gap-1.5 rounded-full bg-[#4a2411] px-5 py-2.5 text-[13px] font-semibold text-white shadow-xs transition hover:scale-[1.02] hover:bg-[#34180a]"
+                                            >
+                                                <span>Visit Us</span>
+                                                <ArrowRight className="h-3.5 w-3.5" />
+                                            </a>
+                                        </div>
                                     </div>
 
-                                    <div className="pointer-events-none absolute right-6 bottom-4 text-[#f7dfc3]/40">
-                                        <Coffee className="h-12 w-12" />
+                                    {/* Right Slide Image */}
+                                    <div className="relative flex min-h-[260px] items-center justify-center overflow-hidden rounded-[20px] bg-gradient-to-br from-[#5b2d17] to-[#2c160d] p-6 shadow-sm lg:col-span-5">
+                                        <img
+                                            src={STORY_SLIDES[currentStorySlide].image}
+                                            alt={STORY_SLIDES[currentStorySlide].title}
+                                            className="h-[220px] w-auto max-w-full object-contain drop-shadow-xl transition-all duration-700 ease-in-out"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Carousel Controls (Arrows + Dots) */}
+                                <div className="mt-6 flex items-center justify-between border-t border-[#eaded3] pt-4">
+                                    {/* Indicator Dots */}
+                                    <div className="flex items-center gap-2">
+                                        {STORY_SLIDES.map((_, idx) => (
+                                            <button
+                                                key={idx}
+                                                type="button"
+                                                onClick={() => setCurrentStorySlide(idx)}
+                                                className={`h-2.5 rounded-full transition-all duration-300 ${
+                                                    currentStorySlide === idx
+                                                        ? 'w-7 bg-[#4a2411]'
+                                                        : 'w-2.5 bg-[#d8c2b2] hover:bg-[#a07c65]'
+                                                }`}
+                                                aria-label={`Go to slide ${idx + 1}`}
+                                            />
+                                        ))}
+                                    </div>
+
+                                    {/* Prev / Next Arrows */}
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setCurrentStorySlide(
+                                                    (prev) => (prev - 1 + STORY_SLIDES.length) % STORY_SLIDES.length,
+                                                )
+                                            }
+                                            className="flex h-9 w-9 items-center justify-center rounded-full border border-[#d8c2b2] bg-white text-[#4a2411] transition hover:bg-[#4a2411] hover:text-white"
+                                            aria-label="Previous Slide"
+                                        >
+                                            <ChevronLeft className="h-4 w-4" />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setCurrentStorySlide((prev) => (prev + 1) % STORY_SLIDES.length)}
+                                            className="flex h-9 w-9 items-center justify-center rounded-full border border-[#d8c2b2] bg-white text-[#4a2411] transition hover:bg-[#4a2411] hover:text-white"
+                                            aria-label="Next Slide"
+                                        >
+                                            <ChevronRight className="h-4 w-4" />
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -1209,13 +1003,13 @@ export default function Welcome({
                     </section>
 
                     {/* =====================================================
-                        GALLERY SECTION (max-w-6xl, Good Mood with cup cutout)
+                        GALLERY SECTION (max-w-[1560px], Good Mood with cup cutout)
                     ===================================================== */}
                     <section
                         className="bg-[#fff7ef] py-14 sm:py-18"
                         id="gallery"
                     >
-                        <div className="mx-auto w-[92%] max-w-6xl">
+                        <div className="mx-auto w-[98%] max-w-[1560px]">
                             <div className="mb-5">
                                 <p className="brand-heading m-0 text-[13px] font-semibold tracking-widest text-[#4b2512] uppercase">
                                     Gallery
@@ -1231,6 +1025,7 @@ export default function Welcome({
                                         src="/images/drink-item-0.jpg"
                                         alt="Fresh Coffee"
                                         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                        onError={(e) => { e.currentTarget.src = '/images/coffee-bg.jpg'; }}
                                     />
                                     <span className="absolute bottom-3 left-3 rounded-full bg-[#fffaf4]/90 px-3 py-1 text-[12px] font-bold text-[#2c180d] shadow-xs backdrop-blur-xs">
                                         Fresh Coffee
@@ -1242,6 +1037,7 @@ export default function Welcome({
                                         src="/images/boba_drink.jpg"
                                         alt="Boba Love"
                                         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                        onError={(e) => { e.currentTarget.src = '/images/boba-drink.jpg'; }}
                                     />
                                     <span className="absolute bottom-3 left-3 rounded-full bg-[#fffaf4]/90 px-3 py-1 text-[12px] font-bold text-[#2c180d] shadow-xs backdrop-blur-xs">
                                         Boba Love
@@ -1253,6 +1049,7 @@ export default function Welcome({
                                         src="/images/iced-chocolate.jpg"
                                         alt="Ice Chocolate"
                                         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                        onError={(e) => { e.currentTarget.src = '/images/ice_chocolate.jpg'; }}
                                     />
                                     <span className="absolute bottom-3 left-3 rounded-full bg-[#fffaf4]/90 px-3 py-1 text-[12px] font-bold text-[#2c180d] shadow-xs backdrop-blur-xs">
                                         Ice Chocolate
@@ -1264,6 +1061,7 @@ export default function Welcome({
                                         src="/images/iced_coffee.jpg"
                                         alt="Iced latte"
                                         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                        onError={(e) => { e.currentTarget.src = '/images/iced-chocolate.jpg'; }}
                                     />
                                     <span className="absolute bottom-3 left-3 rounded-full bg-[#fffaf4]/90 px-3 py-1 text-[12px] font-bold text-[#2c180d] shadow-xs backdrop-blur-xs">
                                         Iced Latte
@@ -1280,16 +1078,14 @@ export default function Welcome({
                     className="bg-[#28160d] py-10 text-[#fff5ec]"
                     id="contact"
                 >
-                    <div className="mx-auto grid w-[92%] max-w-6xl grid-cols-1 gap-8 md:grid-cols-3 md:items-start">
+                    <div className="mx-auto grid w-[98%] max-w-[1560px] grid-cols-1 gap-8 md:grid-cols-3 md:items-start">
                         {/* LEFT — BRAND */}
                         <div className="flex flex-col items-center text-center md:items-start md:text-left">
-                            <span className="brand-heading text-[20px] leading-none font-bold text-white">
-                                MaMa Café
-                            </span>
-
-                            <small className="mt-1 text-[9px] font-bold tracking-[0.2em] text-[#d8a16f]">
-                                COFFEE · BOBA · ICE CHOCOLATE
-                            </small>
+                            <img
+                                src="/images/hero/MaMaCaféCoffeehouseLogo.png"
+                                alt="MaMa Café — Coffee, Boba, Ice Chocolate"
+                                className="h-[40px] sm:h-[46px] w-auto object-contain brightness-0 invert opacity-95 block"
+                            />
                             <p className="mt-4 text-[11px] text-[#dfc9b8]/70">
                                 © 2026 MaMa Café. Made with love in Mogadishu.
                             </p>

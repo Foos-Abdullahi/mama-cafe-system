@@ -58,7 +58,7 @@ export default function DailyWaitressesIndex({
         },
         {
             accessorKey: 'waitress_assignments',
-            header: 'Working Waitresses & Assigned Numbers',
+            header: 'Waitresses',
             cell: ({ row }) => {
                 const list = row.original.waitress_assignments || [];
                 if (list.length === 0) {
@@ -74,9 +74,6 @@ export default function DailyWaitressesIndex({
                             >
                                 <UserCheck className="h-3 w-3" />
                                 {w.name}
-                                <span className="font-mono font-bold bg-[#823d21] text-white rounded-full px-1.5 py-0.2 text-[10px] ml-0.5">
-                                    #{w.assigned_number}
-                                </span>
                             </Badge>
                         ))}
                     </div>

@@ -2,8 +2,9 @@
 
 use App\Models\User;
 use App\Models\Waitress;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
-uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
+uses(RefreshDatabase::class);
 
 test('authenticated user can quick-create a waitress from the POS terminal', function () {
     $user = User::factory()->create();
@@ -63,4 +64,28 @@ test('unauthenticated users cannot quick-create a waitress', function () {
     ]);
 
     $response->assertStatus(401);
+});
+
+test('authenticated user can assign a working number to an existing waitress', function () {
+    $user = User::factory()->create();
+    $waitress = Waitress::create([
+        'name' => 'Khadija Omar',
+        'status' => 'active',
+        'commission_rate' => 0.15,
+    ]);
+
+    $response = $this->actingAs($user)->postJson("/pos/waitresses/{$waitress->id}/assign-number", [
+        'working_number' => 88,
+    ]);
+
+    $response->assertStatus(200)
+        ->assertJsonFragment([
+            'id' => $waitress->id,
+            'current_number' => 88,
+        ]);
+
+    $this->assertDatabaseHas('fixed_numbers', [
+        'waitress_id' => $waitress->id,
+        'current_number' => 88,
+    ]);
 });

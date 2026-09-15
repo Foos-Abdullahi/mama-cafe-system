@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
 use App\Models\Category;
+use App\Models\FixedNumber;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Product;
+use App\Models\Setting;
 use App\Models\Waitress;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -70,10 +72,17 @@ class PosController extends Controller
         $latestOrder = Order::latest('id')->first();
         $nextOrderNumber = $latestOrder ? (1000 + $latestOrder->id + 1) : 1042;
 
+        $rawNumbers = Setting::getByKey('cafe_waitress_numbers', '');
+        $configuredNumbers = array_filter(array_map('trim', explode(',', $rawNumbers)));
+        $assignedNumbers = FixedNumber::pluck('current_number')->map(fn ($n) => (string) $n)->toArray();
+        $registeredWorkingNumbers = array_values(array_unique(array_filter(array_merge($configuredNumbers, $assignedNumbers))));
+        sort($registeredWorkingNumbers, SORT_NATURAL);
+
         return Inertia::render('pos/index', [
             'categories' => $categories,
             'products' => $products,
             'waitresses' => $waitresses,
+            'registeredWorkingNumbers' => $registeredWorkingNumbers,
             'recentOrders' => $recentOrders,
             'nextOrderNumber' => $nextOrderNumber,
         ]);
@@ -193,7 +202,7 @@ class PosController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|min:2|max:255',
             'phone' => 'nullable|string|min:5|max:50',
-            'working_number' => 'nullable|integer|min:1|max:9999',
+            'working_number' => 'nullable|integer|min:1|max:9999999999',
         ]);
 
         $waitress = Waitress::create([
@@ -214,9 +223,18 @@ class PosController extends Controller
                 'assigned_at' => now(),
             ]);
             $currentNumber = $fixedNumber->current_number;
+
+            // Ensure the working number is saved into registered settings if not already present
+            $rawNumbers = Setting::getByKey('cafe_waitress_numbers', '');
+            $configured = array_filter(array_map('trim', explode(',', $rawNumbers)));
+            if (! in_array((string) $currentNumber, $configured, true)) {
+                $configured[] = (string) $currentNumber;
+                sort($configured, SORT_NATURAL);
+                Setting::setByKey('cafe_waitress_numbers', implode(', ', $configured), 'general');
+            }
         }
 
-        ActivityLog::log('waitress_create', "Waitress '{$waitress->name}' was quickly registered from POS terminal.");
+        ActivityLog::log('waitress_create', "Waitress '{$waitress->name}' was registered from POS terminal with working number #".($currentNumber ?? 'none').'.');
 
         return response()->json([
             'id' => $waitress->id,
@@ -226,5 +244,53 @@ class PosController extends Controller
             'range_start' => $currentNumber,
             'range_end' => $currentNumber,
         ], 201);
+    }
+
+    public function assignWaitressNumber(Request $request, Waitress $waitress): JsonResponse
+    {
+        $validated = $request->validate([
+            'working_number' => 'required|integer|min:1|max:9999999999',
+        ]);
+
+        $workingNumber = $validated['working_number'];
+
+        $fixedNumber = $waitress->fixedNumbers()->first();
+        if ($fixedNumber) {
+            $fixedNumber->update([
+                'range_start' => $workingNumber,
+                'range_end' => $workingNumber,
+                'current_number' => $workingNumber,
+                'status' => 'active',
+                'assigned_at' => now(),
+            ]);
+        } else {
+            $fixedNumber = $waitress->fixedNumbers()->create([
+                'range_start' => $workingNumber,
+                'range_end' => $workingNumber,
+                'current_number' => $workingNumber,
+                'status' => 'active',
+                'assigned_at' => now(),
+            ]);
+        }
+
+        // Ensure the working number is saved into registered settings if not already present
+        $rawNumbers = Setting::getByKey('cafe_waitress_numbers', '');
+        $configured = array_filter(array_map('trim', explode(',', $rawNumbers)));
+        if (! in_array((string) $workingNumber, $configured, true)) {
+            $configured[] = (string) $workingNumber;
+            sort($configured, SORT_NATURAL);
+            Setting::setByKey('cafe_waitress_numbers', implode(', ', $configured), 'general');
+        }
+
+        ActivityLog::log('waitress_number_assigned', "Assigned working number #{$workingNumber} to waitress '{$waitress->name}'.");
+
+        return response()->json([
+            'id' => $waitress->id,
+            'name' => $waitress->name,
+            'phone' => $waitress->phone,
+            'current_number' => $workingNumber,
+            'range_start' => $workingNumber,
+            'range_end' => $workingNumber,
+        ]);
     }
 }

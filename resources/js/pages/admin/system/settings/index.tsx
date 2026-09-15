@@ -136,7 +136,7 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
                     <div>
                         <h1 className="text-lg font-semibold text-foreground tracking-tight">General System Settings</h1>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                            Configure cafe identity, waitress numbers, currency, VAT, and available commission rates.
+                            Configure cafe identity, registered working waitress numbers, currency, VAT, and available commission rates.
                         </p>
                     </div>
 
@@ -305,7 +305,7 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
                         <div className="rounded-xl border bg-card p-5 md:p-6 shadow-xs space-y-6">
                             <div className="flex items-center gap-2 border-b border-border pb-3">
                                 <Hash className="h-5 w-5 text-[#823d21]" />
-                                <h2 className="font-semibold text-base text-foreground">Waitress Numbers & Commission Configuration</h2>
+                                <h2 className="font-semibold text-base text-foreground">Working Waitress Numbers &amp; Commission Configuration</h2>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -313,7 +313,7 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between border-b border-border/60 pb-2">
                                         <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                                            Waitress Numbers ({numberInputs.length})
+                                            Registered Working Waitress Numbers ({numberInputs.length})
                                         </Label>
                                         {isEditing && (
                                             <Button
@@ -323,21 +323,21 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
                                                 className="h-8 gap-1.5 text-xs bg-[#823d21] text-white hover:bg-[#682e18]"
                                             >
                                                 <Plus className="h-3.5 w-3.5" />
-                                                Add Number
+                                                Add Working Number
                                             </Button>
                                         )}
                                     </div>
 
                                     <div className="space-y-3.5 max-h-[360px] overflow-y-auto pr-1">
                                         {numberInputs.length === 0 ? (
-                                            <p className="text-xs text-muted-foreground italic">No waitress numbers configured. Click Add Number to create one.</p>
+                                            <p className="text-xs text-muted-foreground italic">No working waitress numbers configured. Click Add Working Number to register one.</p>
                                         ) : (
                                             numberInputs.map((num, idx) => (
                                                 <div key={idx} className="flex items-center gap-2">
                                                     <div className="relative flex-1">
                                                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#823d21]">#</span>
                                                         <Input
-                                                            placeholder="Waitress number e.g. 6100000"
+                                                            placeholder="Working waitress number e.g. 1, 2, 101, 102"
                                                             disabled={!isEditing}
                                                             className={`h-10 font-mono pl-7 ${!isEditing ? 'bg-muted/50 cursor-not-allowed' : ''}`}
                                                             value={num}
@@ -361,7 +361,7 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
                                         )}
                                     </div>
                                     <p className="text-[11px] text-muted-foreground">
-                                        Each number represents an available café number for daily waitress assignments.
+                                        Each registered number represents an active floor station / badge number assigned to working waitresses during service and at the POS terminal.
                                     </p>
                                     <InputError message={form.errors.cafe_waitress_numbers} />
                                 </div>
@@ -431,9 +431,9 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
                         <div className="rounded-xl border bg-card p-5 md:p-6 shadow-xs space-y-4">
                             <div className="flex items-center justify-between border-b border-border pb-3">
                                 <div>
-                                    <h2 className="font-semibold text-base text-foreground">Registered Waitresses &amp; Assigned Café Numbers</h2>
+                                    <h2 className="font-semibold text-base text-foreground">Registered Waitresses &amp; Assigned Working Numbers</h2>
                                     <p className="text-xs text-muted-foreground mt-0.5">
-                                        View all registered café waitresses and their current assigned numbers.
+                                        Overview of floor waitresses and their currently active working numbers used during orders.
                                     </p>
                                 </div>
                             </div>
@@ -449,13 +449,13 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-3">
-                                                <span className="text-xs text-muted-foreground">Assigned Café Number:</span>
+                                                <span className="text-xs text-muted-foreground">Assigned Working Number:</span>
                                                 {w.assigned_number !== '—' ? (
                                                     <span className="font-mono font-bold bg-[#823d21] text-white px-2.5 py-1 rounded-full text-xs">
-                                                        #{w.assigned_number}
+                                                        Working No. #{w.assigned_number}
                                                     </span>
                                                 ) : (
-                                                    <span className="text-xs text-muted-foreground italic">Unassigned</span>
+                                                    <span className="text-xs text-muted-foreground italic">No working number assigned</span>
                                                 )}
                                             </div>
                                         </div>

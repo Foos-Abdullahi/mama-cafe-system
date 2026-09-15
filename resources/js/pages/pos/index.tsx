@@ -28,7 +28,9 @@ import {
     X,
     Phone,
     Hash,
+    AlertCircle,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import type { User } from '@/types';
 import PosShell from '@/layouts/pos-shell';
 import {
@@ -77,6 +79,7 @@ interface Props {
     categories: Category[];
     products: Product[];
     waitresses: Waitress[];
+    registeredWorkingNumbers?: (string | number)[];
     recentOrders: unknown[];
     nextOrderNumber: number;
 }
@@ -125,6 +128,7 @@ export default function PosIndex({
     categories,
     products,
     waitresses,
+    registeredWorkingNumbers = [],
     nextOrderNumber,
 }: Props) {
     const { auth } = usePage<{ auth: { user: User } }>().props;
@@ -151,6 +155,7 @@ export default function PosIndex({
 
     /** Local waitress list — starts from server props, updated after quick-create */
     const [waitressList, setWaitressList] = useState<Waitress[]>(waitresses);
+    const [availableWorkingNumbers, setAvailableWorkingNumbers] = useState<(string | number)[]>(registeredWorkingNumbers);
 
     /** Add-waitress dialog */
     const [addWaitressOpen, setAddWaitressOpen] = useState(false);
@@ -159,6 +164,18 @@ export default function PosIndex({
     const [newWaitressNumber, setNewWaitressNumber] = useState('');
     const [isCreatingWaitress, setIsCreatingWaitress] = useState(false);
     const [createWaitressError, setCreateWaitressError] = useState<string | null>(null);
+
+    /** Assign working number dialog (for waitresses that don't have a working number) */
+    const [assignModalOpen, setAssignModalOpen] = useState(false);
+    const [targetWaitress, setTargetWaitress] = useState<Waitress | null>(null);
+    const [assignNumberValue, setAssignNumberValue] = useState('');
+    const [isAssigningNumber, setIsAssigningNumber] = useState(false);
+    const [assignNumberError, setAssignNumberError] = useState<string | null>(null);
+
+    const selectedWaitress = useMemo(
+        () => waitressList.find((w) => String(w.id) === selectedWaitressId),
+        [waitressList, selectedWaitressId],
+    );
 
     /* ── Reset pagination on filter changes ────────────────────────────── */
     useEffect(() => {
@@ -213,6 +230,7 @@ export default function PosIndex({
             }
             return [...prev, { product, quantity: 1 }];
         });
+        toast.success(`Added ${product.name} to order`);
     }, []);
 
     const updateQty = useCallback((productId: number, delta: number) => {
@@ -227,6 +245,7 @@ export default function PosIndex({
 
     const removeItem = useCallback((productId: number) => {
         setCart((prev) => prev.filter((i) => i.product.id !== productId));
+        toast.info('Item removed from order');
     }, []);
 
     const clearCart = useCallback(() => {
@@ -234,6 +253,7 @@ export default function PosIndex({
         setDiscountAmount(0);
         setSelectedWaitressId('');
         setSelectedPayment('cash');
+        toast.info('Cleared order cart');
     }, []);
 
     /* ── Complete Sale ─────────────────────────────────────────────────── */
@@ -257,10 +277,14 @@ export default function PosIndex({
             {
                 onSuccess: () => {
                     setOrderSuccess(true);
+                    toast.success(`Order #${currentOrderNum} completed successfully!`);
                     setCurrentOrderNum((n) => n + 1);
                     clearCart();
                     setMobileCartOpen(false);
                     setTimeout(() => setOrderSuccess(false), 3000);
+                },
+                onError: () => {
+                    toast.error('Failed to complete sale. Please check your items.');
                 },
                 onFinish: () => setIsProcessing(false),
             },
@@ -295,20 +319,106 @@ export default function PosIndex({
                     ? Object.values(errorData.errors).flat().join(' ')
                     : 'Failed to create waitress.';
                 setCreateWaitressError(firstError as string);
+                toast.error(firstError as string);
                 return;
             }
 
             const created = await response.json() as Waitress;
             setWaitressList((prev) => [...prev, created]);
+            if (created.current_number != null) {
+                const numStr = String(created.current_number);
+                setAvailableWorkingNumbers((prev) => {
+                    if (!prev.map(String).includes(numStr)) {
+                        return [...prev, created.current_number!];
+                    }
+                    return prev;
+                });
+            }
             setSelectedWaitressId(String(created.id));
             setAddWaitressOpen(false);
             setNewWaitressName('');
             setNewWaitressPhone('');
             setNewWaitressNumber('');
+
+            if (created.current_number != null) {
+                toast.success(`Waitress "${created.name}" registered with Working No. #${created.current_number}`);
+            } else {
+                toast.success(`Waitress "${created.name}" registered successfully`);
+            }
         } catch {
             setCreateWaitressError('Network error. Please try again.');
+            toast.error('Network error. Please try again.');
         } finally {
             setIsCreatingWaitress(false);
+        }
+    };
+
+    /* ── Assign Working Number to existing waitress ────────────────────── */
+    const openAssignModal = (waitress: Waitress) => {
+        setTargetWaitress(waitress);
+        setAssignNumberValue(waitress.current_number ? String(waitress.current_number) : '');
+        setAssignNumberError(null);
+        setAssignModalOpen(true);
+    };
+
+    const handleAssignWorkingNumber = async () => {
+        if (!targetWaitress || !assignNumberValue.trim() || isAssigningNumber) return;
+        setIsAssigningNumber(true);
+        setAssignNumberError(null);
+
+        try {
+            const csrfMeta = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]');
+            const response = await fetch(`/pos/waitresses/${targetWaitress.id}/assign-number`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': csrfMeta?.content ?? '',
+                },
+                body: JSON.stringify({
+                    working_number: parseInt(assignNumberValue, 10),
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                const firstError = errorData?.errors
+                    ? Object.values(errorData.errors).flat().join(' ')
+                    : 'Failed to assign working number.';
+                setAssignNumberError(firstError as string);
+                toast.error(firstError as string);
+                return;
+            }
+
+            const updated = await response.json() as Waitress;
+            const newNum = updated.current_number;
+
+            setWaitressList((prev) =>
+                prev.map((w) =>
+                    w.id === updated.id
+                        ? { ...w, current_number: newNum, range_start: newNum, range_end: newNum }
+                        : w,
+                ),
+            );
+
+            if (newNum != null) {
+                const numStr = String(newNum);
+                setAvailableWorkingNumbers((prev) => {
+                    if (!prev.map(String).includes(numStr)) {
+                        return [...prev, newNum];
+                    }
+                    return prev;
+                });
+            }
+
+            setAssignModalOpen(false);
+            setAssignNumberValue('');
+            toast.success(`Assigned Working No. #${newNum} to ${updated.name}!`);
+        } catch {
+            setAssignNumberError('Network error. Please try again.');
+            toast.error('Network error. Please try again.');
+        } finally {
+            setIsAssigningNumber(false);
         }
     };
 
@@ -389,7 +499,7 @@ export default function PosIndex({
                         className="text-[11px] font-black tracking-wider uppercase"
                         style={{ color: '#9B7A5E' }}
                     >
-                        Waitress
+                        Working Waitress
                     </p>
                     <button
                         type="button"
@@ -399,15 +509,29 @@ export default function PosIndex({
                         }}
                         className="flex cursor-pointer items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold transition-all hover:scale-105"
                         style={{ background: '#EDE0D0', color: '#2C1810' }}
-                        title="Add new waitress"
+                        title="Add or assign working waitress"
                     >
                         <UserRoundPlus className="h-3.5 w-3.5" />
-                        <span>Add</span>
+                        <span>+ Add Waitress</span>
                     </button>
                 </div>
                 <Select
                     value={selectedWaitressId}
-                    onValueChange={setSelectedWaitressId}
+                    onValueChange={(val) => {
+                        setSelectedWaitressId(val);
+                        if (val === '') {
+                            toast.info('Switched to Walk-in (no waitress assigned)');
+                        } else {
+                            const w = waitressList.find((x) => String(x.id) === val);
+                            if (w) {
+                                if (w.current_number != null) {
+                                    toast.info(`Selected ${w.name} (Working No. #${w.current_number})`);
+                                } else {
+                                    toast.warning(`${w.name} has no working number assigned`);
+                                }
+                            }
+                        }
+                    }}
                 >
                     <SelectTrigger
                         className="h-9 w-full rounded-xl border text-xs font-bold"
@@ -417,11 +541,11 @@ export default function PosIndex({
                             color: '#1F110B',
                         }}
                     >
-                        <SelectValue placeholder="Select waitress…" />
+                        <SelectValue placeholder="Select working waitress…" />
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="" className="text-xs font-semibold">
-                            Walk-in (no waitress)
+                            Walk-in (no waitress assigned)
                         </SelectItem>
                         {waitressList.map((w) => (
                             <SelectItem
@@ -429,16 +553,39 @@ export default function PosIndex({
                                 value={String(w.id)}
                                 className="text-xs font-semibold"
                             >
-                                {w.name}
-                                {w.current_number != null && (
-                                    <span className="ml-1 opacity-60">
-                                        #{w.current_number}
+                                <span>{w.name}</span>
+                                {w.current_number != null ? (
+                                    <span className="ml-1.5 font-mono text-[10px] font-bold opacity-75 text-[#823d21]">
+                                        (Working No. #{w.current_number})
+                                    </span>
+                                ) : (
+                                    <span className="ml-1.5 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800 border border-amber-200">
+                                        ⚠️ No number
                                     </span>
                                 )}
                             </SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
+
+                {/* Prompt to assign a working number if the selected waitress doesn't have one */}
+                {selectedWaitress && selectedWaitress.current_number == null && (
+                    <div className="mt-2 flex items-center justify-between gap-2 rounded-xl border border-amber-300/90 bg-amber-50/90 p-2 text-xs animate-in fade-in slide-in-from-top-1 duration-200">
+                        <div className="flex items-center gap-1.5 text-amber-900 min-w-0 flex-1">
+                            <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" />
+                            <span className="truncate font-bold text-[11px]">
+                                {selectedWaitress.name} has no working number
+                            </span>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => openAssignModal(selectedWaitress)}
+                            className="cursor-pointer shrink-0 rounded-lg bg-[#2C1810] px-2.5 py-1 text-[11px] font-bold text-white transition-all hover:bg-[#4A2818] active:scale-95 shadow-xs"
+                        >
+                            Assign Number
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Scrollable Cart Items Container — Hidden Scrollbar */}
@@ -1091,19 +1238,22 @@ export default function PosIndex({
                     }
                 }}
             >
-                <DialogContent className="max-w-sm">
+                <DialogContent className="max-w-md">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2 text-base font-black" style={{ color: '#2C1810' }}>
                             <UserRoundPlus className="h-5 w-5" style={{ color: '#C6862A' }} />
-                            Add Waitress
+                            Add Working Waitress
                         </DialogTitle>
+                        <p className="text-xs text-muted-foreground">
+                            Register a floor waitress profile and assign an official working number from System Settings.
+                        </p>
                     </DialogHeader>
 
                     <div className="flex flex-col gap-4 py-1">
                         {/* Name */}
                         <div className="flex flex-col gap-1.5">
                             <Label htmlFor="waitress-name" className="text-xs font-bold" style={{ color: '#5C3A28' }}>
-                                Full Name <span className="text-red-500">*</span>
+                                Waitress Full Name <span className="text-red-500">*</span>
                             </Label>
                             <div className="relative">
                                 <UserRound className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 opacity-50" style={{ color: '#8A6B50' }} />
@@ -1124,6 +1274,7 @@ export default function PosIndex({
                         <div className="flex flex-col gap-1.5">
                             <Label htmlFor="waitress-phone" className="text-xs font-bold" style={{ color: '#5C3A28' }}>
                                 Phone Number
+                                <span className="ml-1 font-normal opacity-60">(optional)</span>
                             </Label>
                             <div className="relative">
                                 <Phone className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 opacity-50" style={{ color: '#8A6B50' }} />
@@ -1140,26 +1291,102 @@ export default function PosIndex({
                             </div>
                         </div>
 
-                        {/* Working Number */}
-                        <div className="flex flex-col gap-1.5">
-                            <Label htmlFor="waitress-number" className="text-xs font-bold" style={{ color: '#5C3A28' }}>
-                                Working Number
-                                <span className="ml-1 font-normal opacity-60">(optional)</span>
-                            </Label>
-                            <div className="relative">
-                                <Hash className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 opacity-50" style={{ color: '#8A6B50' }} />
-                                <Input
-                                    id="waitress-number"
-                                    placeholder="e.g. 42"
-                                    value={newWaitressNumber}
-                                    onChange={(e) => setNewWaitressNumber(e.target.value.replace(/\D/g, ''))}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleCreateWaitress()}
-                                    className="pl-9 text-sm"
-                                    style={{ borderColor: '#CCAB88' }}
-                                    inputMode="numeric"
-                                    maxLength={4}
-                                />
+                        {/* Working Waitress Number Configuration */}
+                        <div className="flex flex-col gap-2 rounded-xl border p-3.5" style={{ borderColor: '#E8DDD2', background: '#FDFBF8' }}>
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="waitress-number" className="text-xs font-bold" style={{ color: '#5C3A28' }}>
+                                    Working Waitress Number
+                                    <span className="ml-1 font-normal opacity-60">(Floor Station No.)</span>
+                                </Label>
+                                <span className="text-[10px] font-bold text-[#8A6B50] uppercase tracking-wider">
+                                    System Settings
+                                </span>
                             </div>
+
+                            {/* Dropdown to pick from registered numbers in Settings */}
+                            {availableWorkingNumbers.length > 0 && (
+                                <div className="space-y-1.5">
+                                    <span className="text-[11px] font-medium text-[#7A5A42]">
+                                        Choose from registered numbers in Settings:
+                                    </span>
+                                    <Select
+                                        value={newWaitressNumber}
+                                        onValueChange={(val) => setNewWaitressNumber(val)}
+                                    >
+                                        <SelectTrigger
+                                            className="h-9 w-full text-xs font-semibold"
+                                            style={{ borderColor: '#CCAB88', background: '#FFFFFF' }}
+                                        >
+                                            <SelectValue placeholder="Select registered working number…" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {availableWorkingNumbers.map((num) => {
+                                                const assignedTo = waitressList.find(
+                                                    (w) => String(w.current_number) === String(num)
+                                                );
+                                                return (
+                                                    <SelectItem key={num} value={String(num)} className="text-xs font-semibold">
+                                                        Working No. #{num} {assignedTo ? `— (In use by ${assignedTo.name})` : '— (Available)'}
+                                                    </SelectItem>
+                                                );
+                                            })}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
+
+                            {/* Direct number input */}
+                            <div className="space-y-1">
+                                <span className="text-[11px] font-medium text-[#7A5A42]">
+                                    {availableWorkingNumbers.length > 0 ? 'Or enter custom working number:' : 'Enter working waitress number:'}
+                                </span>
+                                <div className="relative">
+                                    <Hash className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 opacity-50" style={{ color: '#8A6B50' }} />
+                                    <Input
+                                        id="waitress-number"
+                                        placeholder="e.g. 101 or 614451036"
+                                        value={newWaitressNumber}
+                                        onChange={(e) => setNewWaitressNumber(e.target.value.replace(/\D/g, ''))}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleCreateWaitress()}
+                                        className="pl-9 text-sm font-mono"
+                                        style={{ borderColor: '#CCAB88', background: '#FFFFFF' }}
+                                        inputMode="numeric"
+                                        maxLength={10}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Quick-select pill badges */}
+                            {availableWorkingNumbers.length > 0 && (
+                                <div className="pt-1">
+                                    <span className="text-[10px] text-muted-foreground block mb-1">
+                                        Quick pick registered numbers from Settings:
+                                    </span>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {availableWorkingNumbers.map((num) => {
+                                            const isSelected = String(newWaitressNumber) === String(num);
+                                            return (
+                                                <button
+                                                    key={num}
+                                                    type="button"
+                                                    onClick={() => setNewWaitressNumber(String(num))}
+                                                    className={`cursor-pointer rounded-full px-2.5 py-0.5 text-[11px] font-mono font-bold transition-all ${
+                                                        isSelected
+                                                            ? 'bg-[#2C1810] text-white shadow-xs scale-105'
+                                                            : 'bg-[#EDE0D0] text-[#5C3A28] hover:bg-[#E2D2BE]'
+                                                    }`}
+                                                >
+                                                    #{num}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
+                            <p className="text-[11px] text-muted-foreground">
+                                Official working number configured in System Settings for floor orders and receipts.
+                            </p>
                         </div>
 
                         {/* Error message */}
@@ -1194,7 +1421,179 @@ export default function PosIndex({
                             ) : (
                                 <>
                                     <UserRoundPlus className="h-4 w-4" />
-                                    Add Waitress
+                                    Save Waitress
+                                </>
+                            )}
+                        </button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* ── Assign Working Number Dialog ── */}
+            <Dialog
+                open={assignModalOpen}
+                onOpenChange={(open) => {
+                    setAssignModalOpen(open);
+                    if (!open) {
+                        setTargetWaitress(null);
+                        setAssignNumberValue('');
+                        setAssignNumberError(null);
+                    }
+                }}
+            >
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-base font-black" style={{ color: '#2C1810' }}>
+                            <Hash className="h-5 w-5" style={{ color: '#C6862A' }} />
+                            Assign Working Number
+                        </DialogTitle>
+                        <p className="text-xs text-muted-foreground">
+                            Assign an official working floor station number to{' '}
+                            <strong className="text-foreground">{targetWaitress?.name}</strong>.
+                        </p>
+                    </DialogHeader>
+
+                    <div className="flex flex-col gap-4 py-1">
+                        <div className="rounded-xl border p-3" style={{ borderColor: '#E8DDD2', background: '#FDFBF8' }}>
+                            <div className="flex items-center justify-between text-xs">
+                                <span className="text-muted-foreground font-semibold">Staff Member:</span>
+                                <span className="font-bold text-[#2C1810]">{targetWaitress?.name}</span>
+                            </div>
+                            {targetWaitress?.phone && (
+                                <div className="flex items-center justify-between text-xs mt-1">
+                                    <span className="text-muted-foreground font-semibold">Phone:</span>
+                                    <span className="font-mono text-muted-foreground">{targetWaitress.phone}</span>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Working Number Selection */}
+                        <div className="flex flex-col gap-2 rounded-xl border p-3.5" style={{ borderColor: '#E8DDD2', background: '#FDFBF8' }}>
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="assign-working-number" className="text-xs font-bold" style={{ color: '#5C3A28' }}>
+                                    Working Waitress Number <span className="text-red-500">*</span>
+                                </Label>
+                                <span className="text-[10px] font-bold text-[#8A6B50] uppercase tracking-wider">
+                                    System Settings
+                                </span>
+                            </div>
+
+                            {/* Dropdown to pick from registered numbers in Settings */}
+                            {availableWorkingNumbers.length > 0 && (
+                                <div className="space-y-1.5">
+                                    <span className="text-[11px] font-medium text-[#7A5A42]">
+                                        Choose from registered numbers in Settings:
+                                    </span>
+                                    <Select
+                                        value={assignNumberValue}
+                                        onValueChange={(val) => setAssignNumberValue(val)}
+                                    >
+                                        <SelectTrigger
+                                            className="h-9 w-full text-xs font-semibold"
+                                            style={{ borderColor: '#CCAB88', background: '#FFFFFF' }}
+                                        >
+                                            <SelectValue placeholder="Select registered working number…" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {availableWorkingNumbers.map((num) => {
+                                                const assignedTo = waitressList.find(
+                                                    (w) => String(w.current_number) === String(num) && w.id !== targetWaitress?.id,
+                                                );
+                                                return (
+                                                    <SelectItem key={num} value={String(num)} className="text-xs font-semibold">
+                                                        Working No. #{num} {assignedTo ? `— (In use by ${assignedTo.name})` : '— (Available)'}
+                                                    </SelectItem>
+                                                );
+                                            })}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
+
+                            {/* Direct number input */}
+                            <div className="space-y-1">
+                                <span className="text-[11px] font-medium text-[#7A5A42]">
+                                    {availableWorkingNumbers.length > 0 ? 'Or enter custom working number:' : 'Enter working waitress number:'}
+                                </span>
+                                <div className="relative">
+                                    <Hash className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 opacity-50" style={{ color: '#8A6B50' }} />
+                                    <Input
+                                        id="assign-working-number"
+                                        placeholder="e.g. 101 or 614451036"
+                                        value={assignNumberValue}
+                                        onChange={(e) => setAssignNumberValue(e.target.value.replace(/\D/g, ''))}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleAssignWorkingNumber()}
+                                        className="pl-9 text-sm font-mono"
+                                        style={{ borderColor: '#CCAB88', background: '#FFFFFF' }}
+                                        inputMode="numeric"
+                                        maxLength={10}
+                                        autoFocus
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Quick-select pill badges */}
+                            {availableWorkingNumbers.length > 0 && (
+                                <div className="pt-1">
+                                    <span className="text-[10px] text-muted-foreground block mb-1">
+                                        Quick pick registered numbers:
+                                    </span>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {availableWorkingNumbers.map((num) => {
+                                            const isSelected = String(assignNumberValue) === String(num);
+                                            return (
+                                                <button
+                                                    key={num}
+                                                    type="button"
+                                                    onClick={() => setAssignNumberValue(String(num))}
+                                                    className={`cursor-pointer rounded-full px-2.5 py-0.5 text-[11px] font-mono font-bold transition-all ${
+                                                        isSelected
+                                                            ? 'bg-[#2C1810] text-white shadow-xs scale-105'
+                                                            : 'bg-[#EDE0D0] text-[#5C3A28] hover:bg-[#E2D2BE]'
+                                                    }`}
+                                                >
+                                                    #{num}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Error message */}
+                        {assignNumberError && (
+                            <p className="rounded-lg px-3 py-2 text-xs font-semibold text-red-700" style={{ background: '#FEE2E2' }}>
+                                {assignNumberError}
+                            </p>
+                        )}
+                    </div>
+
+                    <DialogFooter className="gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setAssignModalOpen(false)}
+                            className="cursor-pointer rounded-xl border px-4 py-2 text-sm font-bold transition-colors hover:bg-[#EDE0D0]"
+                            style={{ borderColor: '#D4B99A', color: '#5C3A28' }}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleAssignWorkingNumber}
+                            disabled={!assignNumberValue.trim() || isAssigningNumber}
+                            className="flex cursor-pointer items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold text-white transition-all hover:brightness-110 disabled:opacity-50"
+                            style={{ background: 'linear-gradient(135deg, #C6862A, #BA7A29)' }}
+                        >
+                            {isAssigningNumber ? (
+                                <>
+                                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                                    Saving…
+                                </>
+                            ) : (
+                                <>
+                                    <Hash className="h-4 w-4" />
+                                    Assign Number
                                 </>
                             )}
                         </button>

@@ -81,6 +81,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/pos', [PosController::class, 'index'])->name('pos.index');
     Route::get('/pos/orders', [PosController::class, 'orders'])->name('pos.orders');
     Route::post('/pos/orders', [PosController::class, 'store'])->name('pos.store');
+    Route::post('/pos/waitresses', [PosController::class, 'storeWaitress'])->name('pos.waitresses.store');
 
     // Management routes
     Route::prefix('management')->name('management.')->group(function () {

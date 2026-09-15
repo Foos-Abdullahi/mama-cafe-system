@@ -15,6 +15,7 @@ import {
     Tag,
     FileText,
     UserRound,
+    UserRoundPlus,
     PauseCircle,
     ChevronDown,
     ChevronLeft,
@@ -25,9 +26,27 @@ import {
     GlassWater,
     Milk,
     X,
+    Phone,
+    Hash,
 } from 'lucide-react';
 import type { User } from '@/types';
 import PosShell from '@/layouts/pos-shell';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from '@/components/ui/dialog';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
 interface Category {
@@ -97,20 +116,6 @@ const PAYMENT_METHODS = [
         bg: '#5C2B0D',
         ring: '#70381B',
     },
-    {
-        id: 'card',
-        label: 'Card',
-        icon: CreditCard,
-        bg: '#1A1A1A',
-        ring: '#2A2A2A',
-    },
-    {
-        id: 'credit',
-        label: 'Credit',
-        icon: BadgeDollarSign,
-        bg: '#522A7F',
-        ring: '#6B39A3',
-    },
 ] as const;
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -143,6 +148,17 @@ export default function PosIndex({
     /** Mobile: show cart drawer */
     const [mobileCartOpen, setMobileCartOpen] = useState(false);
     const ITEMS_PER_PAGE = 50;
+
+    /** Local waitress list — starts from server props, updated after quick-create */
+    const [waitressList, setWaitressList] = useState<Waitress[]>(waitresses);
+
+    /** Add-waitress dialog */
+    const [addWaitressOpen, setAddWaitressOpen] = useState(false);
+    const [newWaitressName, setNewWaitressName] = useState('');
+    const [newWaitressPhone, setNewWaitressPhone] = useState('');
+    const [newWaitressNumber, setNewWaitressNumber] = useState('');
+    const [isCreatingWaitress, setIsCreatingWaitress] = useState(false);
+    const [createWaitressError, setCreateWaitressError] = useState<string | null>(null);
 
     /* ── Reset pagination on filter changes ────────────────────────────── */
     useEffect(() => {
@@ -251,6 +267,51 @@ export default function PosIndex({
         );
     };
 
+    /* ── Quick-create Waitress ─────────────────────────────────────────── */
+    const handleCreateWaitress = async () => {
+        if (!newWaitressName.trim() || isCreatingWaitress) return;
+        setIsCreatingWaitress(true);
+        setCreateWaitressError(null);
+
+        try {
+            const csrfMeta = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]');
+            const response = await fetch('/pos/waitresses', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': csrfMeta?.content ?? '',
+                },
+                body: JSON.stringify({
+                    name: newWaitressName.trim(),
+                    phone: newWaitressPhone.trim() || undefined,
+                    working_number: newWaitressNumber ? parseInt(newWaitressNumber, 10) : undefined,
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                const firstError = errorData?.errors
+                    ? Object.values(errorData.errors).flat().join(' ')
+                    : 'Failed to create waitress.';
+                setCreateWaitressError(firstError as string);
+                return;
+            }
+
+            const created = await response.json() as Waitress;
+            setWaitressList((prev) => [...prev, created]);
+            setSelectedWaitressId(String(created.id));
+            setAddWaitressOpen(false);
+            setNewWaitressName('');
+            setNewWaitressPhone('');
+            setNewWaitressNumber('');
+        } catch {
+            setCreateWaitressError('Network error. Please try again.');
+        } finally {
+            setIsCreatingWaitress(false);
+        }
+    };
+
     /* ── Search bar for the header center slot ─────────────────────────── */
     const searchBar = (
         <div className="relative w-full">
@@ -319,57 +380,66 @@ export default function PosIndex({
             </div>
 
             {/* Waitress Selector */}
-            {waitresses.length > 0 && (
-                <div
-                    className="shrink-0 px-4 pt-2.5 pb-2"
-                    style={{ borderBottom: '1px solid #E8DDD2' }}
-                >
+            <div
+                className="shrink-0 px-4 pt-2.5 pb-2"
+                style={{ borderBottom: '1px solid #E8DDD2' }}
+            >
+                <div className="mb-1.5 flex items-center justify-between">
                     <p
-                        className="mb-1 text-[11px] font-black tracking-wider uppercase"
+                        className="text-[11px] font-black tracking-wider uppercase"
                         style={{ color: '#9B7A5E' }}
                     >
                         Waitress
                     </p>
-                    <div className="pos-scrollbar-hidden flex flex-nowrap items-center gap-1.5 overflow-x-auto">
-                        <button
-                            onClick={() => setSelectedWaitressId('')}
-                            className="cursor-pointer rounded-full px-3 py-1 text-xs font-bold transition-all hover:scale-105"
-                            style={
-                                selectedWaitressId === ''
-                                    ? { background: '#2C1810', color: '#fff' }
-                                    : {
-                                          background: '#EDE0D0',
-                                          color: '#5C3A28',
-                                      }
-                            }
-                        >
-                            Walk-in
-                        </button>
-                        {waitresses.map((w) => (
-                            <button
-                                key={w.id}
-                                onClick={() =>
-                                    setSelectedWaitressId(String(w.id))
-                                }
-                                className="cursor-pointer rounded-full px-3 py-1 text-xs font-bold transition-all hover:scale-105"
-                                style={
-                                    selectedWaitressId === String(w.id)
-                                        ? {
-                                              background: '#2C1810',
-                                              color: '#fff',
-                                          }
-                                        : {
-                                              background: '#EDE0D0',
-                                              color: '#5C3A28',
-                                          }
-                                }
-                            >
-                                {w.name.split(' ')[0]}
-                            </button>
-                        ))}
-                    </div>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setCreateWaitressError(null);
+                            setAddWaitressOpen(true);
+                        }}
+                        className="flex cursor-pointer items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold transition-all hover:scale-105"
+                        style={{ background: '#EDE0D0', color: '#2C1810' }}
+                        title="Add new waitress"
+                    >
+                        <UserRoundPlus className="h-3.5 w-3.5" />
+                        <span>Add</span>
+                    </button>
                 </div>
-            )}
+                <Select
+                    value={selectedWaitressId}
+                    onValueChange={setSelectedWaitressId}
+                >
+                    <SelectTrigger
+                        className="h-9 w-full rounded-xl border text-xs font-bold"
+                        style={{
+                            background: '#F4ECE2',
+                            borderColor: '#CCAB88',
+                            color: '#1F110B',
+                        }}
+                    >
+                        <SelectValue placeholder="Select waitress…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="" className="text-xs font-semibold">
+                            Walk-in (no waitress)
+                        </SelectItem>
+                        {waitressList.map((w) => (
+                            <SelectItem
+                                key={w.id}
+                                value={String(w.id)}
+                                className="text-xs font-semibold"
+                            >
+                                {w.name}
+                                {w.current_number != null && (
+                                    <span className="ml-1 opacity-60">
+                                        #{w.current_number}
+                                    </span>
+                                )}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
 
             {/* Scrollable Cart Items Container — Hidden Scrollbar */}
             <div className="pos-scrollbar-hidden flex-1 min-h-0 overflow-y-auto px-4 py-2.5">
@@ -820,7 +890,7 @@ export default function PosIndex({
                                             }}
                                         >
                                             <div
-                                                className="w-full overflow-hidden rounded-xl bg-[#FAF6F0]"
+                                                className="w-full overflow-hidden rounded-xl bg-[#FAF6F0] mt-1"
                                                 style={{ height: 95 }}
                                             >
                                                 <img
@@ -842,7 +912,7 @@ export default function PosIndex({
                                                 </p>
                                                 <div
                                                     className="mt-1.5 inline-block rounded-full px-3 py-0.5 text-xs font-black text-white shadow-xs"
-                                                    style={{ background: '#2C1810' }}
+                                                    style={{ background: '#7c2b20' }}
                                                 >
                                                     ${product.price.toFixed(2)}
                                                 </div>
@@ -1007,6 +1077,130 @@ export default function PosIndex({
                     </div>
                 </>
             )}
+
+            {/* ── Add Waitress Dialog ── */}
+            <Dialog
+                open={addWaitressOpen}
+                onOpenChange={(open) => {
+                    setAddWaitressOpen(open);
+                    if (!open) {
+                        setCreateWaitressError(null);
+                        setNewWaitressName('');
+                        setNewWaitressPhone('');
+                        setNewWaitressNumber('');
+                    }
+                }}
+            >
+                <DialogContent className="max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-base font-black" style={{ color: '#2C1810' }}>
+                            <UserRoundPlus className="h-5 w-5" style={{ color: '#C6862A' }} />
+                            Add Waitress
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    <div className="flex flex-col gap-4 py-1">
+                        {/* Name */}
+                        <div className="flex flex-col gap-1.5">
+                            <Label htmlFor="waitress-name" className="text-xs font-bold" style={{ color: '#5C3A28' }}>
+                                Full Name <span className="text-red-500">*</span>
+                            </Label>
+                            <div className="relative">
+                                <UserRound className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 opacity-50" style={{ color: '#8A6B50' }} />
+                                <Input
+                                    id="waitress-name"
+                                    placeholder="e.g. Amina Hassan"
+                                    value={newWaitressName}
+                                    onChange={(e) => setNewWaitressName(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleCreateWaitress()}
+                                    className="pl-9 text-sm"
+                                    style={{ borderColor: '#CCAB88' }}
+                                    autoFocus
+                                />
+                            </div>
+                        </div>
+
+                        {/* Phone */}
+                        <div className="flex flex-col gap-1.5">
+                            <Label htmlFor="waitress-phone" className="text-xs font-bold" style={{ color: '#5C3A28' }}>
+                                Phone Number
+                            </Label>
+                            <div className="relative">
+                                <Phone className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 opacity-50" style={{ color: '#8A6B50' }} />
+                                <Input
+                                    id="waitress-phone"
+                                    placeholder="e.g. 0712345678"
+                                    value={newWaitressPhone}
+                                    onChange={(e) => setNewWaitressPhone(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleCreateWaitress()}
+                                    className="pl-9 text-sm"
+                                    style={{ borderColor: '#CCAB88' }}
+                                    type="tel"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Working Number */}
+                        <div className="flex flex-col gap-1.5">
+                            <Label htmlFor="waitress-number" className="text-xs font-bold" style={{ color: '#5C3A28' }}>
+                                Working Number
+                                <span className="ml-1 font-normal opacity-60">(optional)</span>
+                            </Label>
+                            <div className="relative">
+                                <Hash className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 opacity-50" style={{ color: '#8A6B50' }} />
+                                <Input
+                                    id="waitress-number"
+                                    placeholder="e.g. 42"
+                                    value={newWaitressNumber}
+                                    onChange={(e) => setNewWaitressNumber(e.target.value.replace(/\D/g, ''))}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleCreateWaitress()}
+                                    className="pl-9 text-sm"
+                                    style={{ borderColor: '#CCAB88' }}
+                                    inputMode="numeric"
+                                    maxLength={4}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Error message */}
+                        {createWaitressError && (
+                            <p className="rounded-lg px-3 py-2 text-xs font-semibold text-red-700" style={{ background: '#FEE2E2' }}>
+                                {createWaitressError}
+                            </p>
+                        )}
+                    </div>
+
+                    <DialogFooter className="gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setAddWaitressOpen(false)}
+                            className="cursor-pointer rounded-xl border px-4 py-2 text-sm font-bold transition-colors hover:bg-[#EDE0D0]"
+                            style={{ borderColor: '#D4B99A', color: '#5C3A28' }}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleCreateWaitress}
+                            disabled={!newWaitressName.trim() || isCreatingWaitress}
+                            className="flex cursor-pointer items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold text-white transition-all hover:brightness-110 disabled:opacity-50"
+                            style={{ background: 'linear-gradient(135deg, #C6862A, #BA7A29)' }}
+                        >
+                            {isCreatingWaitress ? (
+                                <>
+                                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                                    Saving…
+                                </>
+                            ) : (
+                                <>
+                                    <UserRoundPlus className="h-4 w-4" />
+                                    Add Waitress
+                                </>
+                            )}
+                        </button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </PosShell>
     );
 }

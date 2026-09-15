@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\Waitress;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -185,5 +186,45 @@ class PosController extends Controller
         ActivityLog::log('pos_order', "POS order #{$order->order_number} was processed (total: \${$order->total}).");
 
         return redirect()->route('pos.index')->with('success', "Order #{$order->order_number} completed successfully!");
+    }
+
+    public function storeWaitress(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|min:2|max:255',
+            'phone' => 'nullable|string|min:5|max:50',
+            'working_number' => 'nullable|integer|min:1|max:9999',
+        ]);
+
+        $waitress = Waitress::create([
+            'name' => $validated['name'],
+            'phone' => $validated['phone'] ?? null,
+            'commission_rate' => 0.15,
+            'status' => 'active',
+        ]);
+
+        $currentNumber = null;
+
+        if (! empty($validated['working_number'])) {
+            $fixedNumber = $waitress->fixedNumbers()->create([
+                'range_start' => $validated['working_number'],
+                'range_end' => $validated['working_number'],
+                'current_number' => $validated['working_number'],
+                'status' => 'active',
+                'assigned_at' => now(),
+            ]);
+            $currentNumber = $fixedNumber->current_number;
+        }
+
+        ActivityLog::log('waitress_create', "Waitress '{$waitress->name}' was quickly registered from POS terminal.");
+
+        return response()->json([
+            'id' => $waitress->id,
+            'name' => $waitress->name,
+            'phone' => $waitress->phone,
+            'current_number' => $currentNumber,
+            'range_start' => $currentNumber,
+            'range_end' => $currentNumber,
+        ], 201);
     }
 }

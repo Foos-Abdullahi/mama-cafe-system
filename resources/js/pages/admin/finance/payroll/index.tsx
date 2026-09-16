@@ -205,6 +205,7 @@ export default function PayrollIndex({ waitresses, payoutHistory, stats }: Props
                         searchTitle="Filter waitress by name..."
                         columns={columns}
                         data={waitresses}
+                        rowHref={(row) => `/finance/payroll/create?waitress_id=${row.original.id}`}
                     />
 
                     <div className="pt-2">

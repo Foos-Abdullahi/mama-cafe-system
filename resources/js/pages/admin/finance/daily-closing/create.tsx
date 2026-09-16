@@ -97,16 +97,8 @@ export default function DailyWaitressesCreate({
     };
 
     // Get selectable options for a specific waitress
-    const getSelectableNumbers = (waitressId: number, currentVal: string): string[] => {
-        const takenByOthers = getTakenByOthers(waitressId);
-        const options = allPoolNumbers.filter((num) => !takenByOthers.has(num));
-
-        if (currentVal && !options.includes(currentVal) && !takenByOthers.has(currentVal)) {
-            options.push(currentVal);
-            options.sort((a, b) => (Number(a) || 0) - (Number(b) || 0));
-        }
-
-        return options;
+    const getSelectableNumbers = (_waitressId: number, _currentVal: string): string[] => {
+        return allPoolNumbers;
     };
 
     const handleSubmit = (e: React.FormEvent) => {

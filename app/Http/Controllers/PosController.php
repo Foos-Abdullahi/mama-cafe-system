@@ -95,29 +95,35 @@ class PosController extends Controller
         ]);
     }
 
-    public function orders(): Response
+    public function orders(Request $request): Response
     {
         $today = now()->format('Y-m-d');
+        $waitressId = $request->query('waitress_id');
 
-        $orders = Order::with(['waitress', 'payments', 'items'])
-            ->whereDate('created_at', $today)
-            ->latest()
-            ->get()
-            ->map(function ($o) {
-                return [
-                    'id' => $o->id,
-                    'order_number' => $o->order_number,
-                    'fixed_number' => $o->fixed_number,
-                    'waitress_name' => $o->waitress->name ?? 'Walk-in',
-                    'order_type' => $o->order_type,
-                    'total' => (float) $o->total,
-                    'payment_status' => $o->payment_status,
-                    'payment_method' => $o->payments->first()->method ?? 'cash',
-                    'created_at' => $o->created_at->format('H:i'),
-                    'items_count' => $o->items->sum('quantity'),
-                ];
-            });
+        $query = Order::with(['waitress', 'payments', 'items']);
 
+        if ($waitressId) {
+            $query->where('waitress_id', $waitressId);
+        } else {
+            $query->whereDate('created_at', $today);
+        }
+
+        $orders = $query->latest()->get()->map(function ($o) {
+            return [
+                'id' => $o->id,
+                'order_number' => $o->order_number,
+                'fixed_number' => $o->fixed_number,
+                'waitress_name' => $o->waitress->name ?? 'Walk-in',
+                'order_type' => $o->order_type,
+                'total' => (float) $o->total,
+                'payment_status' => $o->payment_status,
+                'payment_method' => $o->payments->first()->method ?? 'cash',
+                'created_at' => $o->created_at ? $o->created_at->format('Y-m-d H:i') : '—',
+                'items_count' => $o->items->sum('quantity'),
+            ];
+        });
+
+        $selectedWaitress = $waitressId ? Waitress::find($waitressId) : null;
         $todayTotal = $orders->where('payment_status', 'paid')->sum('total');
         $todayCount = $orders->count();
 
@@ -125,6 +131,11 @@ class PosController extends Controller
             'orders' => $orders->values(),
             'todayTotal' => (float) round($todayTotal, 2),
             'todayCount' => (int) $todayCount,
+            'selectedWaitress' => $selectedWaitress ? [
+                'id' => $selectedWaitress->id,
+                'name' => $selectedWaitress->name,
+                'phone' => $selectedWaitress->phone,
+            ] : null,
         ]);
     }
 
@@ -176,6 +187,7 @@ class PosController extends Controller
                 'total' => $total,
                 'status' => 'completed',
                 'payment_status' => $validated['payment_status'],
+                'completed_at' => now(),
             ]);
 
             foreach ($itemsToCreate as $item) {
@@ -195,6 +207,27 @@ class PosController extends Controller
                 'status' => $validated['payment_status'],
                 'paid_at' => $validated['payment_status'] === 'unpaid' ? null : now(),
             ]);
+
+            if ($paidAmount > 0) {
+                $fixedNumberRecord = null;
+                if (! empty($validated['fixed_number'])) {
+                    $num = (int) $validated['fixed_number'];
+                    $fixedNumberRecord = FixedNumber::where('current_number', $num)
+                        ->orWhere(function ($q) use ($num) {
+                            $q->where('range_start', '<=', $num)->where('range_end', '>=', $num);
+                        })->first();
+                }
+
+                if (! $fixedNumberRecord && ! empty($validated['waitress_id'])) {
+                    $fixedNumberRecord = FixedNumber::where('waitress_id', $validated['waitress_id'])
+                        ->where('status', 'active')
+                        ->first();
+                }
+
+                if ($fixedNumberRecord) {
+                    $fixedNumberRecord->increment('balance', round($paidAmount, 2));
+                }
+            }
 
             return $order;
         });

@@ -168,7 +168,7 @@ export default function PosShell({
                             </div>
                             <div className="flex flex-col items-start text-left leading-tight">
                                 <span className="text-[11px] font-medium text-white/70">
-                                    {user?.role ? (user.role.charAt(0).toUpperCase() + user.role.slice(1)) : 'Cashier'}
+                                    {typeof user?.role === 'string' ? (user.role.charAt(0).toUpperCase() + user.role.slice(1)) : 'Cashier'}
                                 </span>
                                 <span className="text-xs font-black text-white">
                                     {user?.name ?? 'Abdullahi'}

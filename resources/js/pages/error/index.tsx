@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
@@ -11,6 +11,7 @@ interface PageProps extends ErrorPageProps {
     auth?: {
         user?: unknown;
     };
+    [key: string]: unknown;
 }
 
 export default function ErrorPage(directProps?: Partial<PageProps>) {

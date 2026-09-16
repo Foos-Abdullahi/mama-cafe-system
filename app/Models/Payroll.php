@@ -12,6 +12,8 @@ class Payroll extends Model
 
     protected $fillable = [
         'waitress_id',
+        'fixed_number_id',
+        'sent_from_number',
         'period_start',
         'period_end',
         'total_orders',
@@ -35,5 +37,10 @@ class Payroll extends Model
     public function waitress(): BelongsTo
     {
         return $this->belongsTo(Waitress::class);
+    }
+
+    public function fixedNumber(): BelongsTo
+    {
+        return $this->belongsTo(FixedNumber::class);
     }
 }

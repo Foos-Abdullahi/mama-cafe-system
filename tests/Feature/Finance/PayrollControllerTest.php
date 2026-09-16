@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\FixedNumber;
 use App\Models\Payroll;
 use App\Models\User;
 use App\Models\Waitress;
@@ -13,6 +14,15 @@ test('authenticated user can view payroll page and process payout', function () 
         'status' => 'active',
     ]);
 
+    $fixedNumber = FixedNumber::create([
+        'waitress_id' => $waitress->id,
+        'range_start' => 101,
+        'range_end' => 105,
+        'current_number' => 101,
+        'balance' => 500.00,
+        'status' => 'active',
+    ]);
+
     $response = $this->actingAs($user)->get(route('finance.payroll.index'));
     $response->assertOk();
 
@@ -21,6 +31,7 @@ test('authenticated user can view payroll page and process payout', function () 
 
     $postResponse = $this->actingAs($user)->post(route('finance.payroll.store'), [
         'waitress_id' => $waitress->id,
+        'fixed_number_id' => $fixedNumber->id,
         'period_start' => now()->subDays(7)->format('Y-m-d'),
         'period_end' => now()->format('Y-m-d'),
         'commission_amount' => 45.00,

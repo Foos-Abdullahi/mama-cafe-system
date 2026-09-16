@@ -67,6 +67,7 @@ interface Product {
 interface Waitress {
     id: number;
     name: string;
+    phone?: string | null;
     range_start: number | null;
     range_end: number | null;
     current_number: number | null;

@@ -14,9 +14,10 @@ test('authenticated user can view and update system settings', function () {
         'cafe_address' => 'KM4, Mogadishu',
         'currency' => 'USD ($)',
         'tax_rate' => 0,
+        'vat_rate' => 0,
         'default_commission_rate' => 15,
-        'fixed_number_start' => 101,
-        'fixed_number_end' => 199,
+        'commission_rates' => '10, 12, 15, 18, 20',
+        'cafe_waitress_numbers' => '101, 102, 103',
     ]);
 
     $putResponse->assertRedirect(route('system.settings.index'));

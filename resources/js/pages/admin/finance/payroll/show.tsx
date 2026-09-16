@@ -18,6 +18,7 @@ interface Payroll {
     status: string;
     paid_at: string;
     notes: string | null;
+    sent_from_number: string | null;
 }
 
 interface Props {
@@ -122,6 +123,9 @@ export default function PayrollShow({ payroll }: Props) {
                                     <SummaryRow label="Staff Member" value={payroll.waitress_name} />
                                     <SummaryRow label="Phone Contact" value={payroll.waitress_phone || '—'} />
                                     <SummaryRow label="Slip ID" value={`#PAYROLL-${payroll.id}`} />
+                                    {payroll.sent_from_number && (
+                                        <SummaryRow label="Sent From (Café No.)" value={payroll.sent_from_number} />
+                                    )}
                                 </div>
                             </Panel>
 

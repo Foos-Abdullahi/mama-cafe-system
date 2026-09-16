@@ -15,12 +15,14 @@ class FixedNumber extends Model
         'range_start',
         'range_end',
         'current_number',
+        'balance',
         'status',
         'assigned_at',
     ];
 
     protected $casts = [
         'assigned_at' => 'datetime',
+        'balance' => 'decimal:2',
     ];
 
     public function waitress(): BelongsTo

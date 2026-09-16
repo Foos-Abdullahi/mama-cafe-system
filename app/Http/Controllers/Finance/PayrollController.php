@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Finance;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
+use App\Models\FixedNumber;
+use App\Models\Order;
 use App\Models\Payroll;
 use App\Models\Waitress;
 use Illuminate\Http\RedirectResponse;
@@ -15,26 +17,68 @@ class PayrollController extends Controller
 {
     public function index(): Response
     {
-        $waitresses = Waitress::with(['orders' => function ($q) {
-            $q->where('status', 'completed');
-        }])->get()->map(function ($w) {
-            $totalSales = $w->orders->sum('total');
-            $earnedCommission = $totalSales * (float) $w->commission_rate;
-            $paidCommission = Payroll::where('waitress_id', $w->id)->where('status', 'paid')->sum('commission_amount');
-            $unpaidCommission = max(0, round($earnedCommission - $paidCommission, 2));
+        $waitressesLedger = collect();
 
-            return [
-                'id' => $w->id,
-                'name' => $w->name,
-                'phone' => $w->phone,
-                'commission_rate' => (float) $w->commission_rate,
-                'total_orders' => $w->orders->count(),
-                'total_sales' => (float) $totalSales,
-                'earned_commission' => (float) $earnedCommission,
-                'paid_commission' => (float) $paidCommission,
-                'unpaid_commission' => (float) $unpaidCommission,
-            ];
-        });
+        foreach (Waitress::orderBy('name')->get() as $w) {
+            $paidPayouts = Payroll::where('waitress_id', $w->id)->where('status', 'paid')->orderBy('created_at', 'asc')->get();
+
+            foreach ($paidPayouts as $p) {
+                $waitressesLedger->push([
+                    'id' => $w->id,
+                    'payroll_id' => $p->id,
+                    'name' => $w->name,
+                    'phone' => $w->phone,
+                    'commission_rate' => (float) $w->commission_rate,
+                    'total_orders' => (int) $p->total_orders,
+                    'total_sales' => (float) $p->total_sales,
+                    'earned_commission' => (float) $p->commission_amount,
+                    'paid_commission' => (float) $p->commission_amount,
+                    'unpaid_commission' => 0.00,
+                    'is_fully_paid' => true,
+                ]);
+            }
+
+            $latestPaid = $paidPayouts->last();
+            $unpaidOrders = Order::where('waitress_id', $w->id)
+                ->where('status', 'completed')
+                ->when($latestPaid, function ($q) use ($latestPaid) {
+                    $q->where('created_at', '>', $latestPaid->created_at);
+                })
+                ->get();
+
+            if ($unpaidOrders->count() > 0) {
+                $totalSales = (float) $unpaidOrders->sum('total');
+                $earnedCommission = round($totalSales * (float) $w->commission_rate, 2);
+
+                $waitressesLedger->push([
+                    'id' => $w->id,
+                    'payroll_id' => null,
+                    'name' => $w->name,
+                    'phone' => $w->phone,
+                    'commission_rate' => (float) $w->commission_rate,
+                    'total_orders' => $unpaidOrders->count(),
+                    'total_sales' => $totalSales,
+                    'earned_commission' => $earnedCommission,
+                    'paid_commission' => 0.00,
+                    'unpaid_commission' => $earnedCommission,
+                    'is_fully_paid' => false,
+                ]);
+            } elseif ($paidPayouts->isEmpty()) {
+                $waitressesLedger->push([
+                    'id' => $w->id,
+                    'payroll_id' => null,
+                    'name' => $w->name,
+                    'phone' => $w->phone,
+                    'commission_rate' => (float) $w->commission_rate,
+                    'total_orders' => 0,
+                    'total_sales' => 0.00,
+                    'earned_commission' => 0.00,
+                    'paid_commission' => 0.00,
+                    'unpaid_commission' => 0.00,
+                    'is_fully_paid' => true,
+                ]);
+            }
+        }
 
         $payoutHistory = Payroll::with('waitress')->latest()->get()->map(function ($p) {
             return [
@@ -50,11 +94,13 @@ class PayrollController extends Controller
                 'status' => $p->status,
                 'paid_at' => $p->paid_at ? $p->paid_at->toIso8601String() : ($p->created_at ? $p->created_at->toIso8601String() : null),
                 'notes' => $p->notes,
+                'sent_from_number' => $p->sent_from_number,
             ];
         });
 
         $totalPayoutsDistributed = Payroll::where('status', 'paid')->sum('commission_amount');
-        $totalPendingCommissions = $waitresses->sum('unpaid_commission');
+        $totalPendingCommissions = $waitressesLedger->sum('unpaid_commission');
+        $activeWaitressesCount = Waitress::where('status', 'active')->count();
 
         $stats = [
             [
@@ -71,14 +117,14 @@ class PayrollController extends Controller
             ],
             [
                 'title' => 'Active Floor Waitresses',
-                'value' => (string) $waitresses->count(),
+                'value' => (string) $activeWaitressesCount,
                 'change' => 'Registered staff members',
                 'trend' => 'up',
             ],
         ];
 
         return Inertia::render('admin/finance/payroll/index', [
-            'waitresses' => $waitresses,
+            'waitresses' => $waitressesLedger->values(),
             'payoutHistory' => $payoutHistory,
             'stats' => $stats,
         ]);
@@ -86,24 +132,58 @@ class PayrollController extends Controller
 
     public function create(Request $request): Response
     {
-        $waitresses = Waitress::with(['orders' => function ($q) {
-            $q->where('status', 'completed');
-        }])->get()->map(function ($w) {
-            $totalSales = $w->orders->sum('total');
-            $earnedCommission = $totalSales * (float) $w->commission_rate;
-            $paidCommission = Payroll::where('waitress_id', $w->id)->where('status', 'paid')->sum('commission_amount');
-            $unpaidCommission = max(0, round($earnedCommission - $paidCommission, 2));
+        $waitresses = Waitress::orderBy('name')->get()->map(function ($w) {
+            $latestPaid = Payroll::where('waitress_id', $w->id)->where('status', 'paid')->latest()->first();
+
+            $unpaidOrders = Order::where('waitress_id', $w->id)
+                ->where('status', 'completed')
+                ->when($latestPaid, function ($q) use ($latestPaid) {
+                    $q->where('created_at', '>', $latestPaid->created_at);
+                })
+                ->latest()
+                ->get();
+
+            if ($unpaidOrders->count() > 0) {
+                $totalSales = (float) $unpaidOrders->sum('total');
+                $earnedCommission = round($totalSales * (float) $w->commission_rate, 2);
+                $unpaidCommission = $earnedCommission;
+                $totalOrdersCount = $unpaidOrders->count();
+                $isFullyPaid = false;
+            } elseif ($latestPaid) {
+                $totalSales = (float) $latestPaid->total_sales;
+                $earnedCommission = (float) $latestPaid->commission_amount;
+                $unpaidCommission = 0.00;
+                $totalOrdersCount = (int) $latestPaid->total_orders;
+                $isFullyPaid = true;
+            } else {
+                $totalSales = 0.00;
+                $earnedCommission = 0.00;
+                $unpaidCommission = 0.00;
+                $totalOrdersCount = 0;
+                $isFullyPaid = true;
+            }
 
             return [
                 'id' => $w->id,
                 'name' => $w->name,
                 'phone' => $w->phone,
                 'commission_rate' => (float) $w->commission_rate,
-                'total_orders' => $w->orders->count(),
-                'total_sales' => (float) $totalSales,
-                'earned_commission' => (float) $earnedCommission,
-                'paid_commission' => (float) $paidCommission,
-                'unpaid_commission' => (float) $unpaidCommission,
+                'total_orders' => $totalOrdersCount,
+                'total_sales' => $totalSales,
+                'earned_commission' => $earnedCommission,
+                'paid_commission' => $isFullyPaid ? $earnedCommission : 0.00,
+                'unpaid_commission' => $unpaidCommission,
+                'is_fully_paid' => $isFullyPaid,
+            ];
+        });
+
+        $cafeNumbers = FixedNumber::orderBy('range_start')->get()->map(function ($fn) {
+            return [
+                'id' => $fn->id,
+                'label' => $fn->range_start.'-'.$fn->range_end,
+                'current_number' => $fn->current_number,
+                'balance' => (float) $fn->balance,
+                'status' => $fn->status,
             ];
         });
 
@@ -111,6 +191,7 @@ class PayrollController extends Controller
 
         return Inertia::render('admin/finance/payroll/create', [
             'waitresses' => $waitresses,
+            'cafeNumbers' => $cafeNumbers,
             'selectedWaitressId' => $selectedWaitressId ? (int) $selectedWaitressId : null,
         ]);
     }
@@ -119,23 +200,41 @@ class PayrollController extends Controller
     {
         $validated = $request->validate([
             'waitress_id' => 'required|exists:waitresses,id',
+            'fixed_number_id' => 'required|exists:fixed_numbers,id',
             'period_start' => 'required|date',
             'period_end' => 'required|date',
             'commission_amount' => 'required|numeric|min:0.01',
             'notes' => 'nullable|string',
         ]);
 
-        $waitress = Waitress::with(['orders' => function ($q) {
-            $q->where('status', 'completed');
-        }])->findOrFail($validated['waitress_id']);
+        $cafeNumber = FixedNumber::findOrFail($validated['fixed_number_id']);
 
-        $totalSales = $waitress->orders->sum('total');
+        if ((float) $cafeNumber->balance < (float) $validated['commission_amount']) {
+            return back()->withErrors([
+                'fixed_number_id' => "Insufficient balance on café number {$cafeNumber->range_start}-{$cafeNumber->range_end}. Available: $".number_format((float) $cafeNumber->balance, 2),
+            ])->withInput();
+        }
+
+        $waitress = Waitress::findOrFail($validated['waitress_id']);
+
+        $latestPaid = Payroll::where('waitress_id', $waitress->id)->where('status', 'paid')->latest()->first();
+
+        $unpaidOrders = Order::where('waitress_id', $waitress->id)
+            ->where('status', 'completed')
+            ->when($latestPaid, function ($q) use ($latestPaid) {
+                $q->where('created_at', '>', $latestPaid->created_at);
+            })
+            ->get();
+
+        $totalSales = (float) $unpaidOrders->sum('total');
 
         $payroll = Payroll::create([
             'waitress_id' => $waitress->id,
+            'fixed_number_id' => $cafeNumber->id,
+            'sent_from_number' => $cafeNumber->range_start.'-'.$cafeNumber->range_end,
             'period_start' => $validated['period_start'],
             'period_end' => $validated['period_end'],
-            'total_orders' => $waitress->orders->count(),
+            'total_orders' => $unpaidOrders->count(),
             'total_sales' => $totalSales,
             'commission_rate' => $waitress->commission_rate,
             'commission_amount' => round((float) $validated['commission_amount'], 2),
@@ -144,7 +243,10 @@ class PayrollController extends Controller
             'notes' => $validated['notes'] ?? 'Commission payout processed.',
         ]);
 
-        ActivityLog::log('payroll_create', "Payroll payout of \${$payroll->commission_amount} recorded for '{$waitress->name}'.");
+        // Deduct the payout amount from the café number's balance
+        $cafeNumber->decrement('balance', round((float) $validated['commission_amount'], 2));
+
+        ActivityLog::log('payroll_create', "Payroll payout of \${$payroll->commission_amount} recorded for '{$waitress->name}' via café number {$cafeNumber->range_start}-{$cafeNumber->range_end}.");
 
         return redirect()->route('finance.payroll.show', $payroll->id)->with('success', 'Payroll payout recorded successfully!');
     }
@@ -167,6 +269,7 @@ class PayrollController extends Controller
                 'status' => $payroll->status,
                 'paid_at' => $payroll->paid_at ? $payroll->paid_at->toIso8601String() : ($payroll->created_at ? $payroll->created_at->toIso8601String() : null),
                 'notes' => $payroll->notes,
+                'sent_from_number' => $payroll->sent_from_number,
             ],
         ]);
     }

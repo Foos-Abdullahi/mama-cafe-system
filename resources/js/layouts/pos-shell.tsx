@@ -30,7 +30,7 @@ interface Props {
 const NAV_ITEMS = [
     { label: 'POS', icon: Store, href: '/pos' },
     { label: 'Products', icon: Package, href: '/management/products' },
-    { label: 'Inventory', icon: Warehouse, href: '/management/inventory' },
+    { label: 'Inventory', icon: Warehouse, href: '/finance/expenses' },
     { label: 'Reports', icon: BarChart3, href: '/finance/reports' },
     { label: 'Settings', icon: Settings, href: '/system/settings' },
 ] as const;

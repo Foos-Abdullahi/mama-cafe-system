@@ -83,6 +83,11 @@ const sections: NavSection[] = [
                 icon: Users,
             },
             {
+                title: 'Daily Waitresses',
+                href: '/finance/daily-closing',
+                icon: CalendarCheck,
+            },
+            {
                 title: 'Employees',
                 href: '/management/employees',
                 icon: UserCog,
@@ -93,15 +98,10 @@ const sections: NavSection[] = [
         title: 'Finance & Reports',
         icon: BarChart3,
         children: [
-            { title: 'Payments', href: '/finance/payments', icon: CreditCard },
             { title: 'Payroll', href: '/finance/payroll', icon: Wallet },
+            { title: 'Payments', href: '/finance/payments', icon: CreditCard },
             { title: 'Expenses', href: '/finance/expenses', icon: Receipt },
             { title: 'Reports', href: '/finance/reports', icon: BarChart3 },
-            {
-                title: 'Daily Waitresses',
-                href: '/finance/daily-closing',
-                icon: CalendarCheck,
-            },
         ],
     },
     {
@@ -113,8 +113,8 @@ const sections: NavSection[] = [
                 href: '/system/settings',
                 icon: Settings,
             },
+            { title: 'Users Management', href: '/system/users', icon: UserCog },
             { title: 'Role Permissions', href: '/system/roles', icon: Shield },
-            { title: 'Users', href: '/system/users', icon: UserCog },
             {
                 title: 'Activity Logs',
                 href: '/system/activity-logs',

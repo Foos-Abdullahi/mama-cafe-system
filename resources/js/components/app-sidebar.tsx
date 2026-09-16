@@ -9,6 +9,7 @@ import {
     LayoutGrid,
     Monitor,
     Package,
+    Receipt,
     Settings,
     Shield,
     ShoppingBag,
@@ -94,6 +95,7 @@ const sections: NavSection[] = [
         children: [
             { title: 'Payments', href: '/finance/payments', icon: CreditCard },
             { title: 'Payroll', href: '/finance/payroll', icon: Wallet },
+            { title: 'Expenses', href: '/finance/expenses', icon: Receipt },
             { title: 'Reports', href: '/finance/reports', icon: BarChart3 },
             {
                 title: 'Daily Waitresses',

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog';
 import { ArrowLeft, Edit, Trash2, Printer, ShoppingBag, Calendar, FileText } from 'lucide-react';
-import { printOrderReceipt } from '@/components/ops/print-order-receipt';
+import { printInvoice, printOrderReceipt } from '@/components/ops/print-invoice';
 
 interface Product {
     id: number;
@@ -141,6 +141,42 @@ export default function OrderShow({ order, company }: Props) {
         });
     };
 
+    const handlePrintInvoice = () => {
+        printInvoice({
+            orderNumber: order.order_number,
+            createdAt: order.created_at,
+            customer: order.waitress
+                ? {
+                      name: order.waitress.name,
+                      phone: (order.waitress as any).phone ?? null,
+                      email: null,
+                      address: null,
+                  }
+                : null,
+            items: (order.items || []).map((item) => ({
+                name: item.product?.name ?? 'Item',
+                quantity: item.quantity,
+                unit_price: Number(item.unit_price),
+                line_total: Number(item.line_total),
+            })),
+            paymentMethod: order.payments?.[0]?.method ?? null,
+            paymentStatus: order.payment_status,
+            paymentPhone: (order.waitress as any)?.phone ?? null,
+            subtotal: Number(order.subtotal ?? order.total),
+            discountAmount: Number(order.discount || 0),
+            discountType: 'fixed',
+            taxAmount: Number(order.tax || 0),
+            shippingAmount: 0,
+            grandTotal: Number(order.total),
+            paidAmount: totalPaid,
+            balanceDue: balanceDue,
+            notes: order.fixed_number
+                ? `Table #${order.fixed_number} · Order Type: ${order.order_type === 'dine_in' ? 'Dine In' : 'Takeaway'}`
+                : `Order Type: ${order.order_type === 'dine_in' ? 'Dine In' : 'Takeaway'}`,
+            company: company,
+        });
+    };
+
     return (
         <>
             <Head title={`${order.order_number} — Order Details`} />
@@ -187,16 +223,15 @@ export default function OrderShow({ order, company }: Props) {
                             variant="outline"
                             size="sm"
                             onClick={handlePrintReceipt}
-                            className="gap-1.5 text-xs shadow-xs"
+                            className="gap-1.5 text-xs shadow-xs justify-center"
                         >
                             <Printer className="h-3.5 w-3.5" />
                             Print Receipt
                         </Button>
                         <Link href={`/management/orders/${order.id}/invoice`}>
                             <Button
-                                variant="outline"
                                 size="sm"
-                                className="gap-1.5 text-xs shadow-xs"
+                                className="gap-1.5 text-xs shadow-xs justify-center"
                             >
                                 <FileText className="h-3.5 w-3.5" />
                                 Invoice

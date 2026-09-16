@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Finance\DailyClosingController;
+use App\Http\Controllers\Finance\ExpenseController;
 use App\Http\Controllers\Finance\PaymentController;
 use App\Http\Controllers\Finance\PayrollController;
 use App\Http\Controllers\Finance\ReportController;
@@ -107,6 +108,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('payroll/create', [PayrollController::class, 'create'])->name('payroll.create');
         Route::post('payroll', [PayrollController::class, 'store'])->name('payroll.store');
         Route::get('payroll/{payroll}', [PayrollController::class, 'show'])->name('payroll.show');
+        Route::resource('expenses', ExpenseController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
 
         Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
 

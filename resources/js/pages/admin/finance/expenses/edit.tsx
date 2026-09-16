@@ -11,14 +11,14 @@ interface Expense {
     purchased_at: string;
     vendor: string | null;
     notes: string | null;
+    status: 'paid' | 'pending';
 }
 
 interface Props {
     expense: Expense;
-    categories: string[];
 }
 
-export default function ExpenseEdit({ expense, categories }: Props) {
+export default function ExpenseEdit({ expense }: Props) {
     const form = useForm({
         item: expense.item,
         category: expense.category,
@@ -26,6 +26,7 @@ export default function ExpenseEdit({ expense, categories }: Props) {
         purchased_at: expense.purchased_at,
         vendor: expense.vendor ?? '',
         notes: expense.notes ?? '',
+        status: expense.status,
     });
 
     const submit = (event: React.FormEvent) => {
@@ -40,7 +41,6 @@ export default function ExpenseEdit({ expense, categories }: Props) {
                 title="Edit Expense"
                 description={`Update the purchase record for ${expense.item}.`}
                 form={form}
-                categories={categories}
                 submit={submit}
                 submitLabel="Save Changes"
             />

@@ -26,6 +26,7 @@ interface Expense {
     purchased_at: string;
     vendor: string | null;
     notes: string | null;
+    status: 'paid' | 'pending';
 }
 
 interface Props {
@@ -73,7 +74,7 @@ export default function ExpensesIndex({ expenses, stats }: Props) {
         },
         {
             accessorKey: 'category',
-            header: 'Category',
+            header: 'Expense Type',
             cell: ({ row }) => (
                 <Badge variant="outline">{row.original.category}</Badge>
             ),
@@ -94,6 +95,21 @@ export default function ExpensesIndex({ expenses, stats }: Props) {
                 <span className="font-mono text-xs text-muted-foreground">
                     {row.original.purchased_at}
                 </span>
+            ),
+        },
+        {
+            accessorKey: 'status',
+            header: 'Status',
+            cell: ({ row }) => (
+                <Badge
+                    className={
+                        row.original.status === 'paid'
+                            ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400'
+                            : 'border-amber-500/20 bg-amber-500/10 text-amber-700 hover:bg-amber-500/10 dark:text-amber-400'
+                    }
+                >
+                    {row.original.status === 'paid' ? 'Paid' : 'Pending'}
+                </Badge>
             ),
         },
         {

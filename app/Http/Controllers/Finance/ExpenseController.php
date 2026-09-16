@@ -12,8 +12,6 @@ use Inertia\Response;
 
 class ExpenseController extends Controller
 {
-    private const CATEGORIES = ['Supplies', 'Ingredients', 'Equipment', 'Utilities', 'Transport', 'Other'];
-
     public function index(): Response
     {
         $expenses = Expense::query()
@@ -37,7 +35,7 @@ class ExpenseController extends Controller
 
     public function create(): Response
     {
-        return Inertia::render('admin/finance/expenses/create', ['categories' => self::CATEGORIES]);
+        return Inertia::render('admin/finance/expenses/create');
     }
 
     public function store(Request $request): RedirectResponse
@@ -55,7 +53,7 @@ class ExpenseController extends Controller
 
     public function edit(Expense $expense): Response
     {
-        return Inertia::render('admin/finance/expenses/edit', ['expense' => $this->present($expense), 'categories' => self::CATEGORIES]);
+        return Inertia::render('admin/finance/expenses/edit', ['expense' => $this->present($expense)]);
     }
 
     public function update(Request $request, Expense $expense): RedirectResponse
@@ -84,6 +82,7 @@ class ExpenseController extends Controller
             'purchased_at' => ['required', 'date'],
             'vendor' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'status' => ['required', 'in:paid,pending'],
         ]);
     }
 
@@ -97,6 +96,7 @@ class ExpenseController extends Controller
             'purchased_at' => $expense->purchased_at->format('Y-m-d'),
             'vendor' => $expense->vendor,
             'notes' => $expense->notes,
+            'status' => $expense->status,
             'created_at' => $expense->created_at?->format('Y-m-d'),
         ];
     }

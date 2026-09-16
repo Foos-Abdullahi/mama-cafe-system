@@ -20,6 +20,7 @@ class ManagementSeeder extends Seeder
             ['name' => 'Espresso & Coffee'],
             [
                 'description' => 'Artisanal hot and cold brewed coffee beverages.',
+                'image_url' => 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=160&q=80',
                 'status' => 'active',
             ]
         );
@@ -28,6 +29,7 @@ class ManagementSeeder extends Seeder
             ['name' => 'Boba & Bubble Tea'],
             [
                 'description' => 'Refreshing flavored teas with chewy tapioca pearls.',
+                'image_url' => 'https://images.unsplash.com/photo-1558857563-b371033873b8?auto=format&fit=crop&w=160&q=80',
                 'status' => 'active',
             ]
         );
@@ -36,6 +38,7 @@ class ManagementSeeder extends Seeder
             ['name' => 'Pastries & Bakery'],
             [
                 'description' => 'Freshly baked croissants, cakes, and sweet treats.',
+                'image_url' => 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=160&q=80',
                 'status' => 'active',
             ]
         );
@@ -44,6 +47,7 @@ class ManagementSeeder extends Seeder
             ['name' => 'Snacks & Sandwiches'],
             [
                 'description' => 'Savory gourmet bites, wraps, and toasted sandwiches.',
+                'image_url' => 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&w=160&q=80',
                 'status' => 'active',
             ]
         );

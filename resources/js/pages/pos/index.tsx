@@ -21,10 +21,6 @@ import {
     ChevronLeft,
     ChevronRight,
     Coffee,
-    CookingPot,
-    CupSoda,
-    GlassWater,
-    Milk,
     X,
     Phone,
     Hash,
@@ -54,6 +50,7 @@ import { Input } from '@/components/ui/input';
 interface Category {
     id: number;
     name: string;
+    image_url: string | null;
     products_count: number;
 }
 
@@ -88,20 +85,6 @@ interface CartItem {
     product: Product;
     quantity: number;
 }
-
-/* ─── Category icon mapping ─────────────────────────────────────────────── */
-const CATEGORY_ICONS = {
-    Coffee,
-    'Hot Coffee': Coffee,
-    Boba: CupSoda,
-    'Boba Tea': CupSoda,
-    'Boba & Bubble Tea': CupSoda,
-    'Ice Chocolate': GlassWater,
-    'Ice chocloate': GlassWater,
-    'Cold Drinks': GlassWater,
-    Shakes: Milk,
-    'Hot Tea': CookingPot,
-};
 
 /* ─── Payment methods ───────────────────────────────────────────────────── */
 const PAYMENT_METHODS = [
@@ -155,7 +138,9 @@ export default function PosIndex({
 
     /** Local waitress list — starts from server props, updated after quick-create */
     const [waitressList, setWaitressList] = useState<Waitress[]>(waitresses);
-    const [availableWorkingNumbers, setAvailableWorkingNumbers] = useState<(string | number)[]>(registeredWorkingNumbers);
+    const [availableWorkingNumbers, setAvailableWorkingNumbers] = useState<
+        (string | number)[]
+    >(registeredWorkingNumbers);
 
     /** Add-waitress dialog */
     const [addWaitressOpen, setAddWaitressOpen] = useState(false);
@@ -163,14 +148,18 @@ export default function PosIndex({
     const [newWaitressPhone, setNewWaitressPhone] = useState('');
     const [newWaitressNumber, setNewWaitressNumber] = useState('');
     const [isCreatingWaitress, setIsCreatingWaitress] = useState(false);
-    const [createWaitressError, setCreateWaitressError] = useState<string | null>(null);
+    const [createWaitressError, setCreateWaitressError] = useState<
+        string | null
+    >(null);
 
     /** Assign working number dialog (for waitresses that don't have a working number) */
     const [assignModalOpen, setAssignModalOpen] = useState(false);
     const [targetWaitress, setTargetWaitress] = useState<Waitress | null>(null);
     const [assignNumberValue, setAssignNumberValue] = useState('');
     const [isAssigningNumber, setIsAssigningNumber] = useState(false);
-    const [assignNumberError, setAssignNumberError] = useState<string | null>(null);
+    const [assignNumberError, setAssignNumberError] = useState<string | null>(
+        null,
+    );
 
     const selectedWaitress = useMemo(
         () => waitressList.find((w) => String(w.id) === selectedWaitressId),
@@ -277,14 +266,18 @@ export default function PosIndex({
             {
                 onSuccess: () => {
                     setOrderSuccess(true);
-                    toast.success(`Order #${currentOrderNum} completed successfully!`);
+                    toast.success(
+                        `Order #${currentOrderNum} completed successfully!`,
+                    );
                     setCurrentOrderNum((n) => n + 1);
                     clearCart();
                     setMobileCartOpen(false);
                     setTimeout(() => setOrderSuccess(false), 3000);
                 },
                 onError: () => {
-                    toast.error('Failed to complete sale. Please check your items.');
+                    toast.error(
+                        'Failed to complete sale. Please check your items.',
+                    );
                 },
                 onFinish: () => setIsProcessing(false),
             },
@@ -298,7 +291,9 @@ export default function PosIndex({
         setCreateWaitressError(null);
 
         try {
-            const csrfMeta = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]');
+            const csrfMeta = document.querySelector<HTMLMetaElement>(
+                'meta[name="csrf-token"]',
+            );
             const response = await fetch('/pos/waitresses', {
                 method: 'POST',
                 headers: {
@@ -309,7 +304,9 @@ export default function PosIndex({
                 body: JSON.stringify({
                     name: newWaitressName.trim(),
                     phone: newWaitressPhone.trim() || undefined,
-                    working_number: newWaitressNumber ? parseInt(newWaitressNumber, 10) : undefined,
+                    working_number: newWaitressNumber
+                        ? parseInt(newWaitressNumber, 10)
+                        : undefined,
                 }),
             });
 
@@ -323,7 +320,7 @@ export default function PosIndex({
                 return;
             }
 
-            const created = await response.json() as Waitress;
+            const created = (await response.json()) as Waitress;
             setWaitressList((prev) => [...prev, created]);
             if (created.current_number != null) {
                 const numStr = String(created.current_number);
@@ -341,9 +338,13 @@ export default function PosIndex({
             setNewWaitressNumber('');
 
             if (created.current_number != null) {
-                toast.success(`Waitress "${created.name}" registered with Working No. #${created.current_number}`);
+                toast.success(
+                    `Waitress "${created.name}" registered with Working No. #${created.current_number}`,
+                );
             } else {
-                toast.success(`Waitress "${created.name}" registered successfully`);
+                toast.success(
+                    `Waitress "${created.name}" registered successfully`,
+                );
             }
         } catch {
             setCreateWaitressError('Network error. Please try again.');
@@ -356,29 +357,37 @@ export default function PosIndex({
     /* ── Assign Working Number to existing waitress ────────────────────── */
     const openAssignModal = (waitress: Waitress) => {
         setTargetWaitress(waitress);
-        setAssignNumberValue(waitress.current_number ? String(waitress.current_number) : '');
+        setAssignNumberValue(
+            waitress.current_number ? String(waitress.current_number) : '',
+        );
         setAssignNumberError(null);
         setAssignModalOpen(true);
     };
 
     const handleAssignWorkingNumber = async () => {
-        if (!targetWaitress || !assignNumberValue.trim() || isAssigningNumber) return;
+        if (!targetWaitress || !assignNumberValue.trim() || isAssigningNumber)
+            return;
         setIsAssigningNumber(true);
         setAssignNumberError(null);
 
         try {
-            const csrfMeta = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]');
-            const response = await fetch(`/pos/waitresses/${targetWaitress.id}/assign-number`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                    'X-CSRF-TOKEN': csrfMeta?.content ?? '',
+            const csrfMeta = document.querySelector<HTMLMetaElement>(
+                'meta[name="csrf-token"]',
+            );
+            const response = await fetch(
+                `/pos/waitresses/${targetWaitress.id}/assign-number`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                        'X-CSRF-TOKEN': csrfMeta?.content ?? '',
+                    },
+                    body: JSON.stringify({
+                        working_number: parseInt(assignNumberValue, 10),
+                    }),
                 },
-                body: JSON.stringify({
-                    working_number: parseInt(assignNumberValue, 10),
-                }),
-            });
+            );
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
@@ -390,13 +399,18 @@ export default function PosIndex({
                 return;
             }
 
-            const updated = await response.json() as Waitress;
+            const updated = (await response.json()) as Waitress;
             const newNum = updated.current_number;
 
             setWaitressList((prev) =>
                 prev.map((w) =>
                     w.id === updated.id
-                        ? { ...w, current_number: newNum, range_start: newNum, range_end: newNum }
+                        ? {
+                              ...w,
+                              current_number: newNum,
+                              range_start: newNum,
+                              range_end: newNum,
+                          }
                         : w,
                 ),
             );
@@ -413,7 +427,9 @@ export default function PosIndex({
 
             setAssignModalOpen(false);
             setAssignNumberValue('');
-            toast.success(`Assigned Working No. #${newNum} to ${updated.name}!`);
+            toast.success(
+                `Assigned Working No. #${newNum} to ${updated.name}!`,
+            );
         } catch {
             setAssignNumberError('Network error. Please try again.');
             toast.error('Network error. Please try again.');
@@ -520,14 +536,22 @@ export default function PosIndex({
                     onValueChange={(val) => {
                         setSelectedWaitressId(val);
                         if (val === '') {
-                            toast.info('Switched to Walk-in (no waitress assigned)');
+                            toast.info(
+                                'Switched to Walk-in (no waitress assigned)',
+                            );
                         } else {
-                            const w = waitressList.find((x) => String(x.id) === val);
+                            const w = waitressList.find(
+                                (x) => String(x.id) === val,
+                            );
                             if (w) {
                                 if (w.current_number != null) {
-                                    toast.info(`Selected ${w.name} (Working No. #${w.current_number})`);
+                                    toast.info(
+                                        `Selected ${w.name} (Working No. #${w.current_number})`,
+                                    );
                                 } else {
-                                    toast.warning(`${w.name} has no working number assigned`);
+                                    toast.warning(
+                                        `${w.name} has no working number assigned`,
+                                    );
                                 }
                             }
                         }
@@ -555,11 +579,11 @@ export default function PosIndex({
                             >
                                 <span>{w.name}</span>
                                 {w.current_number != null ? (
-                                    <span className="ml-1.5 font-mono text-[10px] font-bold opacity-75 text-[#823d21]">
+                                    <span className="ml-1.5 font-mono text-[10px] font-bold text-[#823d21] opacity-75">
                                         (Working No. #{w.current_number})
                                     </span>
                                 ) : (
-                                    <span className="ml-1.5 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800 border border-amber-200">
+                                    <span className="ml-1.5 rounded border border-amber-200 bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
                                         ⚠️ No number
                                     </span>
                                 )}
@@ -569,27 +593,31 @@ export default function PosIndex({
                 </Select>
 
                 {/* Prompt to assign a working number if the selected waitress doesn't have one */}
-                {selectedWaitress && selectedWaitress.current_number == null && (
-                    <div className="mt-2 flex items-center justify-between gap-2 rounded-xl border border-amber-300/90 bg-amber-50/90 p-2 text-xs animate-in fade-in slide-in-from-top-1 duration-200">
-                        <div className="flex items-center gap-1.5 text-amber-900 min-w-0 flex-1">
-                            <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" />
-                            <span className="truncate font-bold text-[11px]">
-                                {selectedWaitress.name} has no working number
-                            </span>
+                {selectedWaitress &&
+                    selectedWaitress.current_number == null && (
+                        <div className="mt-2 flex animate-in items-center justify-between gap-2 rounded-xl border border-amber-300/90 bg-amber-50/90 p-2 text-xs duration-200 fade-in slide-in-from-top-1">
+                            <div className="flex min-w-0 flex-1 items-center gap-1.5 text-amber-900">
+                                <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" />
+                                <span className="truncate text-[11px] font-bold">
+                                    {selectedWaitress.name} has no working
+                                    number
+                                </span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    openAssignModal(selectedWaitress)
+                                }
+                                className="shrink-0 cursor-pointer rounded-lg bg-[#2C1810] px-2.5 py-1 text-[11px] font-bold text-white shadow-xs transition-all hover:bg-[#4A2818] active:scale-95"
+                            >
+                                Assign Number
+                            </button>
                         </div>
-                        <button
-                            type="button"
-                            onClick={() => openAssignModal(selectedWaitress)}
-                            className="cursor-pointer shrink-0 rounded-lg bg-[#2C1810] px-2.5 py-1 text-[11px] font-bold text-white transition-all hover:bg-[#4A2818] active:scale-95 shadow-xs"
-                        >
-                            Assign Number
-                        </button>
-                    </div>
-                )}
+                    )}
             </div>
 
             {/* Scrollable Cart Items Container — Hidden Scrollbar */}
-            <div className="pos-scrollbar-hidden flex-1 min-h-0 overflow-y-auto px-4 py-2.5">
+            <div className="pos-scrollbar-hidden min-h-0 flex-1 overflow-y-auto px-4 py-2.5">
                 {cart.length === 0 ? (
                     <div
                         className="flex h-full flex-col items-center justify-center text-center"
@@ -700,40 +728,32 @@ export default function PosIndex({
             {/* Bottom Fixed Section: Financial Totals + Payment Buttons + CTA + Status */}
             <div className="shrink-0 border-t border-[#E8DDD2] bg-[#FAF6F0]">
                 {/* Financial Totals Card — Sits directly above Payment Buttons with zero gap */}
-                <div
-                    className="border-b border-[#E8DDD2] bg-white px-4 py-2.5"
-                >
-                    <div
-                        className="space-y-1 text-xs font-bold text-[#7A5A42] md:text-sm"
-                    >
-                        <div className="flex justify-between items-center">
+                <div className="border-b border-[#E8DDD2] bg-white px-4 py-2.5">
+                    <div className="space-y-1 text-xs font-bold text-[#7A5A42] md:text-sm">
+                        <div className="flex items-center justify-between">
                             <span>Subtotal</span>
                             <span className="font-mono text-sm font-extrabold text-[#1F110B]">
                                 ${subtotal.toFixed(2)}
                             </span>
                         </div>
-                        <div className="flex justify-between items-center">
+                        <div className="flex items-center justify-between">
                             <span>Discount</span>
                             <span className="font-mono text-sm font-extrabold text-[#1F110B]">
                                 ${discountAmount.toFixed(2)}
                             </span>
                         </div>
-                        <div className="flex justify-between items-center">
+                        <div className="flex items-center justify-between">
                             <span>Tax (0%)</span>
-                            <span className="font-mono text-sm font-extrabold text-[#1F110B]">$0.00</span>
+                            <span className="font-mono text-sm font-extrabold text-[#1F110B]">
+                                $0.00
+                            </span>
                         </div>
                     </div>
-                    <div
-                        className="mt-2 flex items-baseline justify-between border-t border-[#E8DDD2] pt-1.5"
-                    >
-                        <span
-                            className="text-base font-black text-[#1F110B]"
-                        >
+                    <div className="mt-2 flex items-baseline justify-between border-t border-[#E8DDD2] pt-1.5">
+                        <span className="text-base font-black text-[#1F110B]">
                             TOTAL
                         </span>
-                        <span
-                            className="font-mono text-2xl font-black text-[#8B1A1A] md:text-3xl"
-                        >
+                        <span className="font-mono text-2xl font-black text-[#8B1A1A] md:text-3xl">
                             ${grandTotal.toFixed(2)}
                         </span>
                     </div>
@@ -746,7 +766,9 @@ export default function PosIndex({
                             key={pm.id}
                             type="button"
                             onClick={() =>
-                                setSelectedPayment(pm.id as typeof selectedPayment)
+                                setSelectedPayment(
+                                    pm.id as typeof selectedPayment,
+                                )
                             }
                             className="flex cursor-pointer items-center justify-center gap-2 rounded-xl py-3 text-xs font-extrabold text-white transition-all active:scale-95 md:py-3.5 md:text-sm"
                             style={{
@@ -772,7 +794,8 @@ export default function PosIndex({
                         onClick={handleCompleteSale}
                         className="flex w-full cursor-pointer items-center justify-center gap-2.5 rounded-2xl py-3.5 text-base font-black text-white shadow-lg transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-40 md:py-4 md:text-lg"
                         style={{
-                            background: 'linear-gradient(135deg, #C6862A, #BA7A29)',
+                            background:
+                                'linear-gradient(135deg, #C6862A, #BA7A29)',
                         }}
                     >
                         <CheckCircle2 className="h-5.5 w-5.5" />
@@ -787,8 +810,10 @@ export default function PosIndex({
                         style={{ background: '#2C1810', color: '#FFFFFF' }}
                     >
                         <div className="flex items-center gap-1.5">
-                            <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                            <span className="text-xs font-bold text-white">Online</span>
+                            <span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
+                            <span className="text-xs font-bold text-white">
+                                Online
+                            </span>
                         </div>
                         <span className="h-3 w-[1px] bg-white/20" />
                         <span className="text-xs font-semibold text-white/80">
@@ -840,15 +865,12 @@ export default function PosIndex({
                             All
                         </button>
                         {categories.map((cat) => {
-                            const Icon =
-                                CATEGORY_ICONS[
-                                    cat.name as keyof typeof CATEGORY_ICONS
-                                ] ?? CupSoda;
-
                             return (
                                 <button
                                     key={cat.id}
-                                    onClick={() => setSelectedCategoryId(cat.id)}
+                                    onClick={() =>
+                                        setSelectedCategoryId(cat.id)
+                                    }
                                     className="flex min-h-12 shrink-0 cursor-pointer items-center gap-2.5 rounded-2xl px-6 py-2.5 text-sm font-extrabold transition-all active:scale-95 md:min-h-13 md:px-7 md:py-3 md:text-base"
                                     style={
                                         selectedCategoryId === cat.id
@@ -864,7 +886,15 @@ export default function PosIndex({
                                               }
                                     }
                                 >
-                                    <Icon className="h-4 w-4 stroke-[2.25] md:h-5 md:w-5" />
+                                    {cat.image_url ? (
+                                        <img
+                                            src={cat.image_url}
+                                            alt=""
+                                            className="h-7 w-7 rounded-full object-cover md:h-8 md:w-8"
+                                        />
+                                    ) : (
+                                        <Tag className="h-4 w-4 stroke-[2.25] md:h-5 md:w-5" />
+                                    )}
                                     {cat.name}
                                 </button>
                             );
@@ -879,9 +909,12 @@ export default function PosIndex({
                                 style={{ color: '#9B7A5E' }}
                             >
                                 <Coffee className="mb-3 h-12 w-12 opacity-30" />
-                                <p className="text-sm font-bold">No products found</p>
+                                <p className="text-sm font-bold">
+                                    No products found
+                                </p>
                                 <p className="mt-1 text-xs opacity-70">
-                                    Try selecting another category or searching again.
+                                    Try selecting another category or searching
+                                    again.
                                 </p>
                             </div>
                         ) : (
@@ -897,24 +930,36 @@ export default function PosIndex({
                                             <div
                                                 key={product.id}
                                                 className="flex items-center gap-3 border-b px-3 py-3 transition-colors active:bg-[#F4ECE2]"
-                                                style={{ borderColor: '#EDE0D0' }}
+                                                style={{
+                                                    borderColor: '#EDE0D0',
+                                                }}
                                             >
                                                 {/* ── Circle selector ── */}
                                                 <button
                                                     type="button"
                                                     onClick={() => {
                                                         if (inCart) {
-                                                            removeItem(product.id);
+                                                            removeItem(
+                                                                product.id,
+                                                            );
                                                         } else {
                                                             addToCart(product);
                                                         }
                                                     }}
                                                     className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 transition-all"
                                                     style={{
-                                                        borderColor: inCart ? '#2C1810' : '#C4A98A',
-                                                        background: inCart ? '#2C1810' : 'transparent',
+                                                        borderColor: inCart
+                                                            ? '#2C1810'
+                                                            : '#C4A98A',
+                                                        background: inCart
+                                                            ? '#2C1810'
+                                                            : 'transparent',
                                                     }}
-                                                    aria-label={inCart ? 'Remove from order' : 'Add to order'}
+                                                    aria-label={
+                                                        inCart
+                                                            ? 'Remove from order'
+                                                            : 'Add to order'
+                                                    }
                                                 >
                                                     {inCart && (
                                                         <svg
@@ -936,15 +981,22 @@ export default function PosIndex({
                                                 {/* ── Thumbnail ── */}
                                                 <button
                                                     type="button"
-                                                    onClick={() => addToCart(product)}
+                                                    onClick={() =>
+                                                        addToCart(product)
+                                                    }
                                                     className="h-16 w-16 shrink-0 cursor-pointer overflow-hidden rounded-xl"
                                                 >
                                                     <img
-                                                        src={product.image_url ?? '/images/drink-item-0.jpg'}
+                                                        src={
+                                                            product.image_url ??
+                                                            '/images/drink-item-0.jpg'
+                                                        }
                                                         alt={product.name}
                                                         className="h-full w-full object-cover"
                                                         onError={(e) => {
-                                                            (e.currentTarget as HTMLImageElement).src =
+                                                            (
+                                                                e.currentTarget as HTMLImageElement
+                                                            ).src =
                                                                 '/images/drink-item-0.jpg';
                                                         }}
                                                     />
@@ -953,19 +1005,28 @@ export default function PosIndex({
                                                 {/* ── Name + price ── */}
                                                 <div
                                                     className="flex min-w-0 flex-1 cursor-pointer flex-col"
-                                                    onClick={() => addToCart(product)}
+                                                    onClick={() =>
+                                                        addToCart(product)
+                                                    }
                                                 >
                                                     <p
-                                                        className="line-clamp-2 text-sm font-extrabold leading-snug"
-                                                        style={{ color: '#1F110B' }}
+                                                        className="line-clamp-2 text-sm leading-snug font-extrabold"
+                                                        style={{
+                                                            color: '#1F110B',
+                                                        }}
                                                     >
                                                         {product.name}
                                                     </p>
                                                     <span
                                                         className="mt-1 text-sm font-black"
-                                                        style={{ color: '#2C1810' }}
+                                                        style={{
+                                                            color: '#2C1810',
+                                                        }}
                                                     >
-                                                        ${product.price.toFixed(2)}
+                                                        $
+                                                        {product.price.toFixed(
+                                                            2,
+                                                        )}
                                                     </span>
                                                 </div>
 
@@ -974,7 +1035,8 @@ export default function PosIndex({
                                                     <div
                                                         className="flex shrink-0 items-center gap-1 rounded-xl p-0.5"
                                                         style={{
-                                                            background: '#F4ECE2',
+                                                            background:
+                                                                '#F4ECE2',
                                                             border: '1px solid #D4B99A',
                                                         }}
                                                     >
@@ -982,10 +1044,18 @@ export default function PosIndex({
                                                             type="button"
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                if (cartItem.quantity <= 1) {
-                                                                    removeItem(product.id);
+                                                                if (
+                                                                    cartItem.quantity <=
+                                                                    1
+                                                                ) {
+                                                                    removeItem(
+                                                                        product.id,
+                                                                    );
                                                                 } else {
-                                                                    updateQty(product.id, -1);
+                                                                    updateQty(
+                                                                        product.id,
+                                                                        -1,
+                                                                    );
                                                                 }
                                                             }}
                                                             className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-[#5C3A28] transition-colors hover:bg-white"
@@ -999,7 +1069,10 @@ export default function PosIndex({
                                                             type="button"
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                updateQty(product.id, 1);
+                                                                updateQty(
+                                                                    product.id,
+                                                                    1,
+                                                                );
                                                             }}
                                                             className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-[#5C3A28] transition-colors hover:bg-white"
                                                         >
@@ -1010,9 +1083,15 @@ export default function PosIndex({
                                                     /* Plus button when not in cart */
                                                     <button
                                                         type="button"
-                                                        onClick={() => addToCart(product)}
+                                                        onClick={() =>
+                                                            addToCart(product)
+                                                        }
                                                         className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-xl transition-colors"
-                                                        style={{ background: '#EDE0D0', color: '#2C1810' }}
+                                                        style={{
+                                                            background:
+                                                                '#EDE0D0',
+                                                            color: '#2C1810',
+                                                        }}
                                                     >
                                                         <Plus className="h-4 w-4" />
                                                     </button>
@@ -1033,33 +1112,41 @@ export default function PosIndex({
                                             style={{
                                                 background: '#FFFFFF',
                                                 borderColor: '#E8DDD2',
-                                                boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+                                                boxShadow:
+                                                    '0 2px 6px rgba(0,0,0,0.04)',
                                             }}
                                         >
                                             <div
-                                                className="w-full overflow-hidden rounded-xl bg-[#FAF6F0] mt-1"
+                                                className="mt-1 w-full overflow-hidden rounded-xl bg-[#FAF6F0]"
                                                 style={{ height: 95 }}
                                             >
                                                 <img
-                                                    src={product.image_url ?? '/images/drink-item-0.jpg'}
+                                                    src={
+                                                        product.image_url ??
+                                                        '/images/drink-item-0.jpg'
+                                                    }
                                                     alt={product.name}
                                                     className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                                                     onError={(e) => {
-                                                        (e.currentTarget as HTMLImageElement).src =
+                                                        (
+                                                            e.currentTarget as HTMLImageElement
+                                                        ).src =
                                                             '/images/drink-item-0.jpg';
                                                     }}
                                                 />
                                             </div>
                                             <div className="mt-2 flex w-full flex-col items-center px-1">
                                                 <p
-                                                    className="line-clamp-2 w-full text-center text-xs font-extrabold leading-tight md:text-sm"
+                                                    className="line-clamp-2 w-full text-center text-xs leading-tight font-extrabold md:text-sm"
                                                     style={{ color: '#1F110B' }}
                                                 >
                                                     {product.name}
                                                 </p>
                                                 <div
                                                     className="mt-1.5 inline-block rounded-full px-3 py-0.5 text-xs font-black text-white shadow-xs"
-                                                    style={{ background: '#7c2b20' }}
+                                                    style={{
+                                                        background: '#7c2b20',
+                                                    }}
                                                 >
                                                     ${product.price.toFixed(2)}
                                                 </div>
@@ -1240,29 +1327,49 @@ export default function PosIndex({
             >
                 <DialogContent className="max-w-md">
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-base font-black" style={{ color: '#2C1810' }}>
-                            <UserRoundPlus className="h-5 w-5" style={{ color: '#C6862A' }} />
+                        <DialogTitle
+                            className="flex items-center gap-2 text-base font-black"
+                            style={{ color: '#2C1810' }}
+                        >
+                            <UserRoundPlus
+                                className="h-5 w-5"
+                                style={{ color: '#C6862A' }}
+                            />
                             Add Working Waitress
                         </DialogTitle>
                         <p className="text-xs text-muted-foreground">
-                            Register a floor waitress profile and assign an official working number from System Settings.
+                            Register a floor waitress profile and assign an
+                            official working number from System Settings.
                         </p>
                     </DialogHeader>
 
                     <div className="flex flex-col gap-4 py-1">
                         {/* Name */}
                         <div className="flex flex-col gap-1.5">
-                            <Label htmlFor="waitress-name" className="text-xs font-bold" style={{ color: '#5C3A28' }}>
-                                Waitress Full Name <span className="text-red-500">*</span>
+                            <Label
+                                htmlFor="waitress-name"
+                                className="text-xs font-bold"
+                                style={{ color: '#5C3A28' }}
+                            >
+                                Waitress Full Name{' '}
+                                <span className="text-red-500">*</span>
                             </Label>
                             <div className="relative">
-                                <UserRound className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 opacity-50" style={{ color: '#8A6B50' }} />
+                                <UserRound
+                                    className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 opacity-50"
+                                    style={{ color: '#8A6B50' }}
+                                />
                                 <Input
                                     id="waitress-name"
                                     placeholder="e.g. Amina Hassan"
                                     value={newWaitressName}
-                                    onChange={(e) => setNewWaitressName(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleCreateWaitress()}
+                                    onChange={(e) =>
+                                        setNewWaitressName(e.target.value)
+                                    }
+                                    onKeyDown={(e) =>
+                                        e.key === 'Enter' &&
+                                        handleCreateWaitress()
+                                    }
                                     className="pl-9 text-sm"
                                     style={{ borderColor: '#CCAB88' }}
                                     autoFocus
@@ -1272,18 +1379,32 @@ export default function PosIndex({
 
                         {/* Phone */}
                         <div className="flex flex-col gap-1.5">
-                            <Label htmlFor="waitress-phone" className="text-xs font-bold" style={{ color: '#5C3A28' }}>
+                            <Label
+                                htmlFor="waitress-phone"
+                                className="text-xs font-bold"
+                                style={{ color: '#5C3A28' }}
+                            >
                                 Phone Number
-                                <span className="ml-1 font-normal opacity-60">(optional)</span>
+                                <span className="ml-1 font-normal opacity-60">
+                                    (optional)
+                                </span>
                             </Label>
                             <div className="relative">
-                                <Phone className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 opacity-50" style={{ color: '#8A6B50' }} />
+                                <Phone
+                                    className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 opacity-50"
+                                    style={{ color: '#8A6B50' }}
+                                />
                                 <Input
                                     id="waitress-phone"
                                     placeholder="e.g. 0712345678"
                                     value={newWaitressPhone}
-                                    onChange={(e) => setNewWaitressPhone(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleCreateWaitress()}
+                                    onChange={(e) =>
+                                        setNewWaitressPhone(e.target.value)
+                                    }
+                                    onKeyDown={(e) =>
+                                        e.key === 'Enter' &&
+                                        handleCreateWaitress()
+                                    }
                                     className="pl-9 text-sm"
                                     style={{ borderColor: '#CCAB88' }}
                                     type="tel"
@@ -1292,13 +1413,25 @@ export default function PosIndex({
                         </div>
 
                         {/* Working Waitress Number Configuration */}
-                        <div className="flex flex-col gap-2 rounded-xl border p-3.5" style={{ borderColor: '#E8DDD2', background: '#FDFBF8' }}>
+                        <div
+                            className="flex flex-col gap-2 rounded-xl border p-3.5"
+                            style={{
+                                borderColor: '#E8DDD2',
+                                background: '#FDFBF8',
+                            }}
+                        >
                             <div className="flex items-center justify-between">
-                                <Label htmlFor="waitress-number" className="text-xs font-bold" style={{ color: '#5C3A28' }}>
+                                <Label
+                                    htmlFor="waitress-number"
+                                    className="text-xs font-bold"
+                                    style={{ color: '#5C3A28' }}
+                                >
                                     Working Waitress Number
-                                    <span className="ml-1 font-normal opacity-60">(Floor Station No.)</span>
+                                    <span className="ml-1 font-normal opacity-60">
+                                        (Floor Station No.)
+                                    </span>
                                 </Label>
-                                <span className="text-[10px] font-bold text-[#8A6B50] uppercase tracking-wider">
+                                <span className="text-[10px] font-bold tracking-wider text-[#8A6B50] uppercase">
                                     System Settings
                                 </span>
                             </div>
@@ -1307,29 +1440,49 @@ export default function PosIndex({
                             {availableWorkingNumbers.length > 0 && (
                                 <div className="space-y-1.5">
                                     <span className="text-[11px] font-medium text-[#7A5A42]">
-                                        Choose from registered numbers in Settings:
+                                        Choose from registered numbers in
+                                        Settings:
                                     </span>
                                     <Select
                                         value={newWaitressNumber}
-                                        onValueChange={(val) => setNewWaitressNumber(val)}
+                                        onValueChange={(val) =>
+                                            setNewWaitressNumber(val)
+                                        }
                                     >
                                         <SelectTrigger
                                             className="h-9 w-full text-xs font-semibold"
-                                            style={{ borderColor: '#CCAB88', background: '#FFFFFF' }}
+                                            style={{
+                                                borderColor: '#CCAB88',
+                                                background: '#FFFFFF',
+                                            }}
                                         >
                                             <SelectValue placeholder="Select registered working number…" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {availableWorkingNumbers.map((num) => {
-                                                const assignedTo = waitressList.find(
-                                                    (w) => String(w.current_number) === String(num)
-                                                );
-                                                return (
-                                                    <SelectItem key={num} value={String(num)} className="text-xs font-semibold">
-                                                        Working No. #{num} {assignedTo ? `— (In use by ${assignedTo.name})` : '— (Available)'}
-                                                    </SelectItem>
-                                                );
-                                            })}
+                                            {availableWorkingNumbers.map(
+                                                (num) => {
+                                                    const assignedTo =
+                                                        waitressList.find(
+                                                            (w) =>
+                                                                String(
+                                                                    w.current_number,
+                                                                ) ===
+                                                                String(num),
+                                                        );
+                                                    return (
+                                                        <SelectItem
+                                                            key={num}
+                                                            value={String(num)}
+                                                            className="text-xs font-semibold"
+                                                        >
+                                                            Working No. #{num}{' '}
+                                                            {assignedTo
+                                                                ? `— (In use by ${assignedTo.name})`
+                                                                : '— (Available)'}
+                                                        </SelectItem>
+                                                    );
+                                                },
+                                            )}
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -1338,18 +1491,36 @@ export default function PosIndex({
                             {/* Direct number input */}
                             <div className="space-y-1">
                                 <span className="text-[11px] font-medium text-[#7A5A42]">
-                                    {availableWorkingNumbers.length > 0 ? 'Or enter custom working number:' : 'Enter working waitress number:'}
+                                    {availableWorkingNumbers.length > 0
+                                        ? 'Or enter custom working number:'
+                                        : 'Enter working waitress number:'}
                                 </span>
                                 <div className="relative">
-                                    <Hash className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 opacity-50" style={{ color: '#8A6B50' }} />
+                                    <Hash
+                                        className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 opacity-50"
+                                        style={{ color: '#8A6B50' }}
+                                    />
                                     <Input
                                         id="waitress-number"
                                         placeholder="e.g. 101 or 614451036"
                                         value={newWaitressNumber}
-                                        onChange={(e) => setNewWaitressNumber(e.target.value.replace(/\D/g, ''))}
-                                        onKeyDown={(e) => e.key === 'Enter' && handleCreateWaitress()}
-                                        className="pl-9 text-sm font-mono"
-                                        style={{ borderColor: '#CCAB88', background: '#FFFFFF' }}
+                                        onChange={(e) =>
+                                            setNewWaitressNumber(
+                                                e.target.value.replace(
+                                                    /\D/g,
+                                                    '',
+                                                ),
+                                            )
+                                        }
+                                        onKeyDown={(e) =>
+                                            e.key === 'Enter' &&
+                                            handleCreateWaitress()
+                                        }
+                                        className="pl-9 font-mono text-sm"
+                                        style={{
+                                            borderColor: '#CCAB88',
+                                            background: '#FFFFFF',
+                                        }}
                                         inputMode="numeric"
                                         maxLength={10}
                                     />
@@ -1359,20 +1530,27 @@ export default function PosIndex({
                             {/* Quick-select pill badges */}
                             {availableWorkingNumbers.length > 0 && (
                                 <div className="pt-1">
-                                    <span className="text-[10px] text-muted-foreground block mb-1">
-                                        Quick pick registered numbers from Settings:
+                                    <span className="mb-1 block text-[10px] text-muted-foreground">
+                                        Quick pick registered numbers from
+                                        Settings:
                                     </span>
                                     <div className="flex flex-wrap gap-1.5">
                                         {availableWorkingNumbers.map((num) => {
-                                            const isSelected = String(newWaitressNumber) === String(num);
+                                            const isSelected =
+                                                String(newWaitressNumber) ===
+                                                String(num);
                                             return (
                                                 <button
                                                     key={num}
                                                     type="button"
-                                                    onClick={() => setNewWaitressNumber(String(num))}
-                                                    className={`cursor-pointer rounded-full px-2.5 py-0.5 text-[11px] font-mono font-bold transition-all ${
+                                                    onClick={() =>
+                                                        setNewWaitressNumber(
+                                                            String(num),
+                                                        )
+                                                    }
+                                                    className={`cursor-pointer rounded-full px-2.5 py-0.5 font-mono text-[11px] font-bold transition-all ${
                                                         isSelected
-                                                            ? 'bg-[#2C1810] text-white shadow-xs scale-105'
+                                                            ? 'scale-105 bg-[#2C1810] text-white shadow-xs'
                                                             : 'bg-[#EDE0D0] text-[#5C3A28] hover:bg-[#E2D2BE]'
                                                     }`}
                                                 >
@@ -1385,13 +1563,17 @@ export default function PosIndex({
                             )}
 
                             <p className="text-[11px] text-muted-foreground">
-                                Official working number configured in System Settings for floor orders and receipts.
+                                Official working number configured in System
+                                Settings for floor orders and receipts.
                             </p>
                         </div>
 
                         {/* Error message */}
                         {createWaitressError && (
-                            <p className="rounded-lg px-3 py-2 text-xs font-semibold text-red-700" style={{ background: '#FEE2E2' }}>
+                            <p
+                                className="rounded-lg px-3 py-2 text-xs font-semibold text-red-700"
+                                style={{ background: '#FEE2E2' }}
+                            >
                                 {createWaitressError}
                             </p>
                         )}
@@ -1409,9 +1591,14 @@ export default function PosIndex({
                         <button
                             type="button"
                             onClick={handleCreateWaitress}
-                            disabled={!newWaitressName.trim() || isCreatingWaitress}
+                            disabled={
+                                !newWaitressName.trim() || isCreatingWaitress
+                            }
                             className="flex cursor-pointer items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold text-white transition-all hover:brightness-110 disabled:opacity-50"
-                            style={{ background: 'linear-gradient(135deg, #C6862A, #BA7A29)' }}
+                            style={{
+                                background:
+                                    'linear-gradient(135deg, #C6862A, #BA7A29)',
+                            }}
                         >
                             {isCreatingWaitress ? (
                                 <>
@@ -1443,37 +1630,71 @@ export default function PosIndex({
             >
                 <DialogContent className="max-w-md">
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-base font-black" style={{ color: '#2C1810' }}>
-                            <Hash className="h-5 w-5" style={{ color: '#C6862A' }} />
+                        <DialogTitle
+                            className="flex items-center gap-2 text-base font-black"
+                            style={{ color: '#2C1810' }}
+                        >
+                            <Hash
+                                className="h-5 w-5"
+                                style={{ color: '#C6862A' }}
+                            />
                             Assign Working Number
                         </DialogTitle>
                         <p className="text-xs text-muted-foreground">
                             Assign an official working floor station number to{' '}
-                            <strong className="text-foreground">{targetWaitress?.name}</strong>.
+                            <strong className="text-foreground">
+                                {targetWaitress?.name}
+                            </strong>
+                            .
                         </p>
                     </DialogHeader>
 
                     <div className="flex flex-col gap-4 py-1">
-                        <div className="rounded-xl border p-3" style={{ borderColor: '#E8DDD2', background: '#FDFBF8' }}>
+                        <div
+                            className="rounded-xl border p-3"
+                            style={{
+                                borderColor: '#E8DDD2',
+                                background: '#FDFBF8',
+                            }}
+                        >
                             <div className="flex items-center justify-between text-xs">
-                                <span className="text-muted-foreground font-semibold">Staff Member:</span>
-                                <span className="font-bold text-[#2C1810]">{targetWaitress?.name}</span>
+                                <span className="font-semibold text-muted-foreground">
+                                    Staff Member:
+                                </span>
+                                <span className="font-bold text-[#2C1810]">
+                                    {targetWaitress?.name}
+                                </span>
                             </div>
                             {targetWaitress?.phone && (
-                                <div className="flex items-center justify-between text-xs mt-1">
-                                    <span className="text-muted-foreground font-semibold">Phone:</span>
-                                    <span className="font-mono text-muted-foreground">{targetWaitress.phone}</span>
+                                <div className="mt-1 flex items-center justify-between text-xs">
+                                    <span className="font-semibold text-muted-foreground">
+                                        Phone:
+                                    </span>
+                                    <span className="font-mono text-muted-foreground">
+                                        {targetWaitress.phone}
+                                    </span>
                                 </div>
                             )}
                         </div>
 
                         {/* Working Number Selection */}
-                        <div className="flex flex-col gap-2 rounded-xl border p-3.5" style={{ borderColor: '#E8DDD2', background: '#FDFBF8' }}>
+                        <div
+                            className="flex flex-col gap-2 rounded-xl border p-3.5"
+                            style={{
+                                borderColor: '#E8DDD2',
+                                background: '#FDFBF8',
+                            }}
+                        >
                             <div className="flex items-center justify-between">
-                                <Label htmlFor="assign-working-number" className="text-xs font-bold" style={{ color: '#5C3A28' }}>
-                                    Working Waitress Number <span className="text-red-500">*</span>
+                                <Label
+                                    htmlFor="assign-working-number"
+                                    className="text-xs font-bold"
+                                    style={{ color: '#5C3A28' }}
+                                >
+                                    Working Waitress Number{' '}
+                                    <span className="text-red-500">*</span>
                                 </Label>
-                                <span className="text-[10px] font-bold text-[#8A6B50] uppercase tracking-wider">
+                                <span className="text-[10px] font-bold tracking-wider text-[#8A6B50] uppercase">
                                     System Settings
                                 </span>
                             </div>
@@ -1482,29 +1703,53 @@ export default function PosIndex({
                             {availableWorkingNumbers.length > 0 && (
                                 <div className="space-y-1.5">
                                     <span className="text-[11px] font-medium text-[#7A5A42]">
-                                        Choose from registered numbers in Settings:
+                                        Choose from registered numbers in
+                                        Settings:
                                     </span>
                                     <Select
                                         value={assignNumberValue}
-                                        onValueChange={(val) => setAssignNumberValue(val)}
+                                        onValueChange={(val) =>
+                                            setAssignNumberValue(val)
+                                        }
                                     >
                                         <SelectTrigger
                                             className="h-9 w-full text-xs font-semibold"
-                                            style={{ borderColor: '#CCAB88', background: '#FFFFFF' }}
+                                            style={{
+                                                borderColor: '#CCAB88',
+                                                background: '#FFFFFF',
+                                            }}
                                         >
                                             <SelectValue placeholder="Select registered working number…" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {availableWorkingNumbers.map((num) => {
-                                                const assignedTo = waitressList.find(
-                                                    (w) => String(w.current_number) === String(num) && w.id !== targetWaitress?.id,
-                                                );
-                                                return (
-                                                    <SelectItem key={num} value={String(num)} className="text-xs font-semibold">
-                                                        Working No. #{num} {assignedTo ? `— (In use by ${assignedTo.name})` : '— (Available)'}
-                                                    </SelectItem>
-                                                );
-                                            })}
+                                            {availableWorkingNumbers.map(
+                                                (num) => {
+                                                    const assignedTo =
+                                                        waitressList.find(
+                                                            (w) =>
+                                                                String(
+                                                                    w.current_number,
+                                                                ) ===
+                                                                    String(
+                                                                        num,
+                                                                    ) &&
+                                                                w.id !==
+                                                                    targetWaitress?.id,
+                                                        );
+                                                    return (
+                                                        <SelectItem
+                                                            key={num}
+                                                            value={String(num)}
+                                                            className="text-xs font-semibold"
+                                                        >
+                                                            Working No. #{num}{' '}
+                                                            {assignedTo
+                                                                ? `— (In use by ${assignedTo.name})`
+                                                                : '— (Available)'}
+                                                        </SelectItem>
+                                                    );
+                                                },
+                                            )}
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -1513,18 +1758,36 @@ export default function PosIndex({
                             {/* Direct number input */}
                             <div className="space-y-1">
                                 <span className="text-[11px] font-medium text-[#7A5A42]">
-                                    {availableWorkingNumbers.length > 0 ? 'Or enter custom working number:' : 'Enter working waitress number:'}
+                                    {availableWorkingNumbers.length > 0
+                                        ? 'Or enter custom working number:'
+                                        : 'Enter working waitress number:'}
                                 </span>
                                 <div className="relative">
-                                    <Hash className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 opacity-50" style={{ color: '#8A6B50' }} />
+                                    <Hash
+                                        className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 opacity-50"
+                                        style={{ color: '#8A6B50' }}
+                                    />
                                     <Input
                                         id="assign-working-number"
                                         placeholder="e.g. 101 or 614451036"
                                         value={assignNumberValue}
-                                        onChange={(e) => setAssignNumberValue(e.target.value.replace(/\D/g, ''))}
-                                        onKeyDown={(e) => e.key === 'Enter' && handleAssignWorkingNumber()}
-                                        className="pl-9 text-sm font-mono"
-                                        style={{ borderColor: '#CCAB88', background: '#FFFFFF' }}
+                                        onChange={(e) =>
+                                            setAssignNumberValue(
+                                                e.target.value.replace(
+                                                    /\D/g,
+                                                    '',
+                                                ),
+                                            )
+                                        }
+                                        onKeyDown={(e) =>
+                                            e.key === 'Enter' &&
+                                            handleAssignWorkingNumber()
+                                        }
+                                        className="pl-9 font-mono text-sm"
+                                        style={{
+                                            borderColor: '#CCAB88',
+                                            background: '#FFFFFF',
+                                        }}
                                         inputMode="numeric"
                                         maxLength={10}
                                         autoFocus
@@ -1535,20 +1798,26 @@ export default function PosIndex({
                             {/* Quick-select pill badges */}
                             {availableWorkingNumbers.length > 0 && (
                                 <div className="pt-1">
-                                    <span className="text-[10px] text-muted-foreground block mb-1">
+                                    <span className="mb-1 block text-[10px] text-muted-foreground">
                                         Quick pick registered numbers:
                                     </span>
                                     <div className="flex flex-wrap gap-1.5">
                                         {availableWorkingNumbers.map((num) => {
-                                            const isSelected = String(assignNumberValue) === String(num);
+                                            const isSelected =
+                                                String(assignNumberValue) ===
+                                                String(num);
                                             return (
                                                 <button
                                                     key={num}
                                                     type="button"
-                                                    onClick={() => setAssignNumberValue(String(num))}
-                                                    className={`cursor-pointer rounded-full px-2.5 py-0.5 text-[11px] font-mono font-bold transition-all ${
+                                                    onClick={() =>
+                                                        setAssignNumberValue(
+                                                            String(num),
+                                                        )
+                                                    }
+                                                    className={`cursor-pointer rounded-full px-2.5 py-0.5 font-mono text-[11px] font-bold transition-all ${
                                                         isSelected
-                                                            ? 'bg-[#2C1810] text-white shadow-xs scale-105'
+                                                            ? 'scale-105 bg-[#2C1810] text-white shadow-xs'
                                                             : 'bg-[#EDE0D0] text-[#5C3A28] hover:bg-[#E2D2BE]'
                                                     }`}
                                                 >
@@ -1563,7 +1832,10 @@ export default function PosIndex({
 
                         {/* Error message */}
                         {assignNumberError && (
-                            <p className="rounded-lg px-3 py-2 text-xs font-semibold text-red-700" style={{ background: '#FEE2E2' }}>
+                            <p
+                                className="rounded-lg px-3 py-2 text-xs font-semibold text-red-700"
+                                style={{ background: '#FEE2E2' }}
+                            >
                                 {assignNumberError}
                             </p>
                         )}
@@ -1581,9 +1853,14 @@ export default function PosIndex({
                         <button
                             type="button"
                             onClick={handleAssignWorkingNumber}
-                            disabled={!assignNumberValue.trim() || isAssigningNumber}
+                            disabled={
+                                !assignNumberValue.trim() || isAssigningNumber
+                            }
                             className="flex cursor-pointer items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold text-white transition-all hover:brightness-110 disabled:opacity-50"
-                            style={{ background: 'linear-gradient(135deg, #C6862A, #BA7A29)' }}
+                            style={{
+                                background:
+                                    'linear-gradient(135deg, #C6862A, #BA7A29)',
+                            }}
                         >
                             {isAssigningNumber ? (
                                 <>

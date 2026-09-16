@@ -21,6 +21,7 @@ interface Category {
     id: number;
     name: string;
     description: string | null;
+    image_url: string | null;
     status: 'active' | 'inactive';
     products_count: number;
     created_at?: string;
@@ -50,17 +51,31 @@ export default function CategoriesIndex({ categories, stats }: Props) {
         {
             accessorKey: 'id',
             header: 'ID',
-            cell: ({ row }) => <span className="font-mono text-xs text-muted-foreground">#{row.original.id}</span>,
+            cell: ({ row }) => (
+                <span className="font-mono text-xs text-muted-foreground">
+                    #{row.original.id}
+                </span>
+            ),
         },
         {
             accessorKey: 'name',
             header: 'Category Name',
             cell: ({ row }) => (
                 <div className="flex items-center gap-2.5">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#823d21]/10 text-[#823d21]">
-                        <Tag className="h-4 w-4" />
+                    <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-[#823d21]/10 text-[#823d21]">
+                        {row.original.image_url ? (
+                            <img
+                                src={row.original.image_url}
+                                alt=""
+                                className="h-full w-full object-cover"
+                            />
+                        ) : (
+                            <Tag className="h-4 w-4" />
+                        )}
                     </div>
-                    <span className="font-semibold text-foreground">{row.original.name}</span>
+                    <span className="font-semibold text-foreground">
+                        {row.original.name}
+                    </span>
                 </div>
             ),
         },
@@ -68,7 +83,7 @@ export default function CategoriesIndex({ categories, stats }: Props) {
             accessorKey: 'description',
             header: 'Description',
             cell: ({ row }) => (
-                <span className="text-xs text-muted-foreground line-clamp-1">
+                <span className="line-clamp-1 text-xs text-muted-foreground">
                     {row.original.description || 'No description provided.'}
                 </span>
             ),
@@ -77,7 +92,10 @@ export default function CategoriesIndex({ categories, stats }: Props) {
             accessorKey: 'products_count',
             header: 'Products',
             cell: ({ row }) => (
-                <Badge variant="outline" className="font-mono text-xs bg-secondary/50">
+                <Badge
+                    variant="outline"
+                    className="bg-secondary/50 font-mono text-xs"
+                >
                     {row.original.products_count} Items
                 </Badge>
             ),
@@ -91,7 +109,7 @@ export default function CategoriesIndex({ categories, stats }: Props) {
                     <Badge
                         className={
                             isActive
-                                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10 border-emerald-500/20'
+                                ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400'
                                 : 'bg-muted text-muted-foreground hover:bg-muted'
                         }
                     >
@@ -102,7 +120,7 @@ export default function CategoriesIndex({ categories, stats }: Props) {
         },
         {
             id: 'actions',
-            header: () => <span className="text-right block">Actions</span>,
+            header: () => <span className="block text-right">Actions</span>,
             cell: ({ row }) => {
                 const cat = row.original;
                 return (
@@ -116,19 +134,28 @@ export default function CategoriesIndex({ categories, stats }: Props) {
                             <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                 <DropdownMenuItem asChild>
-                                    <Link href={`/management/categories/${cat.id}`} className="flex items-center cursor-pointer">
+                                    <Link
+                                        href={`/management/categories/${cat.id}`}
+                                        className="flex cursor-pointer items-center"
+                                    >
                                         <Eye className="mr-2 h-4 w-4 text-blue-600" />
                                         View Details
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem asChild>
-                                    <Link href={`/management/categories/${cat.id}/edit`} className="flex items-center cursor-pointer">
+                                    <Link
+                                        href={`/management/categories/${cat.id}/edit`}
+                                        className="flex cursor-pointer items-center"
+                                    >
                                         <Edit className="mr-2 h-4 w-4 text-amber-600" />
                                         Edit Category
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => setDeleteTarget(cat)} className="text-red-600 focus:text-red-600 cursor-pointer">
+                                <DropdownMenuItem
+                                    onClick={() => setDeleteTarget(cat)}
+                                    className="cursor-pointer text-red-600 focus:text-red-600"
+                                >
                                     <Trash2 className="mr-2 h-4 w-4" />
                                     Delete Category
                                 </DropdownMenuItem>
@@ -148,9 +175,12 @@ export default function CategoriesIndex({ categories, stats }: Props) {
                 {/* Header */}
                 <div className="flex items-start justify-between">
                     <div>
-                        <h1 className="text-lg font-semibold">Categories Management</h1>
+                        <h1 className="text-lg font-semibold">
+                            Categories Management
+                        </h1>
                         <p className="text-xs text-muted-foreground">
-                            Organize menu items into intuitive categories for POS and online orders.
+                            Organize menu items into intuitive categories for
+                            POS and online orders.
                         </p>
                     </div>
                     <Button asChild size={'sm'}>
@@ -166,7 +196,7 @@ export default function CategoriesIndex({ categories, stats }: Props) {
                 <StatsCard sections={stats} />
 
                 {/* Main Data Table */}
-                <div className="mt-6 animate-in fade-in slide-in-from-bottom-6 duration-1000 ease-in-out">
+                <div className="mt-6 animate-in duration-1000 ease-in-out fade-in slide-in-from-bottom-6">
                     <DataTable
                         title="Menu Categories"
                         searchTitle="Filter categories by name..."
@@ -180,7 +210,11 @@ export default function CategoriesIndex({ categories, stats }: Props) {
                 open={!!deleteTarget}
                 onOpenChange={(open) => !open && setDeleteTarget(null)}
                 onConfirm={handleConfirmDelete}
-                title={deleteTarget ? `Delete Category "${deleteTarget.name}"` : 'Confirm Deletion'}
+                title={
+                    deleteTarget
+                        ? `Delete Category "${deleteTarget.name}"`
+                        : 'Confirm Deletion'
+                }
                 description="Are you sure you want to delete this category? All related menu items may be affected."
                 isDeleting={isDeleting}
             />

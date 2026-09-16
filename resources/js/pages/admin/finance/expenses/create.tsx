@@ -15,18 +15,15 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
 
-interface Props {
-    categories: string[];
-}
-
-export default function ExpenseCreate({ categories }: Props) {
+export default function ExpenseCreate() {
     const form = useForm({
         item: '',
-        category: categories[0] ?? 'Supplies',
+        category: '',
         amount: '',
         purchased_at: new Date().toISOString().slice(0, 10),
         vendor: '',
         notes: '',
+        status: 'paid' as 'paid' | 'pending',
     });
 
     const submit = (event: React.FormEvent) => {
@@ -41,7 +38,6 @@ export default function ExpenseCreate({ categories }: Props) {
                 title="Add Expense"
                 description="Record a cafe purchase such as milk, coffee beans, or supplies."
                 form={form}
-                categories={categories}
                 submit={submit}
                 submitLabel="Save Expense"
             />
@@ -53,14 +49,12 @@ export function ExpenseForm({
     title,
     description,
     form,
-    categories,
     submit,
     submitLabel,
 }: {
     title: string;
     description: string;
     form: ReturnType<typeof useForm>;
-    categories: string[];
     submit: (event: React.FormEvent) => void;
     submitLabel: string;
 }) {
@@ -121,27 +115,18 @@ export function ExpenseForm({
                                 placeholder="4.00"
                             />
                         </Field>
-                        <Field label="Category" error={form.errors.category}>
-                            <Select
+                        <Field
+                            label="Expense Type"
+                            error={form.errors.category}
+                        >
+                            <Input
                                 value={form.data.category}
-                                onValueChange={(value) =>
-                                    form.setData('category', value)
+                                onChange={(e) =>
+                                    form.setData('category', e.target.value)
                                 }
-                            >
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {categories.map((category) => (
-                                        <SelectItem
-                                            key={category}
-                                            value={category}
-                                        >
-                                            {category}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                                required
+                                placeholder="e.g. Ingredients, Supplies"
+                            />
                         </Field>
                         <Field
                             label="Purchase Date"
@@ -164,6 +149,27 @@ export function ExpenseForm({
                                 }
                                 placeholder="e.g. Local Market"
                             />
+                        </Field>
+                        <Field label="Status" error={form.errors.status}>
+                            <Select
+                                value={form.data.status}
+                                onValueChange={(value) =>
+                                    form.setData(
+                                        'status',
+                                        value as 'paid' | 'pending',
+                                    )
+                                }
+                            >
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Select status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="paid">Paid</SelectItem>
+                                    <SelectItem value="pending">
+                                        Pending
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
                         </Field>
                         <div className="grid gap-2 md:col-span-2">
                             <Label>Notes</Label>

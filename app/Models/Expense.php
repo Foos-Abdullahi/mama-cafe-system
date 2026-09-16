@@ -16,6 +16,7 @@ class Expense extends Model
         'purchased_at',
         'vendor',
         'notes',
+        'status',
     ];
 
     protected $casts = [

@@ -16,6 +16,7 @@ test('authenticated user can complete expense crud', function () {
         'purchased_at' => '2026-09-16',
         'vendor' => 'Local Market',
         'notes' => 'Daily supply',
+        'status' => 'paid',
     ])->assertRedirect(route('finance.expenses.index'));
 
     $expense = Expense::where('item', 'Fresh Milk')->firstOrFail();
@@ -29,6 +30,7 @@ test('authenticated user can complete expense crud', function () {
         'purchased_at' => '2026-09-16',
         'vendor' => 'Local Market',
         'notes' => null,
+        'status' => 'pending',
     ])->assertRedirect(route('finance.expenses.index'));
 
     $this->assertDatabaseHas('expenses', ['id' => $expense->id, 'item' => 'Oat Milk', 'amount' => 6.50]);

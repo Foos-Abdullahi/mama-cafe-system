@@ -24,7 +24,14 @@ class PosController extends Controller
     {
         $categories = Category::where('status', 'active')->withCount(['products' => function ($q) {
             $q->where('status', 'active');
-        }])->get();
+        }])->get()->map(function (Category $category) {
+            return [
+                'id' => $category->id,
+                'name' => $category->name,
+                'image_url' => $category->image_url,
+                'products_count' => $category->products_count,
+            ];
+        });
 
         $products = Product::where('status', 'active')->with('category')->get()->map(function ($p) {
             return [

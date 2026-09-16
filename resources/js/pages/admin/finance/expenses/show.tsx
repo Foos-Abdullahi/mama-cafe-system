@@ -4,6 +4,7 @@ import {
     Calendar,
     Edit,
     FileText,
+    Receipt as ReceiptIcon,
     Store,
     Trash2,
 } from 'lucide-react';
@@ -22,6 +23,7 @@ interface Expense {
     vendor: string | null;
     notes: string | null;
     created_at: string | null;
+    status: 'paid' | 'pending';
 }
 
 export default function ExpenseShow({ expense }: { expense: Expense }) {
@@ -49,6 +51,15 @@ export default function ExpenseShow({ expense }: { expense: Expense }) {
                                 {expense.item}
                             </h1>
                             <Badge variant="outline">{expense.category}</Badge>
+                            <Badge
+                                className={
+                                    expense.status === 'paid'
+                                        ? 'bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400'
+                                        : 'bg-amber-500/10 text-amber-700 hover:bg-amber-500/10 dark:text-amber-400'
+                                }
+                            >
+                                {expense.status === 'paid' ? 'Paid' : 'Pending'}
+                            </Badge>
                         </div>
                         <p className="mt-1 text-xs text-muted-foreground">
                             Purchase record created{' '}
@@ -98,11 +109,25 @@ export default function ExpenseShow({ expense }: { expense: Expense }) {
                                 label="Vendor"
                                 value={expense.vendor || 'Not recorded'}
                             />
+                            <Summary
+                                icon={<FileText />}
+                                label="Expense Type"
+                                value={expense.category}
+                            />
+                            <Summary
+                                icon={<FileText />}
+                                label="Payment Status"
+                                value={
+                                    expense.status === 'paid'
+                                        ? 'Paid'
+                                        : 'Pending'
+                                }
+                            />
                         </div>
                     </section>
                     <section className="rounded-xl border border-border bg-card p-5 shadow-xs">
                         <h2 className="border-b border-border pb-3 font-semibold">
-                            Purchase Notes
+                            Purchase Information
                         </h2>
                         <div className="flex gap-3 pt-4">
                             <FileText className="mt-0.5 h-4 w-4 text-[#823d21]" />
@@ -110,6 +135,18 @@ export default function ExpenseShow({ expense }: { expense: Expense }) {
                                 {expense.notes ||
                                     'No notes have been added for this purchase.'}
                             </p>
+                        </div>
+                        <div className="mt-6 grid gap-4 border-t border-border pt-4 sm:grid-cols-2">
+                            <Summary
+                                icon={<Calendar />}
+                                label="Recorded On"
+                                value={expense.created_at || 'Not recorded'}
+                            />
+                            <Summary
+                                icon={<ReceiptIcon />}
+                                label="Record ID"
+                                value={`#EXPENSE-${expense.id}`}
+                            />
                         </div>
                     </section>
                 </div>

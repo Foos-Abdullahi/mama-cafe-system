@@ -15,6 +15,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -84,6 +85,7 @@ class PosController extends Controller
         $assignedNumbers = FixedNumber::pluck('current_number')->map(fn ($n) => (string) $n)->toArray();
         $registeredWorkingNumbers = array_values(array_unique(array_filter(array_merge($configuredNumbers, $assignedNumbers))));
         sort($registeredWorkingNumbers, SORT_NATURAL);
+        $taxRate = (float) Setting::getByKey('tax_rate', '0');
 
         return Inertia::render('pos/index', [
             'categories' => $categories,
@@ -92,6 +94,7 @@ class PosController extends Controller
             'registeredWorkingNumbers' => $registeredWorkingNumbers,
             'recentOrders' => $recentOrders,
             'nextOrderNumber' => $nextOrderNumber,
+            'taxRate' => $taxRate,
         ]);
     }
 
@@ -147,7 +150,7 @@ class PosController extends Controller
             'waitress_id' => 'nullable|exists:waitresses,id',
             'payment_method' => 'required|in:cash,mobile_money,card,credit',
             'payment_status' => 'required|in:paid,partial,unpaid',
-            'amount_paid' => 'nullable|numeric|min:0',
+            'amount_paid' => 'nullable|required_if:payment_status,partial|numeric|min:0.01',
             'discount' => 'nullable|numeric|min:0',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
@@ -173,7 +176,11 @@ class PosController extends Controller
             }
 
             $discount = (float) ($validated['discount'] ?? 0);
-            $total = max(0, $subtotal - $discount);
+            $discount = min($discount, $subtotal);
+            $taxRate = (float) Setting::getByKey('tax_rate', '0');
+            $taxableSubtotal = max(0, $subtotal - $discount);
+            $tax = round($taxableSubtotal * ($taxRate / 100), 2);
+            $total = round($taxableSubtotal + $tax, 2);
             $orderNumber = 'ORD-'.strtoupper(Str::random(6));
 
             $order = Order::create([
@@ -183,11 +190,11 @@ class PosController extends Controller
                 'order_type' => $validated['order_type'],
                 'subtotal' => $subtotal,
                 'discount' => $discount,
-                'tax' => 0.00,
+                'tax' => $tax,
                 'total' => $total,
-                'status' => 'completed',
+                'status' => 'pending',
                 'payment_status' => $validated['payment_status'],
-                'completed_at' => now(),
+                'completed_at' => null,
             ]);
 
             foreach ($itemsToCreate as $item) {
@@ -199,6 +206,12 @@ class PosController extends Controller
                 'partial' => (float) ($validated['amount_paid'] ?? 0),
                 'unpaid' => 0.00,
             };
+
+            if ($paidAmount > $total || ($validated['payment_status'] === 'partial' && $paidAmount >= $total)) {
+                throw ValidationException::withMessages([
+                    'amount_paid' => 'The partial payment amount must be less than the order total.',
+                ]);
+            }
 
             Payment::create([
                 'order_id' => $order->id,
@@ -235,6 +248,91 @@ class PosController extends Controller
         ActivityLog::log('pos_order', "POS order #{$order->order_number} was processed (total: \${$order->total}).");
 
         return redirect()->route('pos.index')->with('success', "Order #{$order->order_number} completed successfully!");
+    }
+
+    public function updateStatus(Request $request, Order $order): RedirectResponse
+    {
+        $validated = $request->validate([
+            'status' => 'required|in:pending,completed,refunded,cancelled',
+        ]);
+
+        if ($validated['status'] === 'completed' && $order->payment_status !== 'paid') {
+            throw ValidationException::withMessages([
+                'status' => 'This order must be paid before it can be marked as completed. Pay the order first.',
+            ]);
+        }
+
+        $order->update([
+            'status' => $validated['status'],
+            'completed_at' => $validated['status'] === 'completed' ? now() : null,
+        ]);
+
+        ActivityLog::log('order_status', "Order #{$order->order_number} status changed to {$validated['status']}.");
+
+        return redirect()->back()->with('success', 'Order status updated successfully.');
+    }
+
+    public function updatePaymentStatus(Request $request, Order $order): RedirectResponse
+    {
+        $validated = $request->validate([
+            'payment_status' => 'required|in:paid,pending,partial,unpaid,refunded',
+            'amount_paid' => 'nullable|required_if:payment_status,partial|numeric|min:0.01',
+        ]);
+
+        $total = (float) $order->total;
+        $currentPaid = (float) $order->payments()->sum('amount');
+        $remaining = max(0, $total - $currentPaid);
+
+        if ($validated['payment_status'] === 'partial') {
+            $amountPaid = (float) $validated['amount_paid'];
+
+            if ($amountPaid > $remaining) {
+                throw ValidationException::withMessages([
+                    'amount_paid' => 'The payment cannot exceed the remaining balance of $'.number_format($remaining, 2).'.',
+                ]);
+            }
+
+            if ($amountPaid >= $remaining) {
+                throw ValidationException::withMessages([
+                    'amount_paid' => 'This amount settles the full balance. Mark the order as paid instead.',
+                ]);
+            }
+        }
+
+        DB::transaction(function () use ($order, $validated, $remaining): void {
+            $status = $validated['payment_status'];
+
+            if ($status === 'paid') {
+                if ($remaining > 0) {
+                    $order->payments()->create([
+                        'method' => 'cash',
+                        'amount' => $remaining,
+                        'status' => 'paid',
+                        'paid_at' => now(),
+                    ]);
+                }
+            } elseif ($status === 'partial') {
+                $order->payments()->create([
+                    'method' => 'cash',
+                    'amount' => (float) $validated['amount_paid'],
+                    'status' => 'partial',
+                    'paid_at' => now(),
+                ]);
+            } elseif ($status === 'refunded') {
+                $order->payments()->latest('id')->first()?->update([
+                    'status' => 'refunded',
+                    'paid_at' => null,
+                ]);
+            } else {
+                $order->payments()->update(['status' => $status]);
+            }
+
+            $order->update(['payment_status' => $status]);
+        });
+
+        ActivityLog::log('payment_status', "Payment status for order #{$order->order_number} changed to {$validated['payment_status']}.");
+
+        return redirect()->back()->with('success', 'Payment status updated successfully.');
     }
 
     public function storeWaitress(Request $request): JsonResponse

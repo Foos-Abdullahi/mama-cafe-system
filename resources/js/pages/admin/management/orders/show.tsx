@@ -1,11 +1,33 @@
 import React, { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog';
-import { ArrowLeft, Edit, Trash2, Printer, ShoppingBag, Calendar, FileText } from 'lucide-react';
-import { printInvoice, printOrderReceipt } from '@/components/ops/print-invoice';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import {
+    ArrowLeft,
+    Edit,
+    Trash2,
+    Printer,
+    ShoppingBag,
+    Calendar,
+    FileText,
+    Banknote,
+    RotateCcw,
+} from 'lucide-react';
+import {
+    printInvoice,
+    printOrderReceipt,
+} from '@/components/ops/print-invoice';
 
 interface Product {
     id: number;
@@ -70,22 +92,37 @@ interface Props {
 
 const statusBadgeClasses: Record<string, string> = {
     draft: 'bg-slate-100 text-slate-700 dark:bg-slate-900/50 dark:text-slate-300 border-slate-200 dark:border-slate-800',
-    pending: 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200 dark:border-amber-800',
-    completed: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800',
-    cancelled: 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border-rose-200 dark:border-rose-800',
-    refunded: 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400 border-purple-200 dark:border-purple-800',
+    pending:
+        'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200 dark:border-amber-800',
+    completed:
+        'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800',
+    cancelled:
+        'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border-rose-200 dark:border-rose-800',
+    refunded:
+        'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400 border-purple-200 dark:border-purple-800',
 };
 
 const paymentBadgeClasses: Record<string, string> = {
     paid: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800',
-    partial: 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200 dark:border-amber-800',
+    pending:
+        'border-blue-200 bg-blue-100 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-400',
+    partial:
+        'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200 dark:border-amber-800',
     unpaid: 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border-rose-200 dark:border-rose-800',
-    refunded: 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400 border-purple-200 dark:border-purple-800',
+    refunded:
+        'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400 border-purple-200 dark:border-purple-800',
 };
 
 export default function OrderShow({ order, company }: Props) {
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [statusTarget, setStatusTarget] = useState<string | null>(null);
+    const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+    const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+    const [paymentStatus, setPaymentStatus] = useState(order.payment_status);
+    const [amountPaidInput, setAmountPaidInput] = useState('');
+    const [paymentError, setPaymentError] = useState<string | null>(null);
+    const [isUpdatingPayment, setIsUpdatingPayment] = useState(false);
 
     const handleConfirmDelete = () => {
         setIsDeleting(true);
@@ -97,9 +134,77 @@ export default function OrderShow({ order, company }: Props) {
         });
     };
 
+    const handleStatusChange = () => {
+        if (!statusTarget) return;
+        setIsUpdatingStatus(true);
+        router.patch(
+            `/management/orders/${order.id}/status`,
+            { status: statusTarget },
+            {
+                onFinish: () => {
+                    setIsUpdatingStatus(false);
+                    setStatusTarget(null);
+                },
+            },
+        );
+    };
+
+    const openPaymentDialog = () => {
+        setPaymentStatus(order.payment_status);
+        setAmountPaidInput('');
+        setPaymentError(null);
+        setPaymentDialogOpen(true);
+    };
+
+    const handlePaymentChange = () => {
+        let submitStatus = paymentStatus;
+
+        if (paymentStatus === 'partial') {
+            const amount = Number(amountPaidInput);
+            if (!Number.isFinite(amount) || amount <= 0) {
+                setPaymentError('Enter an amount greater than 0.');
+                return;
+            }
+            if (amount > balanceDue) {
+                setPaymentError(
+                    `The payment cannot exceed the remaining balance of $${balanceDue.toFixed(2)}.`,
+                );
+                return;
+            }
+            if (amount >= balanceDue) {
+                submitStatus = 'paid';
+            }
+        }
+
+        setPaymentError(null);
+        setIsUpdatingPayment(true);
+        router.patch(
+            `/management/orders/${order.id}/payment-status`,
+            {
+                payment_status: submitStatus,
+                amount_paid:
+                    submitStatus === 'partial'
+                        ? Number(amountPaidInput)
+                        : undefined,
+            },
+            {
+                onSuccess: () => {
+                    setPaymentDialogOpen(false);
+                    setPaymentError(null);
+                },
+                onError: () => {
+                    toast('Unable to update payment. Check the amount entered.');
+                },
+                onFinish: () => {
+                    setIsUpdatingPayment(false);
+                },
+            },
+        );
+    };
+
     const totalPaid = (order.payments || []).reduce(
         (sum, p) => sum + Number(p.amount || 0),
-        0
+        0,
     );
     const balanceDue = Math.max(0, Number(order.total) - totalPaid);
 
@@ -181,38 +286,43 @@ export default function OrderShow({ order, company }: Props) {
         <>
             <Head title={`${order.order_number} — Order Details`} />
 
-            <div className="flex flex-col gap-6 p-4 md:p-6 animate-in fade-in slide-in-from-bottom-3 duration-300">
+            <div className="flex animate-in flex-col gap-6 p-4 duration-300 fade-in slide-in-from-bottom-3 md:p-6">
                 {/* Header with Title and Actions */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4 print:hidden">
+                <div className="flex flex-col justify-between gap-4 border-b border-border pb-4 sm:flex-row sm:items-center print:hidden">
                     <div>
                         <div className="flex items-center gap-3">
-                            <h1 className="text-lg md:text-xl font-semibold text-foreground tracking-tight">
+                            <h1 className="text-lg font-semibold tracking-tight text-foreground md:text-xl">
                                 {order.order_number}
                             </h1>
                             <div className="flex items-center gap-2">
                                 <Badge
                                     variant="outline"
-                                    className={`capitalize font-medium text-xs ${statusBadgeClasses[order.status] ?? ''}`}
+                                    className={`text-xs font-medium capitalize ${statusBadgeClasses[order.status] ?? ''}`}
                                 >
                                     {order.status.replace('_', ' ')}
                                 </Badge>
                                 <Badge
                                     variant="outline"
-                                    className={`capitalize font-medium text-xs ${paymentBadgeClasses[order.payment_status] ?? ''}`}
+                                    className={`text-xs font-medium capitalize ${paymentBadgeClasses[order.payment_status] ?? ''}`}
                                 >
                                     {order.payment_status.replace('_', ' ')}
                                 </Badge>
                                 <Badge variant="outline" className="text-xs">
-                                    {order.order_type === 'dine_in' ? 'Dine In' : 'Takeaway'}
+                                    {order.order_type === 'dine_in'
+                                        ? 'Dine In'
+                                        : 'Takeaway'}
                                 </Badge>
                                 {order.fixed_number && (
-                                    <Badge variant="outline" className="text-xs font-mono">
+                                    <Badge
+                                        variant="outline"
+                                        className="font-mono text-xs"
+                                    >
                                         Table #{order.fixed_number}
                                     </Badge>
                                 )}
                             </div>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
+                        <p className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                             <Calendar className="h-3.5 w-3.5" />
                             {formatDateTime(order.created_at)}
                         </p>
@@ -223,7 +333,7 @@ export default function OrderShow({ order, company }: Props) {
                             variant="outline"
                             size="sm"
                             onClick={handlePrintReceipt}
-                            className="gap-1.5 text-xs shadow-xs justify-center"
+                            className="justify-center gap-1.5 text-xs shadow-xs"
                         >
                             <Printer className="h-3.5 w-3.5" />
                             Print Receipt
@@ -231,29 +341,80 @@ export default function OrderShow({ order, company }: Props) {
                         <Link href={`/management/orders/${order.id}/invoice`}>
                             <Button
                                 size="sm"
-                                className="gap-1.5 text-xs shadow-xs justify-center"
+                                className="justify-center gap-1.5 text-xs shadow-xs"
                             >
                                 <FileText className="h-3.5 w-3.5" />
                                 Invoice
-                            </Button>
-                        </Link>
-                        <Link href={`/management/orders/${order.id}/edit`}>
-                            <Button variant="outline" size="sm" className="gap-1.5 text-xs shadow-xs">
-                                <Edit className="h-3.5 w-3.5" />
-                                Edit
                             </Button>
                         </Link>
                         <Button
                             variant="outline"
                             size="sm"
                             onClick={() => setConfirmOpen(true)}
-                            className="gap-1.5 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive shadow-xs border-destructive/30"
+                            className="gap-1.5 border-destructive/30 text-xs text-destructive shadow-xs hover:bg-destructive/10 hover:text-destructive"
                         >
                             <Trash2 className="h-3.5 w-3.5" />
                             Delete
                         </Button>
+                        {order.status === 'pending' && (
+                            <>
+                                <Button
+                                    size="sm"
+                                    onClick={() =>
+                                        setStatusTarget('completed')
+                                    }
+                                    className="gap-1.5 bg-emerald-600 text-xs text-white hover:bg-emerald-700"
+                                >
+                                    <ShoppingBag className="h-3.5 w-3.5" />
+                                    Mark Completed
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setStatusTarget('refunded')}
+                                    className="gap-1.5 border-purple-300 text-xs text-purple-700 hover:bg-purple-50"
+                                >
+                                    Refund
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setStatusTarget('cancelled')}
+                                    className="gap-1.5 border-destructive/30 text-xs text-destructive hover:bg-destructive/10"
+                                >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                    Cancel Order
+                                </Button>
+                            </>
+                        )}
+                        {order.status === 'cancelled' && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setStatusTarget('pending')}
+                                className="gap-1.5 border-amber-300 text-xs text-amber-700 hover:bg-amber-50"
+                            >
+                                <RotateCcw className="h-3.5 w-3.5" />
+                                Re-Pending
+                            </Button>
+                        )}
+                        {order.status === 'refunded' && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setStatusTarget('pending')}
+                                className="gap-1.5 border-amber-300 text-xs text-amber-700 hover:bg-amber-50"
+                            >
+                                <RotateCcw className="h-3.5 w-3.5" />
+                                Back to Pending
+                            </Button>
+                        )}
                         <Link href="/management/orders">
-                            <Button variant="outline" size="sm" className="gap-1.5 text-xs shadow-xs">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1.5 text-xs shadow-xs"
+                            >
                                 <ArrowLeft className="h-3.5 w-3.5" />
                                 Back
                             </Button>
@@ -264,15 +425,15 @@ export default function OrderShow({ order, company }: Props) {
                 {/* Main 2-Column Grid */}
                 <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
                     {/* Left Column: Order Items Table */}
-                    <section className="rounded-xl border border-border bg-card shadow-xs overflow-hidden">
-                        <div className="border-b border-border px-4 py-3 flex items-center justify-between bg-muted/20">
+                    <section className="overflow-hidden rounded-xl border border-border bg-card shadow-xs">
+                        <div className="flex items-center justify-between border-b border-border bg-muted/20 px-4 py-3">
                             <div className="flex items-center gap-2">
                                 <ShoppingBag className="h-4 w-4 text-[#823d21]" />
-                                <h2 className="font-semibold text-foreground text-sm">
+                                <h2 className="text-sm font-semibold text-foreground">
                                     Order Items
                                 </h2>
                             </div>
-                            <span className="text-xs text-muted-foreground font-medium">
+                            <span className="text-xs font-medium text-muted-foreground">
                                 {order.items?.length || 0} items
                             </span>
                         </div>
@@ -281,36 +442,57 @@ export default function OrderShow({ order, company }: Props) {
                                 <thead className="bg-muted/40">
                                     <tr>
                                         <TableHead>Product</TableHead>
-                                        <TableHead className="text-center">Qty</TableHead>
-                                        <TableHead className="text-right">Unit Price</TableHead>
-                                        <TableHead className="text-right">Line Total</TableHead>
+                                        <TableHead className="text-center">
+                                            Qty
+                                        </TableHead>
+                                        <TableHead className="text-right">
+                                            Unit Price
+                                        </TableHead>
+                                        <TableHead className="text-right">
+                                            Line Total
+                                        </TableHead>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border">
                                     {order.items?.map((item) => (
-                                        <tr key={item.id} className="hover:bg-muted/30 transition-colors">
+                                        <tr
+                                            key={item.id}
+                                            className="transition-colors hover:bg-muted/30"
+                                        >
                                             <td className="px-4 py-3">
                                                 <p className="font-medium text-foreground">
                                                     {item.product?.name ?? '—'}
                                                 </p>
-                                                <p className="text-xs text-muted-foreground font-mono">
-                                                    ID: #{item.product?.id ?? item.id}
+                                                <p className="font-mono text-xs text-muted-foreground">
+                                                    ID: #
+                                                    {item.product?.id ??
+                                                        item.id}
                                                 </p>
                                             </td>
                                             <td className="px-4 py-3 text-center font-mono font-medium">
                                                 {item.quantity}
                                             </td>
                                             <td className="px-4 py-3 text-right font-mono text-muted-foreground">
-                                                ${Number(item.unit_price).toFixed(2)}
+                                                $
+                                                {Number(
+                                                    item.unit_price,
+                                                ).toFixed(2)}
                                             </td>
                                             <td className="px-4 py-3 text-right font-mono font-semibold text-foreground">
-                                                ${Number(item.line_total).toFixed(2)}
+                                                $
+                                                {Number(
+                                                    item.line_total,
+                                                ).toFixed(2)}
                                             </td>
                                         </tr>
                                     ))}
-                                    {(!order.items || order.items.length === 0) && (
+                                    {(!order.items ||
+                                        order.items.length === 0) && (
                                         <tr>
-                                            <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
+                                            <td
+                                                colSpan={4}
+                                                className="px-4 py-8 text-center text-muted-foreground"
+                                            >
                                                 No items in this order.
                                             </td>
                                         </tr>
@@ -336,9 +518,10 @@ export default function OrderShow({ order, company }: Props) {
                             <SummaryRow
                                 label="Paid Amount"
                                 value={`$${totalPaid.toFixed(2)}`}
+                                strong
                             />
                             <SummaryRow
-                                label="Balance Due"
+                                label="Remaining Balance"
                                 value={`$${balanceDue.toFixed(2)}`}
                                 strong
                             />
@@ -348,7 +531,11 @@ export default function OrderShow({ order, company }: Props) {
                         <Panel title="Order Details">
                             <SummaryRow
                                 label="Order Type"
-                                value={order.order_type === 'dine_in' ? 'Dine In' : 'Takeaway'}
+                                value={
+                                    order.order_type === 'dine_in'
+                                        ? 'Dine In'
+                                        : 'Takeaway'
+                                }
                             />
                             {order.fixed_number && (
                                 <SummaryRow
@@ -376,8 +563,26 @@ export default function OrderShow({ order, company }: Props) {
 
                 {/* Bottom Row: Payments */}
                 <div className="grid gap-4 lg:grid-cols-2">
-                    <Panel title="Payment Records">
-                        {(!order.payments || order.payments.length === 0) ? (
+                    <Panel
+                        title="Payment Records"
+                        actions={
+                            !['paid', 'refunded'].includes(
+                                order.payment_status,
+                            ) ? (
+                                <Button
+                                    size="sm"
+                                    onClick={openPaymentDialog}
+                                    className="h-7 gap-1.5 text-xs"
+                                >
+                                    <Banknote className="h-3.5 w-3.5" />
+                                    {order.payment_status === 'partial'
+                                        ? 'Pay Remaining'
+                                        : 'Update Payment'}
+                                </Button>
+                            ) : null
+                        }
+                    >
+                        {!order.payments || order.payments.length === 0 ? (
                             <p className="text-sm text-muted-foreground">
                                 No payment records logged for this order.
                             </p>
@@ -386,38 +591,66 @@ export default function OrderShow({ order, company }: Props) {
                                 {order.payments.map((payment) => (
                                     <div
                                         key={payment.id}
-                                        className="rounded-lg border border-border p-3 text-sm bg-muted/20"
+                                        className="rounded-lg border border-border bg-muted/20 p-3 text-sm"
                                     >
                                         <div className="flex items-center justify-between">
                                             <span className="font-semibold text-foreground capitalize">
-                                                {payment.method?.replace('_', ' ') || 'Cash'}
+                                                {payment.method?.replace(
+                                                    '_',
+                                                    ' ',
+                                                ) || 'Cash'}
                                             </span>
-                                            <span className="font-bold font-mono text-foreground">
-                                                ${Number(payment.amount).toFixed(2)}
+                                            <span className="font-mono font-bold text-foreground">
+                                                $
+                                                {Number(payment.amount).toFixed(
+                                                    2,
+                                                )}
                                             </span>
                                         </div>
                                         <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
-                                            <span className="capitalize">Status: {payment.status}</span>
+                                            <span className="capitalize">
+                                                Status: {payment.status}
+                                            </span>
                                             {payment.created_at && (
-                                                <span>{formatDateTime(payment.created_at)}</span>
+                                                <span>
+                                                    {formatDateTime(
+                                                        payment.created_at,
+                                                    )}
+                                                </span>
                                             )}
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         )}
+                        <div className="mt-4 grid gap-2 rounded-lg border border-border bg-muted/20 p-3 text-sm sm:grid-cols-2">
+                            <SummaryRow
+                                label="Paid"
+                                value={`$${totalPaid.toFixed(2)}`}
+                                strong
+                            />
+                            <SummaryRow
+                                label="Remaining"
+                                value={`$${balanceDue.toFixed(2)}`}
+                                strong
+                            />
+                        </div>
                     </Panel>
 
                     <Panel title="Order Fulfillment">
                         <div className="space-y-2 text-sm">
                             <SummaryRow
                                 label="Order Status"
-                                value={order.status.replace('_', ' ').toUpperCase()}
+                                value={order.status
+                                    .replace('_', ' ')
+                                    .toUpperCase()}
                                 strong
                             />
                             <SummaryRow
                                 label="Payment Status"
-                                value={order.payment_status.replace('_', ' ').toUpperCase()}
+                                value={order.payment_status
+                                    .replace('_', ' ')
+                                    .toUpperCase()}
                                 strong
                             />
                             <SummaryRow
@@ -437,16 +670,199 @@ export default function OrderShow({ order, company }: Props) {
                 description="Are you sure you want to delete this order record? This action cannot be undone."
                 isDeleting={isDeleting}
             />
+
+            <Dialog
+                open={statusTarget !== null}
+                onOpenChange={(open) => !open && setStatusTarget(null)}
+            >
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Confirm Order Status</DialogTitle>
+                        <DialogDescription>
+                            Please confirm that you want to mark{' '}
+                            {order.order_number} as{' '}
+                            <span className="font-semibold capitalize">
+                                {statusTarget}
+                            </span>
+                            .
+                            {statusTarget === 'completed' &&
+                                order.payment_status !== 'paid' && (
+                                    <span className="mt-1 block rounded-md bg-amber-50 p-2 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400">
+                                        This order is not fully paid yet. Pay
+                                        the remaining balance first.
+                                    </span>
+                                )}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        {statusTarget === 'completed' &&
+                        order.payment_status !== 'paid' ? (
+                            <Button
+                                type="button"
+                                onClick={() => {
+                                    setStatusTarget(null);
+                                    openPaymentDialog();
+                                }}
+                                className="gap-1.5"
+                            >
+                                <Banknote className="h-3.5 w-3.5" />
+                                Update Payment
+                            </Button>
+                        ) : (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setStatusTarget(null)}
+                                disabled={isUpdatingStatus}
+                            >
+                                Cancel
+                            </Button>
+                        )}
+                        <Button
+                            type="button"
+                            onClick={handleStatusChange}
+                            disabled={
+                                isUpdatingStatus ||
+                                (statusTarget === 'completed' &&
+                                    order.payment_status !== 'paid')
+                            }
+                            className={
+                                statusTarget === 'cancelled'
+                                    ? 'bg-destructive text-white hover:bg-destructive/90'
+                                    : ''
+                            }
+                        >
+                            {isUpdatingStatus
+                                ? 'Updating...'
+                                : 'Confirm Change'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={paymentDialogOpen}
+                onOpenChange={setPaymentDialogOpen}
+            >
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Update Payment</DialogTitle>
+                        <DialogDescription>
+                            Update the payment state for {order.order_number}.
+                            Current: <span className="capitalize">{order.payment_status.replace('_', ' ')}</span> —
+                            ${totalPaid.toFixed(2)} of ${Number(order.total).toFixed(2)} paid. Balance
+                            due: ${balanceDue.toFixed(2)}.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <label
+                                htmlFor="payment-status"
+                                className="text-sm font-medium"
+                            >
+                                Payment status
+                            </label>
+                            <select
+                                id="payment-status"
+                                value={paymentStatus}
+                                onChange={(event) =>
+                                    setPaymentStatus(event.target.value)
+                                }
+                                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                            >
+                                <option value="paid">Paid</option>
+                                <option value="pending">Pending</option>
+                                <option value="partial">Partial</option>
+                                <option value="unpaid">Unpaid</option>
+                                <option value="refunded">Refunded</option>
+                            </select>
+                        </div>
+                        {paymentStatus === 'partial' && (
+                            <div className="space-y-2">
+                                <label
+                                    htmlFor="amount-paid"
+                                    className="text-sm font-medium"
+                                >
+                                    Additional payment amount
+                                </label>
+                                <input
+                                    id="amount-paid"
+                                    type="number"
+                                    min="0.01"
+                                    max={balanceDue}
+                                    step="0.01"
+                                    value={amountPaidInput}
+                                    onChange={(event) => {
+                                        setAmountPaidInput(event.target.value);
+                                        setPaymentError(null);
+                                    }}
+                                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Up to ${balanceDue.toFixed(2)} can be added
+                                    toward the balance. Balance after payment: $
+                                    {Math.max(
+                                        0,
+                                        balanceDue -
+                                            Number(
+                                                amountPaidInput || 0,
+                                            ),
+                                    ).toFixed(2)}
+                                </p>
+                            </div>
+                        )}
+                        {paymentStatus === 'paid' && (
+                            <p className="rounded-lg bg-emerald-50 p-3 text-sm font-semibold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400">
+                                This will collect the remaining $
+                                {balanceDue.toFixed(2)} and mark {order.order_number} as fully paid.
+                            </p>
+                        )}
+                        {paymentError && (
+                            <p className="rounded-lg bg-red-50 p-3 text-sm font-semibold text-red-700">
+                                {paymentError}
+                            </p>
+                        )}
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setPaymentDialogOpen(false)}
+                            disabled={isUpdatingPayment}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={handlePaymentChange}
+                            disabled={isUpdatingPayment}
+                        >
+                            {isUpdatingPayment ? 'Updating...' : 'Save Changes'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }
 
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+function Panel({
+    title,
+    children,
+    actions,
+}: {
+    title: string;
+    children: React.ReactNode;
+    actions?: React.ReactNode;
+}) {
     return (
         <section className="rounded-xl border border-border bg-card p-4 shadow-xs">
-            <h2 className="mb-3 font-semibold text-foreground text-sm border-b border-border pb-2">
-                {title}
-            </h2>
+            <div className="mb-3 flex items-center justify-between border-b border-border pb-2">
+                <h2 className="text-sm font-semibold text-foreground">
+                    {title}
+                </h2>
+                {actions}
+            </div>
             {children}
         </section>
     );
@@ -463,12 +879,12 @@ function SummaryRow({
 }) {
     return (
         <div className="flex items-center justify-between py-1 text-sm">
-            <span className="text-muted-foreground text-xs">{label}</span>
+            <span className="text-xs text-muted-foreground">{label}</span>
             <span
                 className={
                     strong
-                        ? 'font-bold font-mono text-foreground'
-                        : 'font-medium font-mono text-foreground'
+                        ? 'font-mono font-bold text-foreground'
+                        : 'font-mono font-medium text-foreground'
                 }
             >
                 {value}

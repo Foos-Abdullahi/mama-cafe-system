@@ -32,6 +32,7 @@ import PosShell from '@/layouts/pos-shell';
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle,
     DialogFooter,
@@ -80,6 +81,7 @@ interface Props {
     registeredWorkingNumbers?: (string | number)[];
     recentOrders: unknown[];
     nextOrderNumber: number;
+    taxRate: number;
 }
 
 interface CartItem {
@@ -114,6 +116,7 @@ export default function PosIndex({
     waitresses,
     registeredWorkingNumbers = [],
     nextOrderNumber,
+    taxRate,
 }: Props) {
     const { auth } = usePage<{ auth: { user: User } }>().props;
     const user = auth?.user;
@@ -132,6 +135,14 @@ export default function PosIndex({
     const [orderSuccess, setOrderSuccess] = useState(false);
     const [currentOrderNum, setCurrentOrderNum] = useState(nextOrderNumber);
     const [discountAmount, setDiscountAmount] = useState(0);
+    const [discountType, setDiscountType] = useState<'fixed' | 'percentage'>('fixed');
+    const [discountDialogOpen, setDiscountDialogOpen] = useState(false);
+    const [discountInput, setDiscountInput] = useState('0');
+    const [saleConfirmOpen, setSaleConfirmOpen] = useState(false);
+    const [salePaymentStatus, setSalePaymentStatus] = useState<
+        'paid' | 'partial'
+    >('paid');
+    const [saleAmountPaid, setSaleAmountPaid] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     /** Mobile: show cart drawer */
     const [mobileCartOpen, setMobileCartOpen] = useState(false);
@@ -205,7 +216,9 @@ export default function PosIndex({
         () => cart.reduce((s, i) => s + i.product.price * i.quantity, 0),
         [cart],
     );
-    const grandTotal = Math.max(0, subtotal - discountAmount);
+    const taxableSubtotal = Math.max(0, subtotal - discountAmount);
+    const taxAmount = taxableSubtotal * (taxRate / 100);
+    const grandTotal = taxableSubtotal + taxAmount;
 
     /* ── Cart handlers ─────────────────────────────────────────────────── */
     const addToCart = useCallback((product: Product) => {
@@ -241,14 +254,25 @@ export default function PosIndex({
     const clearCart = useCallback(() => {
         setCart([]);
         setDiscountAmount(0);
+        setDiscountType('fixed');
+        setDiscountInput('0');
         setSelectedWaitressId('');
         setSelectedPayment('cash');
+        setSalePaymentStatus('paid');
+        setSaleAmountPaid('');
         toast.info('Cleared order cart');
     }, []);
 
     /* ── Complete Sale ─────────────────────────────────────────────────── */
     const handleCompleteSale = () => {
         if (cart.length === 0 || isProcessing) return;
+        setSalePaymentStatus('paid');
+        setSaleAmountPaid(grandTotal.toFixed(2));
+        setSaleConfirmOpen(true);
+    };
+
+    const submitSale = () => {
+        setSaleConfirmOpen(false);
         setIsProcessing(true);
 
         router.post(
@@ -257,7 +281,11 @@ export default function PosIndex({
                 order_type: 'dine_in',
                 waitress_id: selectedWaitressId || null,
                 payment_method: selectedPayment,
-                payment_status: 'paid',
+                payment_status: salePaymentStatus,
+                amount_paid:
+                    salePaymentStatus === 'partial'
+                        ? Number(saleAmountPaid)
+                        : undefined,
                 discount: discountAmount,
                 items: cart.map((i) => ({
                     product_id: i.product.id,
@@ -268,7 +296,7 @@ export default function PosIndex({
                 onSuccess: () => {
                     setOrderSuccess(true);
                     toast.success(
-                        `Order #${currentOrderNum} completed successfully!`,
+                        `Order #${currentOrderNum} placed successfully!`,
                     );
                     setCurrentOrderNum((n) => n + 1);
                     clearCart();
@@ -738,15 +766,29 @@ export default function PosIndex({
                             </span>
                         </div>
                         <div className="flex items-center justify-between">
-                            <span>Discount</span>
+                            <span>
+                                Discount
+                                {discountType === 'percentage' &&
+                                    discountAmount > 0 &&
+                                    subtotal > 0 && (
+                                        <span className="ml-1 text-[10px] text-[#9B7A5E]">
+                                            (
+                                            {(
+                                                (discountAmount / subtotal) *
+                                                100
+                                            ).toFixed(1)}
+                                            %)
+                                        </span>
+                                    )}
+                            </span>
                             <span className="font-mono text-sm font-extrabold text-[#1F110B]">
                                 ${discountAmount.toFixed(2)}
                             </span>
                         </div>
                         <div className="flex items-center justify-between">
-                            <span>Tax (0%)</span>
+                            <span>Tax ({taxRate}%)</span>
                             <span className="font-mono text-sm font-extrabold text-[#1F110B]">
-                                $0.00
+                                ${taxAmount.toFixed(2)}
                             </span>
                         </div>
                     </div>
@@ -783,6 +825,9 @@ export default function PosIndex({
                             }}
                         >
                             <pm.icon className="h-4.5 w-4.5" /> {pm.label}
+                            {selectedPayment === pm.id && (
+                                <CheckCircle2 className="h-4 w-4" />
+                            )}
                         </button>
                     ))}
                 </div>
@@ -1236,6 +1281,22 @@ export default function PosIndex({
                                 <button
                                     key={label}
                                     type="button"
+                                    onClick={() => {
+                                        if (label === 'Discount') {
+                                            setDiscountInput(
+                                                discountType === 'percentage'
+                                                    ? subtotal > 0
+                                                          ? (
+                                                                (discountAmount /
+                                                                    subtotal) *
+                                                                100
+                                                            ).toFixed(1)
+                                                          : '0'
+                                                    : discountAmount.toFixed(2),
+                                            );
+                                            setDiscountDialogOpen(true);
+                                        }
+                                    }}
                                     className="flex cursor-pointer items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-bold transition-all hover:bg-[#EDE0D0] active:scale-95 md:px-4"
                                     style={{
                                         borderColor: '#D4B99A',
@@ -1314,6 +1375,225 @@ export default function PosIndex({
             )}
 
             {/* ── Add Waitress Dialog ── */}
+            <Dialog
+                open={discountDialogOpen}
+                onOpenChange={setDiscountDialogOpen}
+            >
+                <DialogContent className="max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle className="text-base font-black text-[#2C1810]">
+                            Add Discount
+                        </DialogTitle>
+                        <DialogDescription>
+                            Apply a discount to this order as a percentage or a
+                            fixed amount.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex flex-col gap-3">
+                        <div className="grid grid-cols-2 gap-1.5 rounded-xl bg-[#F4ECE2] p-1.5">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setDiscountType('percentage');
+                                    setDiscountInput('0');
+                                }}
+                                className={`cursor-pointer rounded-lg px-3 py-2 text-sm font-extrabold transition-all ${discountType === 'percentage' ? 'bg-[#2C1810] text-white shadow-xs' : 'text-[#5C3A28] hover:bg-[#EDE0D0]'}`}
+                            >
+                                %
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setDiscountType('fixed');
+                                    setDiscountInput('0');
+                                }}
+                                className={`cursor-pointer rounded-lg px-3 py-2 text-sm font-extrabold transition-all ${discountType === 'fixed' ? 'bg-[#2C1810] text-white shadow-xs' : 'text-[#5C3A28] hover:bg-[#EDE0D0]'}`}
+                            >
+                                $ Fixed
+                            </button>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <Label htmlFor="discount-amount">
+                                {discountType === 'percentage'
+                                    ? `Discount % (0 – 100)`
+                                    : 'Discount amount ($)'}
+                            </Label>
+                            <Input
+                                id="discount-amount"
+                                type="number"
+                                min="0"
+                                max={
+                                    discountType === 'percentage'
+                                        ? 100
+                                        : subtotal
+                                }
+                                step={
+                                    discountType === 'percentage' ? '1' : '0.01'
+                                }
+                                value={discountInput}
+                                onChange={(event) =>
+                                    setDiscountInput(event.target.value)
+                                }
+                                autoFocus
+                            />
+                            {discountType === 'percentage' &&
+                                Number(discountInput || 0) > 0 && (
+                                    <p className="text-xs font-semibold text-[#5C3A28]">
+                                        Savings: $
+                                        {Math.min(
+                                            subtotal,
+                                            (subtotal *
+                                                Number(discountInput || 0)) /
+                                                100,
+                                        ).toFixed(2)}
+                                    </p>
+                                )}
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <button
+                            type="button"
+                            className="rounded-lg border px-4 py-2 text-sm font-bold"
+                            onClick={() => setDiscountDialogOpen(false)}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            className="rounded-lg bg-[#2C1810] px-4 py-2 text-sm font-bold text-white"
+                            onClick={() => {
+                                const value = Number(discountInput);
+                                if (discountType === 'percentage') {
+                                    const pct = Math.min(
+                                        Math.max(value, 0),
+                                        100,
+                                    );
+                                    setDiscountAmount(
+                                        (subtotal * pct) / 100,
+                                    );
+                                } else {
+                                    setDiscountAmount(
+                                        Number.isFinite(value)
+                                            ? Math.min(
+                                                  Math.max(value, 0),
+                                                  subtotal,
+                                              )
+                                            : 0,
+                                    );
+                                }
+                                setDiscountDialogOpen(false);
+                            }}
+                        >
+                            Apply Discount
+                        </button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={saleConfirmOpen} onOpenChange={setSaleConfirmOpen}>
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-black text-[#2C1810]">
+                            {selectedPayment === 'mobile_money'
+                                ? 'Confirm EVC (USSD)'
+                                : 'Confirm Order'}
+                        </DialogTitle>
+                        <DialogDescription className="text-base">
+                            {selectedPayment === 'mobile_money'
+                                ? 'Please confirm you have completed the mobile money payment.'
+                                : 'Please confirm you want to place this order.'}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="rounded-xl border border-[#B9DCCF] bg-[#EAF7F1] p-4">
+                        <div className="flex items-center justify-between text-sm font-bold text-[#2C1810]">
+                            <span>Payment method</span>
+                            <span className="capitalize">
+                                {selectedPayment.replace('_', ' ')}
+                            </span>
+                        </div>
+                        <div className="mt-4 grid grid-cols-2 gap-2">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setSalePaymentStatus('paid');
+                                    setSaleAmountPaid(grandTotal.toFixed(2));
+                                }}
+                                className={`rounded-lg border px-3 py-2 text-sm font-bold ${salePaymentStatus === 'paid' ? 'border-[#1B8B62] bg-[#D5F3E5] text-[#145C43]' : 'border-[#B9DCCF] bg-white text-[#5C3A28]'}`}
+                            >
+                                Paid in Full
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setSalePaymentStatus('partial')}
+                                className={`rounded-lg border px-3 py-2 text-sm font-bold ${salePaymentStatus === 'partial' ? 'border-[#C6862A] bg-[#FFF1D7] text-[#7A4B0B]' : 'border-[#B9DCCF] bg-white text-[#5C3A28]'}`}
+                            >
+                                Partial Payment
+                            </button>
+                        </div>
+                        {salePaymentStatus === 'partial' && (
+                            <div className="mt-3 space-y-1.5">
+                                <Label
+                                    htmlFor="sale-amount-paid"
+                                    className="text-xs font-bold text-[#2C1810]"
+                                >
+                                    Amount paid now
+                                </Label>
+                                <Input
+                                    id="sale-amount-paid"
+                                    type="number"
+                                    min="0.01"
+                                    max={Math.max(0, grandTotal - 0.01)}
+                                    step="0.01"
+                                    value={saleAmountPaid}
+                                    onChange={(event) =>
+                                        setSaleAmountPaid(event.target.value)
+                                    }
+                                    className="border-[#B9DCCF] bg-white"
+                                />
+                                <p className="text-xs font-semibold text-[#5C3A28]">
+                                    Remaining: $
+                                    {Math.max(
+                                        0,
+                                        grandTotal -
+                                            Number(saleAmountPaid || 0),
+                                    ).toFixed(2)}
+                                </p>
+                            </div>
+                        )}
+                        <div className="mt-2 flex items-center justify-between border-t border-[#B9DCCF] pt-2 text-base font-black text-[#2C1810]">
+                            <span>Total</span>
+                            <span>${grandTotal.toFixed(2)}</span>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <button
+                            type="button"
+                            className="rounded-lg border px-4 py-2 text-sm font-bold"
+                            onClick={() => setSaleConfirmOpen(false)}
+                            disabled={isProcessing}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            className="rounded-lg bg-[#32D39B] px-5 py-2 text-sm font-black text-[#071B18]"
+                            onClick={submitSale}
+                            disabled={isProcessing}
+                        >
+                            {isProcessing
+                                ? 'Processing...'
+                                : selectedPayment === 'mobile_money'
+                                  ? salePaymentStatus === 'partial'
+                                      ? 'Confirm Partial Payment'
+                                      : 'Confirm I Have Paid'
+                                  : salePaymentStatus === 'partial'
+                                    ? 'Place Partial Order'
+                                    : 'Place Order'}
+                        </button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             <Dialog
                 open={addWaitressOpen}
                 onOpenChange={(open) => {

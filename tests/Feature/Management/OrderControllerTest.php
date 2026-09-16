@@ -67,6 +67,63 @@ test('admin or manager can delete an order', function () {
     expect(Order::find($order->id))->toBeNull();
 });
 
+test('authenticated user can change an order status', function () {
+    $user = User::factory()->create(['role' => 'admin']);
+    $order = Order::create([
+        'order_number' => 'ORD-1006',
+        'order_type' => 'dine_in',
+        'status' => 'pending',
+        'payment_status' => 'paid',
+        'subtotal' => 10.00,
+        'total' => 10.00,
+    ]);
+
+    $response = $this->actingAs($user)->patch(route('management.orders.status', $order), [
+        'status' => 'completed',
+    ]);
+
+    $response->assertRedirect();
+    $this->assertDatabaseHas('orders', [
+        'id' => $order->id,
+        'status' => 'completed',
+    ]);
+    expect($order->fresh()->completed_at)->not->toBeNull();
+});
+
+test('authenticated user can update payment status and partial balance', function () {
+    $user = User::factory()->create(['role' => 'admin']);
+    $order = Order::create([
+        'order_number' => 'ORD-1007',
+        'order_type' => 'dine_in',
+        'status' => 'pending',
+        'payment_status' => 'pending',
+        'subtotal' => 10.00,
+        'total' => 10.00,
+    ]);
+
+    $order->payments()->create([
+        'method' => 'cash',
+        'amount' => 0,
+        'status' => 'pending',
+    ]);
+
+    $response = $this->actingAs($user)->patch(route('management.orders.payment-status', $order), [
+        'payment_status' => 'partial',
+        'amount_paid' => 4.25,
+    ]);
+
+    $response->assertRedirect();
+    $this->assertDatabaseHas('orders', [
+        'id' => $order->id,
+        'payment_status' => 'partial',
+    ]);
+    $this->assertDatabaseHas('payments', [
+        'order_id' => $order->id,
+        'amount' => 4.25,
+        'status' => 'partial',
+    ]);
+});
+
 test('admin or manager can access order invoice page', function () {
     $user = User::factory()->create(['role' => 'admin']);
 
@@ -107,4 +164,3 @@ test('admin or manager can access order invoice page', function () {
         ->has('company')
     );
 });
-

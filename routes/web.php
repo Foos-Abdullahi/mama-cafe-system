@@ -6,6 +6,7 @@ use App\Http\Controllers\Finance\PaymentController;
 use App\Http\Controllers\Finance\PayrollController;
 use App\Http\Controllers\Finance\ReportController;
 use App\Http\Controllers\Management\CategoryController;
+use App\Http\Controllers\Management\EmployeeController;
 use App\Http\Controllers\Management\OrderController;
 use App\Http\Controllers\Management\ProductController;
 use App\Http\Controllers\Management\WaitressController;
@@ -86,6 +87,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Management routes
     Route::prefix('management')->name('management.')->group(function () {
+        Route::get('orders/{order}/invoice', [OrderController::class, 'invoice'])->name('orders.invoice');
         Route::resource('orders', OrderController::class)->only(['index', 'show']);
 
         Route::middleware('role:admin,manager')->group(function () {
@@ -93,6 +95,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::resource('categories', CategoryController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
             Route::resource('products', ProductController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
             Route::resource('waitresses', WaitressController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
+            Route::resource('employees', EmployeeController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
         });
     });
 

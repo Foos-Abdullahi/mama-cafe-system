@@ -1,9 +1,20 @@
-import React from 'react';
-import { Head } from '@inertiajs/react';
+import React, { useEffect, useState } from 'react';
+import { Head, router } from '@inertiajs/react';
 import { StatsCard, StatSection } from '@/components/tools/StatsCard';
 import { Badge } from '@/components/ui/badge';
-import { BarChart3, TrendingUp, Award, Coffee, CreditCard, Users } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { BarChart3, TrendingUp, Award, Coffee, Users } from 'lucide-react';
+import {
+    ResponsiveContainer,
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+} from 'recharts';
 import AppLayout from '@/layouts/app-layout';
+import reports from '@/routes/finance/reports';
 
 interface TopProduct {
     id: number;
@@ -20,20 +31,38 @@ interface WaitressLeader {
     commission: number;
 }
 
+type ReportPeriod = 'weekly' | 'monthly' | 'yearly';
+
 interface Props {
     stats: StatSection[];
-    paymentBreakdown: {
-        cash: number;
-        mobile_money: number;
-        card: number;
-        credit: number;
+    orderReportChart: {
+        period: ReportPeriod;
+        series: { label: string; orders: number }[];
     };
     topProducts: TopProduct[];
     waitressLeaderboard: WaitressLeader[];
 }
 
-export default function ReportsIndex({ stats, paymentBreakdown, topProducts, waitressLeaderboard }: Props) {
-    const totalPayments = paymentBreakdown.cash + paymentBreakdown.mobile_money + paymentBreakdown.card + paymentBreakdown.credit;
+export default function ReportsIndex({ stats, orderReportChart, topProducts, waitressLeaderboard }: Props) {
+    const [period, setPeriod] = useState<ReportPeriod>('weekly');
+
+    useEffect(() => {
+        setPeriod(orderReportChart.period);
+    }, [orderReportChart.period]);
+
+    function changePeriod(next: ReportPeriod) {
+        setPeriod(next);
+
+        router.get(reports.index.get({ query: { period: next } }).url, undefined, {
+            preserveState: true,
+            preserveScroll: true,
+            only: ['orderReportChart'],
+        });
+    }
+
+    const totalOrders = orderReportChart.series.reduce((sum, point) => sum + point.orders, 0);
+    const averageOrders = orderReportChart.series.length > 0 ? totalOrders / orderReportChart.series.length : 0;
+    const hasOrderData = orderReportChart.series.some((point) => point.orders > 0);
 
     return (
         <>
@@ -54,56 +83,61 @@ export default function ReportsIndex({ stats, paymentBreakdown, topProducts, wai
 
                 {/* Analytics Content Grid */}
                 <div className="mt-6 space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-1000 ease-in-out">
-                    {/* Grid 2 Columns: Payment Methods & Top Products */}
+                    {/* Grid 2 Columns: Orders Report & Top Products */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Payment Distribution */}
+                        {/* Orders Report */}
                         <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
-                            <div className="flex items-center gap-2 border-b pb-3">
-                                <CreditCard className="h-5 w-5 text-[#823d21]" />
-                                <h2 className="font-semibold text-base">Payment Method Breakdown</h2>
+                            <div className="flex items-center justify-between gap-3 border-b pb-3">
+                                <div className="flex items-center gap-2">
+                                    <BarChart3 className="h-5 w-5 text-[#823d21]" />
+                                    <h2 className="font-semibold text-base">Orders Report</h2>
+                                </div>
+
+                                <Select value={period} onValueChange={(val) => changePeriod(val as ReportPeriod)}>
+                                    <SelectTrigger className="h-8 w-[136px] text-xs">
+                                        <SelectValue placeholder="Select period" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="weekly">Weekly</SelectItem>
+                                        <SelectItem value="monthly">Monthly</SelectItem>
+                                        <SelectItem value="yearly">Yearly</SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
 
-                            <div className="space-y-3">
-                                <div>
-                                    <div className="flex justify-between text-xs font-semibold mb-1">
-                                        <span>Cash Payments</span>
-                                        <span>${paymentBreakdown.cash.toFixed(2)} ({totalPayments > 0 ? ((paymentBreakdown.cash / totalPayments) * 100).toFixed(1) : 0}%)</span>
-                                    </div>
-                                    <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
-                                        <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${totalPayments > 0 ? (paymentBreakdown.cash / totalPayments) * 100 : 0}%` }} />
-                                    </div>
-                                </div>
+                            {!hasOrderData ? (
+                                <p className="text-xs text-muted-foreground py-8 text-center">
+                                    No orders recorded for this period.
+                                </p>
+                            ) : (
+                                <>
+                                    <ResponsiveContainer width="100%" height={280}>
+                                        <BarChart data={orderReportChart.series} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="opacity-10" />
+                                            <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                                            <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                                            <Tooltip
+                                                formatter={(val: any) => [`${val} orders`, 'Orders']}
+                                                contentStyle={{ borderRadius: '8px', fontSize: '12px' }}
+                                            />
+                                            <Bar dataKey="orders" fill="#823d21" radius={[4, 4, 0, 0]} name="Orders" />
+                                        </BarChart>
+                                    </ResponsiveContainer>
 
-                                <div>
-                                    <div className="flex justify-between text-xs font-semibold mb-1">
-                                        <span>Mobile Money</span>
-                                        <span>${paymentBreakdown.mobile_money.toFixed(2)} ({totalPayments > 0 ? ((paymentBreakdown.mobile_money / totalPayments) * 100).toFixed(1) : 0}%)</span>
+                                    <div className="grid grid-cols-2 gap-2 pt-1">
+                                        <div className="rounded-lg border bg-muted/20 p-3">
+                                            <p className="text-[11px] text-muted-foreground">Total Orders</p>
+                                            <p className="font-mono text-base font-bold text-foreground">{totalOrders}</p>
+                                        </div>
+                                        <div className="rounded-lg border bg-muted/20 p-3">
+                                            <p className="text-[11px] text-muted-foreground">
+                                                {period === 'yearly' ? 'Avg Orders / Month' : 'Avg Orders / Day'}
+                                            </p>
+                                            <p className="font-mono text-base font-bold text-foreground">{averageOrders.toFixed(1)}</p>
+                                        </div>
                                     </div>
-                                    <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
-                                        <div className="h-full bg-blue-500 rounded-full" style={{ width: `${totalPayments > 0 ? (paymentBreakdown.mobile_money / totalPayments) * 100 : 0}%` }} />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <div className="flex justify-between text-xs font-semibold mb-1">
-                                        <span>Card Payments</span>
-                                        <span>${paymentBreakdown.card.toFixed(2)} ({totalPayments > 0 ? ((paymentBreakdown.card / totalPayments) * 100).toFixed(1) : 0}%)</span>
-                                    </div>
-                                    <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
-                                        <div className="h-full bg-purple-500 rounded-full" style={{ width: `${totalPayments > 0 ? (paymentBreakdown.card / totalPayments) * 100 : 0}%` }} />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <div className="flex justify-between text-xs font-semibold mb-1">
-                                        <span>Customer Credit</span>
-                                        <span>${paymentBreakdown.credit.toFixed(2)} ({totalPayments > 0 ? ((paymentBreakdown.credit / totalPayments) * 100).toFixed(1) : 0}%)</span>
-                                    </div>
-                                    <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
-                                        <div className="h-full bg-amber-500 rounded-full" style={{ width: `${totalPayments > 0 ? (paymentBreakdown.credit / totalPayments) * 100 : 0}%` }} />
-                                    </div>
-                                </div>
-                            </div>
+                                </>
+                            )}
                         </div>
 
                         {/* Top Selling Menu Products */}

@@ -4,7 +4,8 @@ import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog';
-import { ArrowLeft, Edit, Trash2, Printer, ShoppingBag, Calendar } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Printer, ShoppingBag, Calendar, FileText } from 'lucide-react';
+import { printOrderReceipt } from '@/components/ops/print-order-receipt';
 
 interface Product {
     id: number;
@@ -40,6 +41,8 @@ interface Order {
     status: string;
     payment_status: string;
     subtotal: number;
+    discount?: number;
+    tax?: number;
     total: number;
     fixed_number: number | null;
     waitress?: Waitress;
@@ -49,8 +52,20 @@ interface Order {
     completed_at: string | null;
 }
 
+interface CompanySettings {
+    name?: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+    city?: string;
+    country?: string;
+    currency?: string;
+    tax_rate?: number;
+}
+
 interface Props {
     order: Order;
+    company?: CompanySettings;
 }
 
 const statusBadgeClasses: Record<string, string> = {
@@ -68,7 +83,7 @@ const paymentBadgeClasses: Record<string, string> = {
     refunded: 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400 border-purple-200 dark:border-purple-800',
 };
 
-export default function OrderShow({ order }: Props) {
+export default function OrderShow({ order, company }: Props) {
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
@@ -82,15 +97,49 @@ export default function OrderShow({ order }: Props) {
         });
     };
 
-    const handlePrintReceipt = () => {
-        window.print();
-    };
-
     const totalPaid = (order.payments || []).reduce(
         (sum, p) => sum + Number(p.amount || 0),
         0
     );
     const balanceDue = Math.max(0, Number(order.total) - totalPaid);
+
+    const handlePrintReceipt = () => {
+        printOrderReceipt({
+            orderNumber: order.order_number,
+            createdAt: formatDateTime(order.created_at),
+            customer: order.waitress
+                ? {
+                      name: order.waitress.name,
+                      phone: (order.waitress as any).phone ?? null,
+                      email: null,
+                  }
+                : null,
+            items: (order.items || []).map((item) => ({
+                name: item.product?.name ?? 'Item',
+                quantity: item.quantity,
+                unitPrice: `$${Number(item.unit_price).toFixed(2)}`,
+                total: `$${Number(item.line_total).toFixed(2)}`,
+            })),
+            paymentMethod: order.payments?.[0]?.method ?? undefined,
+            paymentStatus: order.payment_status,
+            subtotal: `$${Number(order.subtotal ?? order.total).toFixed(2)}`,
+            discount:
+                Number(order.discount || 0) > 0
+                    ? `$${Number(order.discount).toFixed(2)}`
+                    : undefined,
+            tax:
+                Number(order.tax || 0) > 0
+                    ? `$${Number(order.tax).toFixed(2)}`
+                    : undefined,
+            total: `$${Number(order.total).toFixed(2)}`,
+            paidAmount: `$${totalPaid.toFixed(2)}`,
+            balanceDue: `$${balanceDue.toFixed(2)}`,
+            notes: order.fixed_number
+                ? `Table #${order.fixed_number} · Order Type: ${order.order_type === 'dine_in' ? 'Dine In' : 'Takeaway'}`
+                : `Order Type: ${order.order_type === 'dine_in' ? 'Dine In' : 'Takeaway'}`,
+            company: company,
+        });
+    };
 
     return (
         <>
@@ -143,6 +192,16 @@ export default function OrderShow({ order }: Props) {
                             <Printer className="h-3.5 w-3.5" />
                             Print Receipt
                         </Button>
+                        <Link href={`/management/orders/${order.id}/invoice`}>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1.5 text-xs shadow-xs"
+                            >
+                                <FileText className="h-3.5 w-3.5" />
+                                Invoice
+                            </Button>
+                        </Link>
                         <Link href={`/management/orders/${order.id}/edit`}>
                             <Button variant="outline" size="sm" className="gap-1.5 text-xs shadow-xs">
                                 <Edit className="h-3.5 w-3.5" />

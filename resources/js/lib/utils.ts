@@ -10,3 +10,9 @@ export function cn(...inputs: ClassValue[]) {
 export function toUrl(url: NonNullable<InertiaLinkProps['href']>): string {
     return typeof url === 'string' ? url : url.url;
 }
+
+export function formatCurrency(amount: number | string | null | undefined): string {
+    const num = Number(amount || 0);
+    return `$${num.toFixed(2)}`;
+}
+

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\Setting;
 use App\Models\Waitress;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -67,7 +68,32 @@ class OrderController extends Controller
 
         return Inertia::render('admin/management/orders/show', [
             'order' => $order,
+            'company' => $this->getCompanySettings(),
         ]);
+    }
+
+    public function invoice(Order $order): Response
+    {
+        $order->load(['waitress', 'items.product', 'payments', 'refund', 'cancellation']);
+
+        return Inertia::render('admin/management/orders/invoice', [
+            'order' => $order,
+            'company' => $this->getCompanySettings(),
+        ]);
+    }
+
+    protected function getCompanySettings(): array
+    {
+        return [
+            'name' => Setting::getByKey('cafe_name', 'MaMa Café & Boba Tea'),
+            'phone' => Setting::getByKey('cafe_phone', '+252 61 555 0101'),
+            'address' => Setting::getByKey('cafe_address', 'Mogadishu, Somalia'),
+            'email' => Setting::getByKey('cafe_email', 'contact@mamacafe.so'),
+            'city' => Setting::getByKey('cafe_city', 'Mogadishu'),
+            'country' => Setting::getByKey('cafe_country', 'Somalia'),
+            'currency' => Setting::getByKey('currency', 'USD ($)'),
+            'tax_rate' => (float) Setting::getByKey('tax_rate', '0'),
+        ];
     }
 
     public function destroy(Order $order)

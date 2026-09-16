@@ -66,3 +66,45 @@ test('admin or manager can delete an order', function () {
     $response->assertRedirect(route('management.orders.index'));
     expect(Order::find($order->id))->toBeNull();
 });
+
+test('admin or manager can access order invoice page', function () {
+    $user = User::factory()->create(['role' => 'admin']);
+
+    $category = Category::create([
+        'name' => 'Cold Drinks',
+        'status' => 'active',
+    ]);
+
+    $product = Product::create([
+        'category_id' => $category->id,
+        'name' => 'Iced Boba Latte',
+        'price' => 6.50,
+        'status' => 'active',
+    ]);
+
+    $order = Order::create([
+        'order_number' => 'ORD-1005',
+        'order_type' => 'dine_in',
+        'status' => 'completed',
+        'payment_status' => 'paid',
+        'subtotal' => 6.50,
+        'total' => 6.50,
+    ]);
+
+    $order->items()->create([
+        'product_id' => $product->id,
+        'quantity' => 1,
+        'unit_price' => 6.50,
+        'line_total' => 6.50,
+    ]);
+
+    $response = $this->actingAs($user)->get(route('management.orders.invoice', $order));
+
+    $response->assertOk();
+    $response->assertInertia(fn ($page) => $page
+        ->component('admin/management/orders/invoice')
+        ->has('order')
+        ->has('company')
+    );
+});
+

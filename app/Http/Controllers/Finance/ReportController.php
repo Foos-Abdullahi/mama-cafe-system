@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Finance;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderItem;
-use App\Models\Payment;
 use App\Models\Waitress;
+use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -21,11 +21,7 @@ class ReportController extends Controller
         $totalOrdersCount = $completedOrders->count();
         $averageOrderValue = $totalOrdersCount > 0 ? $totalRevenue / $totalOrdersCount : 0;
 
-        // Payment method breakdown
-        $cashSales = Payment::where('status', 'paid')->where('method', 'cash')->sum('amount');
-        $mobileMoneySales = Payment::where('status', 'paid')->where('method', 'mobile_money')->sum('amount');
-        $cardSales = Payment::where('status', 'paid')->where('method', 'card')->sum('amount');
-        $creditSales = Payment::where('method', 'credit')->sum('amount');
+        $orderReportChart = $this->orderReportChart($request);
 
         // Top selling products
         $topProducts = OrderItem::with('product')
@@ -87,14 +83,76 @@ class ReportController extends Controller
 
         return Inertia::render('admin/finance/reports/index', [
             'stats' => $stats,
-            'paymentBreakdown' => [
-                'cash' => (float) $cashSales,
-                'mobile_money' => (float) $mobileMoneySales,
-                'card' => (float) $cardSales,
-                'credit' => (float) $creditSales,
-            ],
+            'orderReportChart' => $orderReportChart,
             'topProducts' => $topProducts,
             'waitressLeaderboard' => $waitressLeaderboard,
         ]);
+    }
+
+    private function orderReportChart(Request $request): array
+    {
+        $period = $request->input('period', 'weekly');
+
+        if (! in_array($period, ['weekly', 'monthly', 'yearly'], true)) {
+            $period = 'weekly';
+        }
+
+        $config = $this->periodConfig($period);
+
+        $series = [];
+        for ($i = $config['count'] - 1; $i >= 0; $i--) {
+            $date = $config['interval'] === 'month'
+                ? now()->startOfMonth()->subMonths($i)
+                : now()->startOfDay()->subDays($i);
+
+            $series[$config['key']($date)] = [
+                'label' => $config['label']($date),
+                'orders' => 0,
+            ];
+        }
+
+        $orders = Order::where('status', 'completed')
+            ->where('completed_at', '>=', $config['start'])
+            ->get(['completed_at']);
+
+        foreach ($orders as $order) {
+            $key = $config['key']($order->completed_at);
+
+            if (isset($series[$key])) {
+                $series[$key]['orders'] += 1;
+            }
+        }
+
+        return [
+            'period' => $period,
+            'series' => array_values($series),
+        ];
+    }
+
+    private function periodConfig(string $period): array
+    {
+        return [
+            'weekly' => [
+                'interval' => 'day',
+                'count' => 7,
+                'start' => now()->subDays(6)->startOfDay(),
+                'label' => fn (CarbonInterface $date): string => $date->format('D'),
+                'key' => fn (CarbonInterface $date): string => $date->format('Y-m-d'),
+            ],
+            'monthly' => [
+                'interval' => 'day',
+                'count' => 30,
+                'start' => now()->subDays(29)->startOfDay(),
+                'label' => fn (CarbonInterface $date): string => $date->format('d/m'),
+                'key' => fn (CarbonInterface $date): string => $date->format('Y-m-d'),
+            ],
+            'yearly' => [
+                'interval' => 'month',
+                'count' => 12,
+                'start' => now()->startOfMonth()->subMonths(11),
+                'label' => fn (CarbonInterface $date): string => $date->format('M Y'),
+                'key' => fn (CarbonInterface $date): string => $date->format('Y-m'),
+            ],
+        ][$period];
     }
 }

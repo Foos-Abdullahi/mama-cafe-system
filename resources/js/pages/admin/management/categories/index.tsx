@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
 import { Head, router, Link } from '@inertiajs/react';
-import { StatsCard, StatSection } from '@/components/tools/StatsCard';
-import { DataTable } from '@/components/tools/table/main-table';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import type { ColumnDef } from '@tanstack/react-table';
+import { Plus, MoreHorizontal, Eye, Edit, Trash2, Tag } from 'lucide-react';
+import React, { useState } from 'react';
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog';
+import type { StatSection } from '@/components/tools/StatsCard';
+import { StatsCard } from '@/components/tools/StatsCard';
+import { DataTable } from '@/components/tools/table/main-table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -13,8 +16,6 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ColumnDef } from '@tanstack/react-table';
-import { Plus, MoreHorizontal, Eye, Edit, Trash2, Tag } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 
 interface Category {
@@ -37,7 +38,10 @@ export default function CategoriesIndex({ categories, stats }: Props) {
     const [isDeleting, setIsDeleting] = useState(false);
 
     const handleConfirmDelete = () => {
-        if (!deleteTarget) return;
+        if (!deleteTarget) {
+            return;
+        }
+
         setIsDeleting(true);
         router.delete(`/management/categories/${deleteTarget.id}`, {
             onFinish: () => {
@@ -105,6 +109,7 @@ export default function CategoriesIndex({ categories, stats }: Props) {
             header: 'Status',
             cell: ({ row }) => {
                 const isActive = row.original.status === 'active';
+
                 return (
                     <Badge
                         className={
@@ -123,6 +128,7 @@ export default function CategoriesIndex({ categories, stats }: Props) {
             header: () => <span className="block text-right">Actions</span>,
             cell: ({ row }) => {
                 const cat = row.original;
+
                 return (
                     <div className="text-right">
                         <DropdownMenu>

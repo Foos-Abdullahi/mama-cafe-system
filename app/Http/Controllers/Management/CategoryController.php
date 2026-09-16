@@ -7,6 +7,7 @@ use App\Models\ActivityLog;
 use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -65,11 +66,18 @@ class CategoryController extends Controller
 
     public function store(Request $request)
     {
+        $request->validate([
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:10240',
+        ]);
+
         $validated = $request->validate([
             'name' => 'required|string|min:2|max:255',
             'description' => 'required|string|min:3|max:1000',
+            'image_url' => 'nullable|url|max:2048',
             'status' => 'required|in:active,inactive',
         ]);
+
+        $validated['image_url'] = $this->storeImage($request->file('image')) ?? ($validated['image_url'] ?? null);
 
         Category::create($validated);
 
@@ -97,11 +105,25 @@ class CategoryController extends Controller
 
     public function update(Request $request, Category $category)
     {
+        $request->validate([
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:10240',
+        ]);
+
         $validated = $request->validate([
             'name' => 'required|string|min:2|max:255',
             'description' => 'required|string|min:3|max:1000',
+            'image_url' => 'nullable|url|max:2048',
             'status' => 'required|in:active,inactive',
         ]);
+
+        if ($request->hasFile('image')) {
+            $this->deleteStoredImage($category->image_url);
+            $validated['image_url'] = $this->storeImage($request->file('image'));
+        } elseif (blank($validated['image_url'] ?? null) && str_starts_with((string) $category->image_url, '/uploads/categories/')) {
+            $validated['image_url'] = $category->image_url;
+        } else {
+            $validated['image_url'] = $validated['image_url'] ?? $category->image_url;
+        }
 
         $category->update($validated);
 
@@ -113,10 +135,40 @@ class CategoryController extends Controller
     public function destroy(Category $category)
     {
         $name = $category->name;
+        $this->deleteStoredImage($category->image_url);
         $category->delete();
 
         ActivityLog::log('category_delete', "Category '{$name}' was deleted.");
 
         return redirect()->route('management.categories.index')->with('success', 'Category deleted successfully.');
+    }
+
+    private function storeImage(?UploadedFile $image): ?string
+    {
+        if (! $image) {
+            return null;
+        }
+
+        $uploadDir = public_path('uploads/categories');
+
+        if (! is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        $filename = time().'_'.uniqid().'.'.$image->getClientOriginalExtension();
+        $image->move($uploadDir, $filename);
+
+        return '/uploads/categories/'.$filename;
+    }
+
+    private function deleteStoredImage(?string $imageUrl): void
+    {
+        if ($imageUrl && str_starts_with($imageUrl, '/uploads/categories/')) {
+            $path = public_path(ltrim($imageUrl, '/'));
+
+            if (is_file($path)) {
+                unlink($path);
+            }
+        }
     }
 }

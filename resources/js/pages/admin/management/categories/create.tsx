@@ -1,11 +1,10 @@
-import React from 'react';
 import { useForm, Head, Link } from '@inertiajs/react';
-import AppLayout from '@/layouts/app-layout';
+import { ArrowLeft, Tag } from 'lucide-react';
+import React, { useState } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import {
     Select,
     SelectContent,
@@ -13,19 +12,22 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, Tag } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import AppLayout from '@/layouts/app-layout';
 
 export default function CategoryCreate() {
+    const [mediaMode, setMediaMode] = useState<'upload' | 'url'>('url');
     const form = useForm({
         name: '',
         description: '',
         image_url: '',
+        image: null as File | null,
         status: 'active' as 'active' | 'inactive',
     });
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        form.post('/management/categories');
+        form.post('/management/categories', { forceFormData: true });
     };
 
     return (
@@ -71,7 +73,7 @@ export default function CategoryCreate() {
 
                             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                                 {/* Name */}
-                                <div className="grid gap-2">
+                                <div className="grid gap-2 md:order-1">
                                     <Label
                                         htmlFor="name"
                                         className="text-xs font-medium text-foreground"
@@ -93,33 +95,73 @@ export default function CategoryCreate() {
                                     <InputError message={form.errors.name} />
                                 </div>
 
-                                <div className="grid gap-2">
-                                    <Label
-                                        htmlFor="image_url"
-                                        className="text-xs font-medium text-foreground"
-                                    >
-                                        Category Image URL
+                                <div className="grid gap-2 md:order-3 md:col-span-2">
+                                    <Label className="text-xs font-medium text-foreground">
+                                        Category Image{' '}
+                                        <span className="text-muted-foreground">
+                                            (Optional)
+                                        </span>
                                     </Label>
-                                    <Input
-                                        id="image_url"
-                                        type="url"
-                                        placeholder="https://example.com/category-image.jpg"
-                                        className="h-10"
-                                        value={form.data.image_url}
-                                        onChange={(e) =>
-                                            form.setData(
-                                                'image_url',
-                                                e.target.value,
-                                            )
-                                        }
-                                    />
+                                    <div className="inline-flex w-fit rounded-lg border border-border bg-muted/40 p-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setMediaMode('upload');
+                                                form.setData('image_url', '');
+                                            }}
+                                            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${mediaMode === 'upload' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'}`}
+                                        >
+                                            Upload Image
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setMediaMode('url');
+                                                form.setData('image', null);
+                                            }}
+                                            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${mediaMode === 'url' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'}`}
+                                        >
+                                            Image URL
+                                        </button>
+                                    </div>
+                                    {mediaMode === 'upload' ? (
+                                        <Input
+                                            id="image"
+                                            type="file"
+                                            accept="image/jpeg,image/png,image/jpg,image/gif,image/webp"
+                                            className="h-10"
+                                            onChange={(e) =>
+                                                form.setData(
+                                                    'image',
+                                                    e.target.files?.[0] ?? null,
+                                                )
+                                            }
+                                        />
+                                    ) : (
+                                        <Input
+                                            id="image_url"
+                                            type="url"
+                                            placeholder="https://example.com/category-image.jpg"
+                                            className="h-10"
+                                            value={form.data.image_url}
+                                            onChange={(e) =>
+                                                form.setData(
+                                                    'image_url',
+                                                    e.target.value,
+                                                )
+                                            }
+                                        />
+                                    )}
                                     <InputError
-                                        message={form.errors.image_url}
+                                        message={
+                                            form.errors.image ||
+                                            form.errors.image_url
+                                        }
                                     />
                                 </div>
 
                                 {/* Status */}
-                                <div className="grid gap-2">
+                                <div className="grid gap-2 md:order-2">
                                     <Label
                                         htmlFor="status"
                                         className="text-xs font-medium text-foreground"

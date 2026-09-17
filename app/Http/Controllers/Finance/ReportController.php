@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\Waitress;
+use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -33,7 +34,6 @@ class ReportController extends Controller
         $paymentsTo = $request->query('payments_to', $globalTo);
 
         // --- Revenue / Orders stats ---
-        // Falls back to created_at when completed_at is NULL so orders are never missed
         $revenueQuery = Order::where('status', 'completed');
         if ($revenueFrom) {
             $revenueQuery->where(function ($q) use ($revenueFrom) {
@@ -57,6 +57,9 @@ class ReportController extends Controller
         $totalOrdersCount = $completedOrders->count();
         $averageOrderValue = $totalOrdersCount > 0 ? $totalRevenue / $totalOrdersCount : 0;
 
+        // --- Order Chart (Weekly/Monthly/Yearly) ---
+        $orderReportChart = $this->orderReportChart($request);
+
         // --- Payment method breakdown ---
         $cashSales = $this->paymentQuery('cash', $paymentsFrom, $paymentsTo)->sum('amount');
         $mobileMoneySales = $this->paymentQuery('mobile_money', $paymentsFrom, $paymentsTo)->sum('amount');
@@ -66,7 +69,7 @@ class ReportController extends Controller
             ->when($paymentsTo, fn ($q) => $q->whereDate('paid_at', '<=', $paymentsTo))
             ->sum('amount');
 
-        // --- Top selling products (always scoped to completed orders) ---
+        // --- Top selling products ---
         $topProducts = OrderItem::with('product')
             ->whereHas('order', function ($oq) use ($productsFrom, $productsTo) {
                 $oq->where('status', 'completed');
@@ -132,7 +135,7 @@ class ReportController extends Controller
             ];
         })->sortByDesc('total_sales')->values();
 
-        // --- Dine In vs Takeaway (now respects the revenue date filter) ---
+        // --- Dine In vs Takeaway ---
         $dineInQuery = Order::where('order_type', 'dine_in');
         $takeawayQuery = Order::where('order_type', 'takeaway');
         foreach ([$dineInQuery, $takeawayQuery] as $q) {
@@ -183,6 +186,7 @@ class ReportController extends Controller
 
         return Inertia::render('admin/finance/reports/index', [
             'stats' => $stats,
+            'orderReportChart' => $orderReportChart,
             'paymentBreakdown' => [
                 'cash' => (float) $cashSales,
                 'mobile_money' => (float) $mobileMoneySales,
@@ -204,6 +208,73 @@ class ReportController extends Controller
                 'payments_to' => $paymentsTo,
             ],
         ]);
+    }
+
+    private function orderReportChart(Request $request): array
+    {
+        $period = $request->input('period', 'weekly');
+
+        if (! in_array($period, ['weekly', 'monthly', 'yearly'], true)) {
+            $period = 'weekly';
+        }
+
+        $config = $this->periodConfig($period);
+
+        $series = [];
+        for ($i = $config['count'] - 1; $i >= 0; $i--) {
+            $date = $config['interval'] === 'month'
+                ? now()->startOfMonth()->subMonths($i)
+                : now()->startOfDay()->subDays($i);
+
+            $series[$config['key']($date)] = [
+                'label' => $config['label']($date),
+                'orders' => 0,
+            ];
+        }
+
+        $orders = Order::where('status', 'completed')
+            ->where('completed_at', '>=', $config['start'])
+            ->get(['completed_at']);
+
+        foreach ($orders as $order) {
+            $key = $config['key']($order->completed_at);
+
+            if (isset($series[$key])) {
+                $series[$key]['orders'] += 1;
+            }
+        }
+
+        return [
+            'period' => $period,
+            'series' => array_values($series),
+        ];
+    }
+
+    private function periodConfig(string $period): array
+    {
+        return [
+            'weekly' => [
+                'interval' => 'day',
+                'count' => 7,
+                'start' => now()->subDays(6)->startOfDay(),
+                'label' => fn (CarbonInterface $date): string => $date->format('D'),
+                'key' => fn (CarbonInterface $date): string => $date->format('Y-m-d'),
+            ],
+            'monthly' => [
+                'interval' => 'day',
+                'count' => 30,
+                'start' => now()->subDays(29)->startOfDay(),
+                'label' => fn (CarbonInterface $date): string => $date->format('d/m'),
+                'key' => fn (CarbonInterface $date): string => $date->format('Y-m-d'),
+            ],
+            'yearly' => [
+                'interval' => 'month',
+                'count' => 12,
+                'start' => now()->startOfMonth()->subMonths(11),
+                'label' => fn (CarbonInterface $date): string => $date->format('M Y'),
+                'key' => fn (CarbonInterface $date): string => $date->format('Y-m'),
+            ],
+        ][$period];
     }
 
     /**

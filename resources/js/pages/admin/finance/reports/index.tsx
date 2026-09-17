@@ -1,9 +1,19 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import { StatsCard, StatSection } from '@/components/tools/StatsCard';
-import { Award, Coffee, CreditCard, Filter, X } from 'lucide-react';
+import { Award, BarChart3, Coffee, CreditCard, Filter, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+    ResponsiveContainer,
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+} from 'recharts';
 import AppLayout from '@/layouts/app-layout';
 
 interface TopProduct {
@@ -21,6 +31,8 @@ interface WaitressLeader {
     commission: number;
 }
 
+type ReportPeriod = 'weekly' | 'monthly' | 'yearly';
+
 interface Filters {
     global_from: string | null;
     global_to: string | null;
@@ -36,6 +48,10 @@ interface Filters {
 
 interface Props {
     stats: StatSection[];
+    orderReportChart?: {
+        period: ReportPeriod;
+        series: { label: string; orders: number }[];
+    };
     paymentBreakdown: {
         cash: number;
         mobile_money: number;
@@ -72,8 +88,39 @@ function SectionFilter({
     );
 }
 
-export default function ReportsIndex({ stats, paymentBreakdown, topProducts, waitressLeaderboard, filters }: Props) {
+export default function ReportsIndex({
+    stats,
+    orderReportChart = { period: 'weekly', series: [] },
+    paymentBreakdown,
+    topProducts,
+    waitressLeaderboard,
+    filters,
+}: Props) {
     const totalPayments = paymentBreakdown.cash + paymentBreakdown.mobile_money + paymentBreakdown.card + paymentBreakdown.credit;
+
+    // Order Report Chart period state
+    const [period, setPeriod] = useState<ReportPeriod>(orderReportChart.period);
+
+    useEffect(() => {
+        setPeriod(orderReportChart.period);
+    }, [orderReportChart.period]);
+
+    function changePeriod(next: ReportPeriod) {
+        setPeriod(next);
+        router.get(
+            '/finance/reports',
+            { period: next },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                only: ['orderReportChart'],
+            },
+        );
+    }
+
+    const totalChartOrders = orderReportChart.series.reduce((sum, point) => sum + point.orders, 0);
+    const averageChartOrders = orderReportChart.series.length > 0 ? totalChartOrders / orderReportChart.series.length : 0;
+    const hasOrderData = orderReportChart.series.some((point) => point.orders > 0);
 
     // Global filter state
     const [globalFrom, setGlobalFrom] = useState(filters.global_from ?? '');
@@ -122,7 +169,7 @@ export default function ReportsIndex({ stats, paymentBreakdown, topProducts, wai
                     <div>
                         <h1 className="text-lg font-semibold">Sales &amp; Financial Reports</h1>
                         <p className="text-xs text-muted-foreground">
-                            Deep insights into café revenue, product performance, payment distribution, and staff sales.
+                            Deep insights into café revenue, order volume, product performance, payment distribution, and staff sales.
                         </p>
                     </div>
                 </div>
@@ -167,9 +214,64 @@ export default function ReportsIndex({ stats, paymentBreakdown, topProducts, wai
 
                 {/* Analytics Content Grid */}
                 <div className="mt-6 space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-1000 ease-in-out">
-                    {/* Grid 2 Columns: Payment Methods & Top Products */}
+                    {/* Top Row Grid: Orders Volume Chart & Payment Breakdown */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Payment Distribution */}
+                        {/* Orders Volume Chart (Weekly/Monthly/Yearly) */}
+                        <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
+                            <div className="flex items-center justify-between border-b pb-3">
+                                <div className="flex items-center gap-2">
+                                    <BarChart3 className="h-5 w-5 text-[#823d21]" />
+                                    <h2 className="font-semibold text-base">Orders Report</h2>
+                                </div>
+
+                                <Select value={period} onValueChange={(val) => changePeriod(val as ReportPeriod)}>
+                                    <SelectTrigger className="h-8 w-[136px] text-xs">
+                                        <SelectValue placeholder="Select period" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="weekly">Weekly</SelectItem>
+                                        <SelectItem value="monthly">Monthly</SelectItem>
+                                        <SelectItem value="yearly">Yearly</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            {!hasOrderData ? (
+                                <p className="text-xs text-muted-foreground py-12 text-center">
+                                    No orders recorded for this period.
+                                </p>
+                            ) : (
+                                <>
+                                    <ResponsiveContainer width="100%" height={220}>
+                                        <BarChart data={orderReportChart.series} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="opacity-10" />
+                                            <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                                            <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                                            <Tooltip
+                                                formatter={(val: any) => [`${val} orders`, 'Orders']}
+                                                contentStyle={{ borderRadius: '8px', fontSize: '12px' }}
+                                            />
+                                            <Bar dataKey="orders" fill="#823d21" radius={[4, 4, 0, 0]} name="Orders" />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+
+                                    <div className="grid grid-cols-2 gap-2 pt-1">
+                                        <div className="rounded-lg border bg-muted/20 p-3">
+                                            <p className="text-[11px] text-muted-foreground">Total Orders</p>
+                                            <p className="font-mono text-base font-bold text-foreground">{totalChartOrders}</p>
+                                        </div>
+                                        <div className="rounded-lg border bg-muted/20 p-3">
+                                            <p className="text-[11px] text-muted-foreground">
+                                                {period === 'yearly' ? 'Avg Orders / Month' : 'Avg Orders / Day'}
+                                            </p>
+                                            <p className="font-mono text-base font-bold text-foreground">{averageChartOrders.toFixed(1)}</p>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        {/* Payment Method Breakdown */}
                         <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
                             <div className="flex items-center justify-between border-b pb-3">
                                 <div className="flex items-center gap-2">
@@ -185,7 +287,7 @@ export default function ReportsIndex({ stats, paymentBreakdown, topProducts, wai
                                 />
                             </div>
 
-                            <div className="space-y-3">
+                            <div className="space-y-4 py-2">
                                 {[
                                     { label: 'Cash Payments', value: paymentBreakdown.cash, color: 'bg-emerald-500' },
                                     { label: 'Mobile Money', value: paymentBreakdown.mobile_money, color: 'bg-blue-500' },
@@ -202,7 +304,7 @@ export default function ReportsIndex({ stats, paymentBreakdown, topProducts, wai
                                         </div>
                                         <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
                                             <div
-                                                className={`h-full ${color} rounded-full`}
+                                                className={`h-full ${color} rounded-full transition-all duration-500`}
                                                 style={{ width: `${totalPayments > 0 ? (value / totalPayments) * 100 : 0}%` }}
                                             />
                                         </div>
@@ -210,46 +312,46 @@ export default function ReportsIndex({ stats, paymentBreakdown, topProducts, wai
                                 ))}
                             </div>
                         </div>
+                    </div>
 
-                        {/* Top Selling Menu Products */}
-                        <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
-                            <div className="flex items-center justify-between border-b pb-3">
-                                <div className="flex items-center gap-2">
-                                    <Coffee className="h-5 w-5 text-[#823d21]" />
-                                    <h2 className="font-semibold text-base">Top Selling Products</h2>
-                                </div>
-                                <SectionFilter
-                                    fromKey="products_from"
-                                    toKey="products_to"
-                                    fromValue={filters.products_from ?? ''}
-                                    toValue={filters.products_to ?? ''}
-                                    onApply={applyFilter}
-                                />
+                    {/* Top Selling Menu Products */}
+                    <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
+                        <div className="flex items-center justify-between border-b pb-3">
+                            <div className="flex items-center gap-2">
+                                <Coffee className="h-5 w-5 text-[#823d21]" />
+                                <h2 className="font-semibold text-base">Top Selling Products</h2>
                             </div>
+                            <SectionFilter
+                                fromKey="products_from"
+                                toKey="products_to"
+                                fromValue={filters.products_from ?? ''}
+                                toValue={filters.products_to ?? ''}
+                                onApply={applyFilter}
+                            />
+                        </div>
 
-                            {topProducts.length === 0 ? (
-                                <p className="text-xs text-muted-foreground py-4 text-center">No sales data recorded yet.</p>
-                            ) : (
-                                <div className="space-y-3">
-                                    {topProducts.map((p, idx) => (
-                                        <div key={p.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/20 border">
-                                            <div className="flex items-center gap-3">
-                                                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#823d21]/10 text-[#823d21] font-bold text-xs">
-                                                    #{idx + 1}
-                                                </div>
-                                                <div>
-                                                    <p className="text-xs font-semibold text-foreground">{p.name}</p>
-                                                    <p className="text-[11px] text-muted-foreground">{p.total_qty} Units Sold</p>
-                                                </div>
+                        {topProducts.length === 0 ? (
+                            <p className="text-xs text-muted-foreground py-4 text-center">No sales data recorded yet.</p>
+                        ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                                {topProducts.map((p, idx) => (
+                                    <div key={p.id} className="flex flex-col justify-between p-3 rounded-lg bg-muted/20 border gap-2">
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[#823d21]/10 text-[#823d21] font-bold text-xs">
+                                                #{idx + 1}
                                             </div>
+                                            <p className="text-xs font-semibold text-foreground truncate" title={p.name}>{p.name}</p>
+                                        </div>
+                                        <div className="flex items-center justify-between pt-1 border-t">
+                                            <span className="text-[11px] text-muted-foreground">{p.total_qty} Sold</span>
                                             <span className="font-mono font-bold text-xs text-foreground">
                                                 ${Number(p.total_amount).toFixed(2)}
                                             </span>
                                         </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     {/* Waitress Performance Leaderboard */}

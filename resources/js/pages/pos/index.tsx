@@ -1148,7 +1148,7 @@ export default function PosIndex({
                                 </div>
 
                                 {/* ── DESKTOP GRID VIEW (md+) ── */}
-                                <div className="hidden gap-3 pb-3 md:grid md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+                                <div className="hidden gap-3 pb-3 md:grid md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-5">
                                     {paginatedProducts.map((product) => (
                                         <button
                                             key={product.id}

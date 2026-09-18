@@ -113,7 +113,7 @@ export default function PosShell({
                     {/* Desktop inline nav */}
                     <nav className="hidden items-center gap-3 lg:flex">
                         {[
-                            { label: 'Home', icon: Home, href: '/pos' },
+                            { label: 'Home', icon: Home, href: '/dashboard' },
                             {
                                 label: 'Reports',
                                 icon: BarChart3,

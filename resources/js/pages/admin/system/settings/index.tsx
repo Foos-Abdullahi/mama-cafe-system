@@ -5,20 +5,7 @@ import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    Save,
-    Store,
-    Hash,
-    Edit,
-    X,
-    Plus,
-    Trash2,
-    Percent,
-    Users,
-    ChevronLeft,
-    ChevronRight,
-    CheckCircle2,
-} from 'lucide-react';
+import { Save, Store, Hash, Edit, X, Plus, Trash2, Percent } from 'lucide-react';
 
 interface WaitressItem {
     id: number;
@@ -47,7 +34,6 @@ interface Props {
 
 export default function SystemSettingsIndex({ settings, waitresses = [] }: Props) {
     const [isEditing, setIsEditing] = useState(false);
-    const [activeStep, setActiveStep] = useState<number>(1);
 
     // Parse waitress numbers into an array of strings
     const initialNumbers = (settings.cafe_waitress_numbers || '')
@@ -130,8 +116,8 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
         form.setData('commission_rates', updated.filter(Boolean).join(', '));
     };
 
-    const handleSubmit = (e?: React.FormEvent) => {
-        if (e) e.preventDefault();
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
         const cleanedNumbers = numberInputs.map((n) => n.trim()).filter(Boolean).join(', ');
         const cleanedCommissions = commissionInputs.map((c) => c.trim()).filter(Boolean).join(', ');
 
@@ -148,18 +134,11 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
         });
     };
 
-    const steps = [
-        { id: 1, label: '1. Cafe Identity', icon: Store, description: 'Name, phone & physical address' },
-        { id: 2, label: '2. Financial Config', icon: Percent, description: 'Currency, Tax & VAT rates' },
-        { id: 3, label: '3. Waitress Numbers & Rates', icon: Hash, description: 'Floor station numbers & commission' },
-        { id: 4, label: '4. Registered Waitresses', icon: Users, description: 'Active waitresses overview' },
-    ];
-
     return (
         <>
             <Head title="General Settings - MaMa Café" />
 
-            <div className="p-4 md:p-6 space-y-6">
+            <div className="p-4 md:p-6">
                 {/* Header with Title and Action Toggle */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
                     <div>
@@ -192,7 +171,7 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
                                 </Button>
                                 <Button
                                     type="button"
-                                    onClick={() => handleSubmit()}
+                                    onClick={handleSubmit}
                                     disabled={form.processing}
                                     className="bg-[#823d21] text-white hover:bg-[#682e18] gap-1.5 text-xs shadow-xs min-w-[120px]"
                                 >
@@ -204,47 +183,13 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
                     </div>
                 </div>
 
-                {/* Step Navigation Wizard Tab Bar */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 bg-muted/40 p-1.5 rounded-xl border border-border">
-                    {steps.map((step) => {
-                        const Icon = step.icon;
-                        const isActive = activeStep === step.id;
-                        return (
-                            <button
-                                key={step.id}
-                                type="button"
-                                onClick={() => setActiveStep(step.id)}
-                                className={`flex items-center gap-3 p-3 rounded-lg text-left transition-all cursor-pointer ${
-                                    isActive
-                                        ? 'bg-[#823d21] text-white shadow-xs font-semibold'
-                                        : 'bg-card hover:bg-muted text-muted-foreground hover:text-foreground border border-border/50'
-                                }`}
-                            >
-                                <div className={`p-2 rounded-md shrink-0 ${isActive ? 'bg-white/20 text-white' : 'bg-muted text-[#823d21]'}`}>
-                                    <Icon className="h-4 w-4" />
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                    <p className="text-xs font-medium truncate">{step.label}</p>
-                                    <p className={`text-[10px] truncate ${isActive ? 'text-white/80' : 'text-muted-foreground'}`}>
-                                        {step.description}
-                                    </p>
-                                </div>
-                            </button>
-                        );
-                    })}
-                </div>
-
-                {/* Form Step Body */}
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* STEP 1: Cafe Identity & Contact Information */}
-                    {activeStep === 1 && (
-                        <div className="rounded-xl border bg-card p-5 md:p-6 shadow-xs space-y-6 animate-in fade-in duration-300">
+                <div className="mt-6 animate-in fade-in slide-in-from-bottom-4 duration-500 ease-in-out">
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        {/* Cafe Branding & Contact Information */}
+                        <div className="rounded-xl border bg-card p-5 md:p-6 shadow-xs space-y-6">
                             <div className="flex items-center gap-2 border-b border-border pb-3">
                                 <Store className="h-5 w-5 text-[#823d21]" />
-                                <div>
-                                    <h2 className="font-semibold text-base text-foreground">Step 1: Cafe Identity & Contact Details</h2>
-                                    <p className="text-xs text-muted-foreground">Basic information displayed on customer receipts and system communications.</p>
-                                </div>
+                                <h2 className="font-semibold text-base text-foreground">Cafe Identity & Contact Details</h2>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -294,17 +239,12 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
                                 </div>
                             </div>
                         </div>
-                    )}
 
-                    {/* STEP 2: Financial Configuration */}
-                    {activeStep === 2 && (
-                        <div className="rounded-xl border bg-card p-5 md:p-6 shadow-xs space-y-6 animate-in fade-in duration-300">
+                        {/* Financial Configuration */}
+                        <div className="rounded-xl border bg-card p-5 md:p-6 shadow-xs space-y-6">
                             <div className="flex items-center gap-2 border-b border-border pb-3">
                                 <Percent className="h-5 w-5 text-[#823d21]" />
-                                <div>
-                                    <h2 className="font-semibold text-base text-foreground">Step 2: Financial Configuration</h2>
-                                    <p className="text-xs text-muted-foreground">Default currency and global taxation/VAT percentages applied to sales orders.</p>
-                                </div>
+                                <h2 className="font-semibold text-base text-foreground">Financial Configuration</h2>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -368,17 +308,12 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
                                 </div>
                             </div>
                         </div>
-                    )}
 
-                    {/* STEP 3: Waitress Numbers & Commission Configuration */}
-                    {activeStep === 3 && (
-                        <div className="rounded-xl border bg-card p-5 md:p-6 shadow-xs space-y-6 animate-in fade-in duration-300">
+                        {/* Waitress Numbers & Commission Configuration */}
+                        <div className="rounded-xl border bg-card p-5 md:p-6 shadow-xs space-y-6">
                             <div className="flex items-center gap-2 border-b border-border pb-3">
                                 <Hash className="h-5 w-5 text-[#823d21]" />
-                                <div>
-                                    <h2 className="font-semibold text-base text-foreground">Step 3: Waitress Numbers & Commission Rates</h2>
-                                    <p className="text-xs text-muted-foreground">Register floor station numbers and commission tiers selectable during waitress management.</p>
-                                </div>
+                                <h2 className="font-semibold text-base text-foreground">Working Waitress Numbers &amp; Commission Configuration</h2>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -434,7 +369,7 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
                                         )}
                                     </div>
                                     <p className="text-[11px] text-muted-foreground">
-                                        Each registered number represents an active floor station / badge number assigned to working waitresses during daily shifts.
+                                        Each registered number represents an active floor station / badge number assigned to working waitresses during service and at the POS terminal.
                                     </p>
                                     <InputError message={form.errors.cafe_waitress_numbers} />
                                 </div>
@@ -499,14 +434,12 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
                                 </div>
                             </div>
                         </div>
-                    )}
 
-                    {/* STEP 4: Registered Waitresses & Assigned Numbers Overview */}
-                    {activeStep === 4 && (
-                        <div className="rounded-xl border bg-card p-5 md:p-6 shadow-xs space-y-4 animate-in fade-in duration-300">
+                        {/* Registered Waitresses & Assigned Numbers Overview with 5-item Pagination */}
+                        <div className="rounded-xl border bg-card p-5 md:p-6 shadow-xs space-y-4">
                             <div className="flex items-center justify-between border-b border-border pb-3">
                                 <div>
-                                    <h2 className="font-semibold text-base text-foreground">Step 4: Registered Waitresses Overview</h2>
+                                    <h2 className="font-semibold text-base text-foreground">Registered Waitresses &amp; Assigned Working Numbers</h2>
                                     <p className="text-xs text-muted-foreground mt-0.5">
                                         Overview of floor waitresses and their currently active working numbers used during orders.
                                     </p>
@@ -553,7 +486,7 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
                                             type="button"
                                             variant="outline"
                                             size="sm"
-                                            className="h-8 text-xs px-2.5"
+                                            className="h-8 text-xs px-2.5 cursor-pointer"
                                             disabled={waitressPage === 1}
                                             onClick={() => setWaitressPage((p) => Math.max(1, p - 1))}
                                         >
@@ -566,7 +499,7 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
                                             type="button"
                                             variant="outline"
                                             size="sm"
-                                            className="h-8 text-xs px-2.5"
+                                            className="h-8 text-xs px-2.5 cursor-pointer"
                                             disabled={waitressPage === totalWaitressPages}
                                             onClick={() => setWaitressPage((p) => Math.min(totalWaitressPages, p + 1))}
                                         >
@@ -576,73 +509,38 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
                                 </div>
                             )}
                         </div>
-                    )}
 
-                    {/* Bottom Step Navigation Bar */}
-                    <div className="flex items-center justify-between border-t border-border pt-4 bg-card p-4 rounded-xl border shadow-xs">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setActiveStep((s) => Math.max(1, s - 1))}
-                            disabled={activeStep === 1}
-                            className="gap-1 text-xs"
-                        >
-                            <ChevronLeft className="h-4 w-4" />
-                            Previous Step
-                        </Button>
-
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground font-medium">
-                                Step {activeStep} of 4
-                            </span>
-                            <div className="flex gap-1">
-                                {[1, 2, 3, 4].map((stepNum) => (
-                                    <div
-                                        key={stepNum}
-                                        className={`h-2 w-2 rounded-full transition-all ${
-                                            stepNum === activeStep
-                                                ? 'bg-[#823d21] w-4'
-                                                : stepNum < activeStep
-                                                ? 'bg-[#823d21]/40'
-                                                : 'bg-muted'
-                                        }`}
-                                    />
-                                ))}
-                            </div>
+                        {/* Bottom Actions Footer */}
+                        <div className="flex items-center justify-between border-t border-border pt-4">
+                            <p className="text-xs text-muted-foreground">
+                                {!isEditing
+                                    ? 'Settings are currently locked. Click "Edit Settings" above to unlock inputs.'
+                                    : 'Make your desired changes and click Save Settings to apply.'}
+                            </p>
+                            {isEditing && (
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={handleCancel}
+                                        className="gap-1.5 text-xs shadow-xs"
+                                    >
+                                        <X className="h-4 w-4" />
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        type="submit"
+                                        disabled={form.processing}
+                                        className="bg-[#823d21] text-white hover:bg-[#682e18] gap-1.5 text-xs shadow-xs min-w-[140px]"
+                                    >
+                                        <Save className="h-4 w-4" />
+                                        {form.processing ? 'Saving...' : 'Save Settings'}
+                                    </Button>
+                                </div>
+                            )}
                         </div>
-
-                        {activeStep < 4 ? (
-                            <Button
-                                type="button"
-                                onClick={() => setActiveStep((s) => Math.min(4, s + 1))}
-                                className="bg-[#823d21] text-white hover:bg-[#682e18] gap-1 text-xs"
-                            >
-                                Next Step
-                                <ChevronRight className="h-4 w-4" />
-                            </Button>
-                        ) : (
-                            isEditing ? (
-                                <Button
-                                    type="submit"
-                                    disabled={form.processing}
-                                    className="bg-[#823d21] text-white hover:bg-[#682e18] gap-1.5 text-xs shadow-xs min-w-[140px]"
-                                >
-                                    <Save className="h-4 w-4" />
-                                    {form.processing ? 'Saving...' : 'Save Settings'}
-                                </Button>
-                            ) : (
-                                <Button
-                                    type="button"
-                                    onClick={() => setIsEditing(true)}
-                                    className="bg-[#823d21] text-white hover:bg-[#682e18] gap-1.5 text-xs shadow-xs"
-                                >
-                                    <Edit className="h-4 w-4" />
-                                    Edit Settings
-                                </Button>
-                            )
-                        )}
-                    </div>
-                </form>
+                    </form>
+                </div>
             </div>
         </>
     );
@@ -658,4 +556,5 @@ SystemSettingsIndex.layout = (page: React.ReactNode) => (
         {page}
     </AppLayout>
 );
+
 

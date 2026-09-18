@@ -347,15 +347,6 @@ export default function OrderShow({ order, company }: Props) {
                                 Invoice
                             </Button>
                         </Link>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setConfirmOpen(true)}
-                            className="gap-1.5 border-destructive/30 text-xs text-destructive shadow-xs hover:bg-destructive/10 hover:text-destructive"
-                        >
-                            <Trash2 className="h-3.5 w-3.5" />
-                            Delete
-                        </Button>
                         {order.status === 'pending' && (
                             <>
                                 <Button

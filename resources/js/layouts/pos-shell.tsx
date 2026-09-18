@@ -17,6 +17,12 @@ import {
     UserRound,
 } from 'lucide-react';
 import type { User } from '@/types';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface Props {
     children: React.ReactNode;
@@ -45,7 +51,6 @@ export default function PosShell({
     const user = auth?.user;
 
     const [now, setNow] = useState(new Date());
-    const [showUserMenu, setShowUserMenu] = useState(false);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
     useEffect(() => {
@@ -114,6 +119,7 @@ export default function PosShell({
                     <nav className="hidden items-center gap-3 lg:flex">
                         {[
                             { label: 'Home', icon: Home, href: '/dashboard' },
+                            { label: 'Orders', icon: ClipboardList, href: '/management/orders' },
                             {
                                 label: 'Reports',
                                 icon: BarChart3,
@@ -145,62 +151,53 @@ export default function PosShell({
                         })}
                     </nav>
 
-                    {/* User dropdown card - 2-line stacked role & name matching Image 2 */}
-                    <div className="relative">
-                        <button
-                            onClick={() => setShowUserMenu((v) => !v)}
-                            className="flex cursor-pointer items-center gap-3 rounded-2xl border px-3.5 py-2 transition-colors hover:bg-white/10"
-                            style={{
-                                background: '#3D2015',
-                                borderColor: '#5C3120',
-                            }}
-                        >
-                            <div
-                                className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-black text-white shadow-xs"
-                                style={{ background: '#5C2B0D' }}
-                            >
-                                <UserRound className="h-5 w-5 text-white/90" />
-                            </div>
-                            <div className="flex flex-col items-start text-left leading-tight">
-                                <span className="text-[11px] font-medium text-white/70">
-                                    {typeof user?.role === 'string' ? (user.role.charAt(0).toUpperCase() + user.role.slice(1)) : 'Cashier'}
-                                </span>
-                                <span className="text-xs font-black text-white">
-                                    {user?.name ?? 'Abdullahi'}
-                                </span>
-                            </div>
-                            <ChevronDown className="ml-1 h-4 w-4 text-white/60" />
-                        </button>
-
-                        {showUserMenu && (
-                            <div
-                                className="absolute top-full right-0 z-50 mt-2 w-52 rounded-xl border py-1.5 shadow-xl"
+                    {/* User Profile Dropdown Card */}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <button
+                                className="flex cursor-pointer items-center gap-3 rounded-2xl border px-3.5 py-2 transition-colors hover:bg-white/10 outline-none"
                                 style={{
-                                    background: '#2C1810',
-                                    borderColor: '#3D2015',
+                                    background: '#3D2015',
+                                    borderColor: '#5C3120',
                                 }}
                             >
-                                <Link
-                                    href="/management/orders"
-                                    className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-white/90 hover:bg-white/10"
-                                    onClick={() => setShowUserMenu(false)}
-                                >
-                                    <ClipboardList className="h-4 w-4" />{' '}
-                                    All Orders
-                                </Link>
                                 <div
-                                    className="my-1 border-t"
-                                    style={{ borderColor: '#3D2015' }}
-                                />
-                                <button
-                                    onClick={() => router.post('/logout')}
-                                    className="flex w-full cursor-pointer items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-red-400 hover:bg-white/10"
+                                    className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-black text-white shadow-xs"
+                                    style={{ background: '#5C2B0D' }}
+                                >
+                                    <UserRound className="h-5 w-5 text-white/90" />
+                                </div>
+                                <div className="flex flex-col items-start text-left leading-tight">
+                                    <span className="text-[11px] font-medium text-white/70">
+                                        {typeof user?.role === 'string' ? (user.role.charAt(0).toUpperCase() + user.role.slice(1)) : 'Cashier'}
+                                    </span>
+                                    <span className="text-xs font-black text-white">
+                                        {user?.name ?? 'Abdullahi'}
+                                    </span>
+                                </div>
+                                <ChevronDown className="ml-1 h-4 w-4 text-white/60" />
+                            </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                            align="end"
+                            className="w-52 rounded-xl border py-1.5 shadow-xl"
+                            style={{
+                                background: '#2C1810',
+                                borderColor: '#3D2015',
+                            }}
+                        >
+                            <DropdownMenuItem asChild>
+                                <Link
+                                    href="/logout"
+                                    method="post"
+                                    as="button"
+                                    className="flex w-full cursor-pointer items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-red-400 hover:bg-white/10 focus:bg-white/10 focus:text-red-400 border-none outline-none"
                                 >
                                     <LogOut className="h-4 w-4" /> Sign Out
-                                </button>
-                            </div>
-                        )}
-                    </div>
+                                </Link>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
 
                     {/* Clock */}
                     <div className="flex items-center gap-2.5 border-l border-white/15 pl-3">
@@ -308,14 +305,6 @@ export default function PosShell({
                     {children}
                 </main>
             </div>
-
-            {/* Click-away for user menu */}
-            {showUserMenu && (
-                <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setShowUserMenu(false)}
-                />
-            )}
         </div>
     );
 }

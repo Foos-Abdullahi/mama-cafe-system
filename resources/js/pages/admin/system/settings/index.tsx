@@ -5,7 +5,7 @@ import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Save, Store, Hash, Edit, X, Plus, Trash2, Percent, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Save, Store, Hash, Edit, X, Plus, Trash2, Percent } from 'lucide-react';
 
 interface SystemSettings {
     cafe_name: string;
@@ -41,23 +41,6 @@ export default function SystemSettingsIndex({ settings }: Props) {
     const [numberInputs, setNumberInputs] = useState<string[]>(initialNumbers);
     const [commissionInputs, setCommissionInputs] = useState<string[]>(initialCommissions);
 
-    // Pagination for Waitress Working Numbers
-    const [numberPage, setNumberPage] = useState(1);
-    const PAGE_SIZE = 5;
-    const totalNumberPages = Math.ceil(numberInputs.length / PAGE_SIZE) || 1;
-    const paginatedNumberInputs = numberInputs.slice(
-        (numberPage - 1) * PAGE_SIZE,
-        numberPage * PAGE_SIZE,
-    );
-
-    // Pagination for Commission Rates
-    const [commissionPage, setCommissionPage] = useState(1);
-    const totalCommissionPages = Math.ceil(commissionInputs.length / PAGE_SIZE) || 1;
-    const paginatedCommissionInputs = commissionInputs.slice(
-        (commissionPage - 1) * PAGE_SIZE,
-        commissionPage * PAGE_SIZE,
-    );
-
     const form = useForm({
         cafe_name: settings.cafe_name || '',
         cafe_phone: settings.cafe_phone || '',
@@ -75,15 +58,13 @@ export default function SystemSettingsIndex({ settings }: Props) {
         form.reset();
         setNumberInputs(initialNumbers);
         setCommissionInputs(initialCommissions);
-        setNumberPage(1);
-        setCommissionPage(1);
         setIsEditing(false);
     };
 
     // Number Inputs Management
-    const handleNumberChange = (actualIndex: number, val: string) => {
+    const handleNumberChange = (index: number, val: string) => {
         const updated = [...numberInputs];
-        updated[actualIndex] = val;
+        updated[index] = val;
         setNumberInputs(updated);
         form.setData('cafe_waitress_numbers', updated.filter(Boolean).join(', '));
     };
@@ -91,24 +72,18 @@ export default function SystemSettingsIndex({ settings }: Props) {
     const addNumberInput = () => {
         const updated = [...numberInputs, ''];
         setNumberInputs(updated);
-        const newTotalPages = Math.ceil(updated.length / PAGE_SIZE);
-        setNumberPage(newTotalPages);
     };
 
-    const removeNumberInput = (actualIndex: number) => {
-        const updated = numberInputs.filter((_, i) => i !== actualIndex);
+    const removeNumberInput = (index: number) => {
+        const updated = numberInputs.filter((_, i) => i !== index);
         setNumberInputs(updated);
         form.setData('cafe_waitress_numbers', updated.filter(Boolean).join(', '));
-        const maxPages = Math.ceil(updated.length / PAGE_SIZE) || 1;
-        if (numberPage > maxPages) {
-            setNumberPage(maxPages);
-        }
     };
 
     // Commission Inputs Management
-    const handleCommissionChange = (actualIndex: number, val: string) => {
+    const handleCommissionChange = (index: number, val: string) => {
         const updated = [...commissionInputs];
-        updated[actualIndex] = val;
+        updated[index] = val;
         setCommissionInputs(updated);
         form.setData('commission_rates', updated.filter(Boolean).join(', '));
     };
@@ -116,18 +91,12 @@ export default function SystemSettingsIndex({ settings }: Props) {
     const addCommissionInput = () => {
         const updated = [...commissionInputs, ''];
         setCommissionInputs(updated);
-        const newTotalPages = Math.ceil(updated.length / PAGE_SIZE);
-        setCommissionPage(newTotalPages);
     };
 
-    const removeCommissionInput = (actualIndex: number) => {
-        const updated = commissionInputs.filter((_, i) => i !== actualIndex);
+    const removeCommissionInput = (index: number) => {
+        const updated = commissionInputs.filter((_, i) => i !== index);
         setCommissionInputs(updated);
         form.setData('commission_rates', updated.filter(Boolean).join(', '));
-        const maxPages = Math.ceil(updated.length / PAGE_SIZE) || 1;
-        if (commissionPage > maxPages) {
-            setCommissionPage(maxPages);
-        }
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -350,76 +319,38 @@ export default function SystemSettingsIndex({ settings }: Props) {
                                         )}
                                     </div>
 
-                                    <div className="space-y-3.5">
+                                    <div className="space-y-3.5 max-h-[380px] overflow-y-auto pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                                         {numberInputs.length === 0 ? (
                                             <p className="text-xs text-muted-foreground italic">No working waitress numbers configured. Click Add Working Number to register one.</p>
                                         ) : (
-                                            paginatedNumberInputs.map((num, relIdx) => {
-                                                const actualIdx = (numberPage - 1) * PAGE_SIZE + relIdx;
-                                                return (
-                                                    <div key={actualIdx} className="flex items-center gap-2">
-                                                        <div className="relative flex-1">
-                                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#823d21]">#</span>
-                                                            <Input
-                                                                placeholder="Working waitress number e.g. 1, 2, 101, 102"
-                                                                disabled={!isEditing}
-                                                                className={`h-10 font-mono pl-7 ${!isEditing ? 'bg-muted/50 cursor-not-allowed' : ''}`}
-                                                                value={num}
-                                                                onChange={(e) => handleNumberChange(actualIdx, e.target.value)}
-                                                            />
-                                                        </div>
-                                                        {isEditing && (
-                                                            <Button
-                                                                type="button"
-                                                                variant="outline"
-                                                                size="icon"
-                                                                onClick={() => removeNumberInput(actualIdx)}
-                                                                className="h-10 w-10 shrink-0 text-red-500 hover:bg-red-500/10 hover:text-red-600 border-red-200 dark:border-red-900/30 cursor-pointer"
-                                                                title="Remove input"
-                                                            >
-                                                                <Trash2 className="h-4 w-4" />
-                                                            </Button>
-                                                        )}
+                                            numberInputs.map((num, idx) => (
+                                                <div key={idx} className="flex items-center gap-2">
+                                                    <div className="relative flex-1">
+                                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#823d21]">#</span>
+                                                        <Input
+                                                            placeholder="Working waitress number e.g. 1, 2, 101, 102"
+                                                            disabled={!isEditing}
+                                                            className={`h-10 font-mono pl-7 ${!isEditing ? 'bg-muted/50 cursor-not-allowed' : ''}`}
+                                                            value={num}
+                                                            onChange={(e) => handleNumberChange(idx, e.target.value)}
+                                                        />
                                                     </div>
-                                                );
-                                            })
+                                                    {isEditing && (
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="icon"
+                                                            onClick={() => removeNumberInput(idx)}
+                                                            className="h-10 w-10 shrink-0 text-red-500 hover:bg-red-500/10 hover:text-red-600 border-red-200 dark:border-red-900/30 cursor-pointer"
+                                                            title="Remove input"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            ))
                                         )}
                                     </div>
-
-                                    {/* Number Inputs Pagination */}
-                                    {numberInputs.length > PAGE_SIZE && (
-                                        <div className="flex items-center justify-between pt-1 text-xs">
-                                            <span className="text-muted-foreground text-[11px]">
-                                                Showing {(numberPage - 1) * PAGE_SIZE + 1}–
-                                                {Math.min(numberPage * PAGE_SIZE, numberInputs.length)} of {numberInputs.length}
-                                            </span>
-                                            <div className="flex items-center gap-1.5">
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    disabled={numberPage === 1}
-                                                    onClick={() => setNumberPage((p) => Math.max(1, p - 1))}
-                                                    className="h-7 text-xs px-2 cursor-pointer"
-                                                >
-                                                    <ChevronLeft className="h-3.5 w-3.5" />
-                                                </Button>
-                                                <span className="font-semibold text-foreground text-[11px]">
-                                                    {numberPage} / {totalNumberPages}
-                                                </span>
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    disabled={numberPage === totalNumberPages}
-                                                    onClick={() => setNumberPage((p) => Math.min(totalNumberPages, p + 1))}
-                                                    className="h-7 text-xs px-2 cursor-pointer"
-                                                >
-                                                    <ChevronRight className="h-3.5 w-3.5" />
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    )}
 
                                     <p className="text-[11px] text-muted-foreground">
                                         Each registered number represents an active floor station / badge number assigned to working waitresses during service and at the POS terminal.
@@ -446,78 +377,40 @@ export default function SystemSettingsIndex({ settings }: Props) {
                                         )}
                                     </div>
 
-                                    <div className="space-y-3.5">
+                                    <div className="space-y-3.5 max-h-[380px] overflow-y-auto pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                                         {commissionInputs.length === 0 ? (
                                             <p className="text-xs text-muted-foreground italic">No commission rates configured. Click Add Commission to create one.</p>
                                         ) : (
-                                            paginatedCommissionInputs.map((rate, relIdx) => {
-                                                const actualIdx = (commissionPage - 1) * PAGE_SIZE + relIdx;
-                                                return (
-                                                    <div key={actualIdx} className="flex items-center gap-2">
-                                                        <div className="relative flex-1">
-                                                            <Input
-                                                                type="number"
-                                                                step="0.1"
-                                                                placeholder="Commission percentage e.g. 15"
-                                                                disabled={!isEditing}
-                                                                className={`h-10 font-mono pr-8 ${!isEditing ? 'bg-muted/50 cursor-not-allowed' : ''}`}
-                                                                value={rate}
-                                                                onChange={(e) => handleCommissionChange(actualIdx, e.target.value)}
-                                                            />
-                                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">%</span>
-                                                        </div>
-                                                        {isEditing && (
-                                                            <Button
-                                                                type="button"
-                                                                variant="outline"
-                                                                size="icon"
-                                                                onClick={() => removeCommissionInput(actualIdx)}
-                                                                className="h-10 w-10 shrink-0 text-red-500 hover:bg-red-500/10 hover:text-red-600 border-red-200 dark:border-red-900/30 cursor-pointer"
-                                                                title="Remove input"
-                                                            >
-                                                                <Trash2 className="h-4 w-4" />
-                                                            </Button>
-                                                        )}
+                                            commissionInputs.map((rate, idx) => (
+                                                <div key={idx} className="flex items-center gap-2">
+                                                    <div className="relative flex-1">
+                                                        <Input
+                                                            type="number"
+                                                            step="0.1"
+                                                            placeholder="Commission percentage e.g. 15"
+                                                            disabled={!isEditing}
+                                                            className={`h-10 font-mono pr-8 ${!isEditing ? 'bg-muted/50 cursor-not-allowed' : ''}`}
+                                                            value={rate}
+                                                            onChange={(e) => handleCommissionChange(idx, e.target.value)}
+                                                        />
+                                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">%</span>
                                                     </div>
-                                                );
-                                            })
+                                                    {isEditing && (
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="icon"
+                                                            onClick={() => removeCommissionInput(idx)}
+                                                            className="h-10 w-10 shrink-0 text-red-500 hover:bg-red-500/10 hover:text-red-600 border-red-200 dark:border-red-900/30 cursor-pointer"
+                                                            title="Remove input"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            ))
                                         )}
                                     </div>
-
-                                    {/* Commission Inputs Pagination */}
-                                    {commissionInputs.length > PAGE_SIZE && (
-                                        <div className="flex items-center justify-between pt-1 text-xs">
-                                            <span className="text-muted-foreground text-[11px]">
-                                                Showing {(commissionPage - 1) * PAGE_SIZE + 1}–
-                                                {Math.min(commissionPage * PAGE_SIZE, commissionInputs.length)} of {commissionInputs.length}
-                                            </span>
-                                            <div className="flex items-center gap-1.5">
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    disabled={commissionPage === 1}
-                                                    onClick={() => setCommissionPage((p) => Math.max(1, p - 1))}
-                                                    className="h-7 text-xs px-2 cursor-pointer"
-                                                >
-                                                    <ChevronLeft className="h-3.5 w-3.5" />
-                                                </Button>
-                                                <span className="font-semibold text-foreground text-[11px]">
-                                                    {commissionPage} / {totalCommissionPages}
-                                                </span>
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    disabled={commissionPage === totalCommissionPages}
-                                                    onClick={() => setCommissionPage((p) => Math.min(totalCommissionPages, p + 1))}
-                                                    className="h-7 text-xs px-2 cursor-pointer"
-                                                >
-                                                    <ChevronRight className="h-3.5 w-3.5" />
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    )}
 
                                     <p className="text-[11px] text-muted-foreground">
                                         These rates will appear as options in the dropdown when adding or editing a waitress.

@@ -3,8 +3,9 @@ import { Head, useForm, Link } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Save, Edit2 } from 'lucide-react';
+import { ArrowLeft, Save, Edit2, Search } from 'lucide-react';
 
 interface DailyClosingData {
     id: number;
@@ -56,10 +57,22 @@ export default function DailyWaitressesEdit({
         });
     });
 
+    const [searchQuery, setSearchQuery] = useState('');
     const [page, setPage] = useState(1);
     const PAGE_SIZE = 5;
-    const totalPages = Math.ceil(assignments.length / PAGE_SIZE) || 1;
-    const paginatedAssignments = assignments.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+    const filteredAssignments = assignments.filter((item) => {
+        const originalWaitress = waitresses.find((w) => w.id === item.waitress_id);
+        const q = searchQuery.toLowerCase().trim();
+        if (!q) return true;
+        const nameMatch = item.name.toLowerCase().includes(q);
+        const phoneMatch = originalWaitress?.phone ? originalWaitress.phone.toLowerCase().includes(q) : false;
+        const numberMatch = item.assigned_number ? item.assigned_number.toLowerCase().includes(q) : false;
+        return nameMatch || phoneMatch || numberMatch;
+    });
+
+    const totalPages = Math.ceil(filteredAssignments.length / PAGE_SIZE) || 1;
+    const paginatedAssignments = filteredAssignments.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
     const form = useForm({
         assignments: assignments,
@@ -130,13 +143,28 @@ export default function DailyWaitressesEdit({
 
                 {/* Single Form Card - Requirement 1 */}
                 <form onSubmit={handleSubmit} className="rounded-xl border border-border bg-card p-5 md:p-6 shadow-xs space-y-6">
-                    <div className="flex items-center justify-between border-b border-border pb-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
                         <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                            Waitress Shift Roster Table
+                            Waitress Shift Roster Table ({assignments.length})
                         </h2>
-                        <span className="text-xs font-mono font-bold text-foreground">
-                            Total Revenue: ${dailyClosing.total_sales.toFixed(2)} ({dailyClosing.total_orders} Orders)
-                        </span>
+                        <div className="flex items-center gap-3">
+                            <div className="relative w-full sm:w-64">
+                                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                                <Input
+                                    type="text"
+                                    placeholder="Search waitress name, phone..."
+                                    value={searchQuery}
+                                    onChange={(e) => {
+                                        setSearchQuery(e.target.value);
+                                        setPage(1);
+                                    }}
+                                    className="pl-8 h-8 text-xs bg-muted/20"
+                                />
+                            </div>
+                            <span className="text-xs font-mono font-bold text-foreground">
+                                Total Revenue: ${dailyClosing.total_sales.toFixed(2)} ({dailyClosing.total_orders} Orders)
+                            </span>
+                        </div>
                     </div>
 
                     {/* Roster Selection Table */}
@@ -212,17 +240,18 @@ export default function DailyWaitressesEdit({
                             })
                         ) : (
                             <div className="p-6 text-center text-xs text-muted-foreground">
-                                No waitresses registered in the system yet.
+                                {searchQuery ? `No waitresses found matching "${searchQuery}".` : 'No waitresses registered in the system yet.'}
                             </div>
                         )}
                     </div>
 
                     {/* Pagination Controls */}
-                    {assignments.length > 0 && (
+                    {filteredAssignments.length > 0 && (
                         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 text-xs">
                             <span className="text-muted-foreground">
                                 Showing {(page - 1) * PAGE_SIZE + 1} to{' '}
-                                {Math.min(page * PAGE_SIZE, assignments.length)} of {assignments.length} waitresses
+                                {Math.min(page * PAGE_SIZE, filteredAssignments.length)} of {filteredAssignments.length} waitresses
+                                {searchQuery && ` (filtered from ${assignments.length} total)`}
                             </span>
                             <div className="flex items-center gap-2">
                                 <Button

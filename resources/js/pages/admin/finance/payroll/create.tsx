@@ -239,10 +239,14 @@ export default function PayrollCreate({ waitresses, cafeNumbers, selectedWaitres
                                     </span>
                                 </div>
 
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                                     <div>
                                         <p className="text-[11px] text-muted-foreground uppercase font-semibold">Staff Name</p>
                                         <p className="text-sm font-bold text-foreground mt-0.5">{activeWaitress.name}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[11px] text-muted-foreground uppercase font-semibold">Staff Number</p>
+                                        <p className="text-sm font-bold text-foreground mt-0.5 font-mono">{activeWaitress.phone || 'N/A'}</p>
                                     </div>
                                     <div>
                                         <p className="text-[11px] text-muted-foreground uppercase font-semibold">Total Orders</p>
@@ -313,7 +317,7 @@ export default function PayrollCreate({ waitresses, cafeNumbers, selectedWaitres
                             </DialogTitle>
                         </div>
                         <DialogDescription className="text-xs text-muted-foreground">
-                            Please confirm you have completed the USSD payment.
+                            Please confirm you have completed the USSD payment to the receiver.
                         </DialogDescription>
                     </DialogHeader>
 
@@ -323,9 +327,16 @@ export default function PayrollCreate({ waitresses, cafeNumbers, selectedWaitres
                             USSD Payment Details
                         </h4>
 
-                        <div className="flex items-center justify-between text-xs">
-                            <span className="text-muted-foreground font-medium">Receiver:</span>
-                            <span className="font-mono font-bold text-foreground text-sm">{cleanReceiver}</span>
+                        {/* Receiver Information */}
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between text-xs">
+                                <span className="text-muted-foreground font-medium">Receiver Name:</span>
+                                <span className="font-bold text-foreground text-sm">{activeWaitress?.name || 'N/A'}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-xs">
+                                <span className="text-muted-foreground font-medium">Receiver Number:</span>
+                                <span className="font-mono font-bold text-foreground text-sm">{cleanReceiver}</span>
+                            </div>
                         </div>
 
                         {/* USSD Instruction box */}

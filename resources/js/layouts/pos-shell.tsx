@@ -120,11 +120,6 @@ export default function PosShell({
                         {[
                             { label: 'Home', icon: Home, href: '/dashboard' },
                             { label: 'Orders', icon: ClipboardList, href: '/management/orders' },
-                            {
-                                label: 'Reports',
-                                icon: BarChart3,
-                                href: '/finance/reports',
-                            },
                         ].map(({ label, icon: Icon, href }) => {
                             const isActive = activeNav === label;
                             return (

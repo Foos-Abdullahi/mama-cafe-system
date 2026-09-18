@@ -5,15 +5,7 @@ import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Save, Store, Hash, Edit, X, Plus, Trash2, Percent } from 'lucide-react';
-
-interface WaitressItem {
-    id: number;
-    name: string;
-    phone: string;
-    status: string;
-    assigned_number: string;
-}
+import { Save, Store, Hash, Edit, X, Plus, Trash2, Percent, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface SystemSettings {
     cafe_name: string;
@@ -29,10 +21,9 @@ interface SystemSettings {
 
 interface Props {
     settings: SystemSettings;
-    waitresses?: WaitressItem[];
 }
 
-export default function SystemSettingsIndex({ settings, waitresses = [] }: Props) {
+export default function SystemSettingsIndex({ settings }: Props) {
     const [isEditing, setIsEditing] = useState(false);
 
     // Parse waitress numbers into an array of strings
@@ -50,12 +41,21 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
     const [numberInputs, setNumberInputs] = useState<string[]>(initialNumbers);
     const [commissionInputs, setCommissionInputs] = useState<string[]>(initialCommissions);
 
-    const [waitressPage, setWaitressPage] = useState(1);
-    const WAITRESS_PAGE_SIZE = 5;
-    const totalWaitressPages = Math.ceil(waitresses.length / WAITRESS_PAGE_SIZE) || 1;
-    const paginatedWaitresses = waitresses.slice(
-        (waitressPage - 1) * WAITRESS_PAGE_SIZE,
-        waitressPage * WAITRESS_PAGE_SIZE,
+    // Pagination for Waitress Working Numbers
+    const [numberPage, setNumberPage] = useState(1);
+    const PAGE_SIZE = 5;
+    const totalNumberPages = Math.ceil(numberInputs.length / PAGE_SIZE) || 1;
+    const paginatedNumberInputs = numberInputs.slice(
+        (numberPage - 1) * PAGE_SIZE,
+        numberPage * PAGE_SIZE,
+    );
+
+    // Pagination for Commission Rates
+    const [commissionPage, setCommissionPage] = useState(1);
+    const totalCommissionPages = Math.ceil(commissionInputs.length / PAGE_SIZE) || 1;
+    const paginatedCommissionInputs = commissionInputs.slice(
+        (commissionPage - 1) * PAGE_SIZE,
+        commissionPage * PAGE_SIZE,
     );
 
     const form = useForm({
@@ -75,13 +75,15 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
         form.reset();
         setNumberInputs(initialNumbers);
         setCommissionInputs(initialCommissions);
+        setNumberPage(1);
+        setCommissionPage(1);
         setIsEditing(false);
     };
 
     // Number Inputs Management
-    const handleNumberChange = (index: number, val: string) => {
+    const handleNumberChange = (actualIndex: number, val: string) => {
         const updated = [...numberInputs];
-        updated[index] = val;
+        updated[actualIndex] = val;
         setNumberInputs(updated);
         form.setData('cafe_waitress_numbers', updated.filter(Boolean).join(', '));
     };
@@ -89,18 +91,24 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
     const addNumberInput = () => {
         const updated = [...numberInputs, ''];
         setNumberInputs(updated);
+        const newTotalPages = Math.ceil(updated.length / PAGE_SIZE);
+        setNumberPage(newTotalPages);
     };
 
-    const removeNumberInput = (index: number) => {
-        const updated = numberInputs.filter((_, i) => i !== index);
+    const removeNumberInput = (actualIndex: number) => {
+        const updated = numberInputs.filter((_, i) => i !== actualIndex);
         setNumberInputs(updated);
         form.setData('cafe_waitress_numbers', updated.filter(Boolean).join(', '));
+        const maxPages = Math.ceil(updated.length / PAGE_SIZE) || 1;
+        if (numberPage > maxPages) {
+            setNumberPage(maxPages);
+        }
     };
 
     // Commission Inputs Management
-    const handleCommissionChange = (index: number, val: string) => {
+    const handleCommissionChange = (actualIndex: number, val: string) => {
         const updated = [...commissionInputs];
-        updated[index] = val;
+        updated[actualIndex] = val;
         setCommissionInputs(updated);
         form.setData('commission_rates', updated.filter(Boolean).join(', '));
     };
@@ -108,12 +116,18 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
     const addCommissionInput = () => {
         const updated = [...commissionInputs, ''];
         setCommissionInputs(updated);
+        const newTotalPages = Math.ceil(updated.length / PAGE_SIZE);
+        setCommissionPage(newTotalPages);
     };
 
-    const removeCommissionInput = (index: number) => {
-        const updated = commissionInputs.filter((_, i) => i !== index);
+    const removeCommissionInput = (actualIndex: number) => {
+        const updated = commissionInputs.filter((_, i) => i !== actualIndex);
         setCommissionInputs(updated);
         form.setData('commission_rates', updated.filter(Boolean).join(', '));
+        const maxPages = Math.ceil(updated.length / PAGE_SIZE) || 1;
+        if (commissionPage > maxPages) {
+            setCommissionPage(maxPages);
+        }
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -153,7 +167,7 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
                             <Button
                                 type="button"
                                 onClick={() => setIsEditing(true)}
-                                className="bg-[#823d21] text-white hover:bg-[#682e18] gap-1.5 text-xs shadow-xs"
+                                className="bg-[#823d21] text-white hover:bg-[#682e18] gap-1.5 text-xs shadow-xs cursor-pointer"
                             >
                                 <Edit className="h-4 w-4" />
                                 Edit Settings
@@ -164,7 +178,7 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
                                     type="button"
                                     variant="outline"
                                     onClick={handleCancel}
-                                    className="gap-1.5 text-xs shadow-xs"
+                                    className="gap-1.5 text-xs shadow-xs cursor-pointer"
                                 >
                                     <X className="h-4 w-4" />
                                     Cancel
@@ -173,7 +187,7 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
                                     type="button"
                                     onClick={handleSubmit}
                                     disabled={form.processing}
-                                    className="bg-[#823d21] text-white hover:bg-[#682e18] gap-1.5 text-xs shadow-xs min-w-[120px]"
+                                    className="bg-[#823d21] text-white hover:bg-[#682e18] gap-1.5 text-xs shadow-xs min-w-[120px] cursor-pointer"
                                 >
                                     <Save className="h-4 w-4" />
                                     {form.processing ? 'Saving...' : 'Save Settings'}
@@ -309,7 +323,7 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
                             </div>
                         </div>
 
-                        {/* Waitress Numbers & Commission Configuration */}
+                        {/* Working Waitress Numbers & Commission Configuration */}
                         <div className="rounded-xl border bg-card p-5 md:p-6 shadow-xs space-y-6">
                             <div className="flex items-center gap-2 border-b border-border pb-3">
                                 <Hash className="h-5 w-5 text-[#823d21]" />
@@ -328,7 +342,7 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
                                                 type="button"
                                                 size="sm"
                                                 onClick={addNumberInput}
-                                                className="h-8 gap-1.5 text-xs bg-[#823d21] text-white hover:bg-[#682e18]"
+                                                className="h-8 gap-1.5 text-xs bg-[#823d21] text-white hover:bg-[#682e18] cursor-pointer"
                                             >
                                                 <Plus className="h-3.5 w-3.5" />
                                                 Add Working Number
@@ -336,38 +350,77 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
                                         )}
                                     </div>
 
-                                    <div className="space-y-3.5 max-h-[360px] overflow-y-auto pr-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                                    <div className="space-y-3.5">
                                         {numberInputs.length === 0 ? (
                                             <p className="text-xs text-muted-foreground italic">No working waitress numbers configured. Click Add Working Number to register one.</p>
                                         ) : (
-                                            numberInputs.map((num, idx) => (
-                                                <div key={idx} className="flex items-center gap-2">
-                                                    <div className="relative flex-1">
-                                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#823d21]">#</span>
-                                                        <Input
-                                                            placeholder="Working waitress number e.g. 1, 2, 101, 102"
-                                                            disabled={!isEditing}
-                                                            className={`h-10 font-mono pl-7 ${!isEditing ? 'bg-muted/50 cursor-not-allowed' : ''}`}
-                                                            value={num}
-                                                            onChange={(e) => handleNumberChange(idx, e.target.value)}
-                                                        />
+                                            paginatedNumberInputs.map((num, relIdx) => {
+                                                const actualIdx = (numberPage - 1) * PAGE_SIZE + relIdx;
+                                                return (
+                                                    <div key={actualIdx} className="flex items-center gap-2">
+                                                        <div className="relative flex-1">
+                                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#823d21]">#</span>
+                                                            <Input
+                                                                placeholder="Working waitress number e.g. 1, 2, 101, 102"
+                                                                disabled={!isEditing}
+                                                                className={`h-10 font-mono pl-7 ${!isEditing ? 'bg-muted/50 cursor-not-allowed' : ''}`}
+                                                                value={num}
+                                                                onChange={(e) => handleNumberChange(actualIdx, e.target.value)}
+                                                            />
+                                                        </div>
+                                                        {isEditing && (
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                size="icon"
+                                                                onClick={() => removeNumberInput(actualIdx)}
+                                                                className="h-10 w-10 shrink-0 text-red-500 hover:bg-red-500/10 hover:text-red-600 border-red-200 dark:border-red-900/30 cursor-pointer"
+                                                                title="Remove input"
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        )}
                                                     </div>
-                                                    {isEditing && (
-                                                        <Button
-                                                            type="button"
-                                                            variant="outline"
-                                                            size="icon"
-                                                            onClick={() => removeNumberInput(idx)}
-                                                            className="h-10 w-10 shrink-0 text-red-500 hover:bg-red-500/10 hover:text-red-600 border-red-200 dark:border-red-900/30"
-                                                            title="Remove input"
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    )}
-                                                </div>
-                                            ))
+                                                );
+                                            })
                                         )}
                                     </div>
+
+                                    {/* Number Inputs Pagination */}
+                                    {numberInputs.length > PAGE_SIZE && (
+                                        <div className="flex items-center justify-between pt-1 text-xs">
+                                            <span className="text-muted-foreground text-[11px]">
+                                                Showing {(numberPage - 1) * PAGE_SIZE + 1}–
+                                                {Math.min(numberPage * PAGE_SIZE, numberInputs.length)} of {numberInputs.length}
+                                            </span>
+                                            <div className="flex items-center gap-1.5">
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    disabled={numberPage === 1}
+                                                    onClick={() => setNumberPage((p) => Math.max(1, p - 1))}
+                                                    className="h-7 text-xs px-2 cursor-pointer"
+                                                >
+                                                    <ChevronLeft className="h-3.5 w-3.5" />
+                                                </Button>
+                                                <span className="font-semibold text-foreground text-[11px]">
+                                                    {numberPage} / {totalNumberPages}
+                                                </span>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    disabled={numberPage === totalNumberPages}
+                                                    onClick={() => setNumberPage((p) => Math.min(totalNumberPages, p + 1))}
+                                                    className="h-7 text-xs px-2 cursor-pointer"
+                                                >
+                                                    <ChevronRight className="h-3.5 w-3.5" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <p className="text-[11px] text-muted-foreground">
                                         Each registered number represents an active floor station / badge number assigned to working waitresses during service and at the POS terminal.
                                     </p>
@@ -385,7 +438,7 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
                                                 type="button"
                                                 size="sm"
                                                 onClick={addCommissionInput}
-                                                className="h-8 gap-1.5 text-xs bg-[#823d21] text-white hover:bg-[#682e18]"
+                                                className="h-8 gap-1.5 text-xs bg-[#823d21] text-white hover:bg-[#682e18] cursor-pointer"
                                             >
                                                 <Plus className="h-3.5 w-3.5" />
                                                 Add Commission
@@ -393,121 +446,85 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
                                         )}
                                     </div>
 
-                                    <div className="space-y-3.5 max-h-[360px] overflow-y-auto pr-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                                    <div className="space-y-3.5">
                                         {commissionInputs.length === 0 ? (
                                             <p className="text-xs text-muted-foreground italic">No commission rates configured. Click Add Commission to create one.</p>
                                         ) : (
-                                            commissionInputs.map((rate, idx) => (
-                                                <div key={idx} className="flex items-center gap-2">
-                                                    <div className="relative flex-1">
-                                                        <Input
-                                                            type="number"
-                                                            step="0.1"
-                                                            placeholder="Commission percentage e.g. 15"
-                                                            disabled={!isEditing}
-                                                            className={`h-10 font-mono pr-8 ${!isEditing ? 'bg-muted/50 cursor-not-allowed' : ''}`}
-                                                            value={rate}
-                                                            onChange={(e) => handleCommissionChange(idx, e.target.value)}
-                                                        />
-                                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">%</span>
+                                            paginatedCommissionInputs.map((rate, relIdx) => {
+                                                const actualIdx = (commissionPage - 1) * PAGE_SIZE + relIdx;
+                                                return (
+                                                    <div key={actualIdx} className="flex items-center gap-2">
+                                                        <div className="relative flex-1">
+                                                            <Input
+                                                                type="number"
+                                                                step="0.1"
+                                                                placeholder="Commission percentage e.g. 15"
+                                                                disabled={!isEditing}
+                                                                className={`h-10 font-mono pr-8 ${!isEditing ? 'bg-muted/50 cursor-not-allowed' : ''}`}
+                                                                value={rate}
+                                                                onChange={(e) => handleCommissionChange(actualIdx, e.target.value)}
+                                                            />
+                                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">%</span>
+                                                        </div>
+                                                        {isEditing && (
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                size="icon"
+                                                                onClick={() => removeCommissionInput(actualIdx)}
+                                                                className="h-10 w-10 shrink-0 text-red-500 hover:bg-red-500/10 hover:text-red-600 border-red-200 dark:border-red-900/30 cursor-pointer"
+                                                                title="Remove input"
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        )}
                                                     </div>
-                                                    {isEditing && (
-                                                        <Button
-                                                            type="button"
-                                                            variant="outline"
-                                                            size="icon"
-                                                            onClick={() => removeCommissionInput(idx)}
-                                                            className="h-10 w-10 shrink-0 text-red-500 hover:bg-red-500/10 hover:text-red-600 border-red-200 dark:border-red-900/30"
-                                                            title="Remove input"
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    )}
-                                                </div>
-                                            ))
+                                                );
+                                            })
                                         )}
                                     </div>
+
+                                    {/* Commission Inputs Pagination */}
+                                    {commissionInputs.length > PAGE_SIZE && (
+                                        <div className="flex items-center justify-between pt-1 text-xs">
+                                            <span className="text-muted-foreground text-[11px]">
+                                                Showing {(commissionPage - 1) * PAGE_SIZE + 1}–
+                                                {Math.min(commissionPage * PAGE_SIZE, commissionInputs.length)} of {commissionInputs.length}
+                                            </span>
+                                            <div className="flex items-center gap-1.5">
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    disabled={commissionPage === 1}
+                                                    onClick={() => setCommissionPage((p) => Math.max(1, p - 1))}
+                                                    className="h-7 text-xs px-2 cursor-pointer"
+                                                >
+                                                    <ChevronLeft className="h-3.5 w-3.5" />
+                                                </Button>
+                                                <span className="font-semibold text-foreground text-[11px]">
+                                                    {commissionPage} / {totalCommissionPages}
+                                                </span>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    disabled={commissionPage === totalCommissionPages}
+                                                    onClick={() => setCommissionPage((p) => Math.min(totalCommissionPages, p + 1))}
+                                                    className="h-7 text-xs px-2 cursor-pointer"
+                                                >
+                                                    <ChevronRight className="h-3.5 w-3.5" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <p className="text-[11px] text-muted-foreground">
                                         These rates will appear as options in the dropdown when adding or editing a waitress.
                                     </p>
                                     <InputError message={form.errors.commission_rates} />
                                 </div>
                             </div>
-                        </div>
-
-                        {/* Registered Waitresses & Assigned Numbers Overview with 5-item Pagination */}
-                        <div className="rounded-xl border bg-card p-5 md:p-6 shadow-xs space-y-4">
-                            <div className="flex items-center justify-between border-b border-border pb-3">
-                                <div>
-                                    <h2 className="font-semibold text-base text-foreground">Registered Waitresses &amp; Assigned Working Numbers</h2>
-                                    <p className="text-xs text-muted-foreground mt-0.5">
-                                        Overview of floor waitresses and their currently active working numbers used during orders.
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
-                                {paginatedWaitresses.length > 0 ? (
-                                    paginatedWaitresses.map((w) => (
-                                        <div key={w.id} className="p-3.5 flex items-center justify-between bg-card text-xs">
-                                            <div className="flex items-center gap-3">
-                                                <div>
-                                                    <p className="font-semibold text-foreground text-sm">{w.name}</p>
-                                                    <p className="text-muted-foreground text-[11px]">{w.phone || 'No phone'}</p>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                                <span className="text-xs text-muted-foreground">Assigned Working Number:</span>
-                                                {w.assigned_number !== '—' ? (
-                                                    <span className="font-mono font-bold bg-[#823d21] text-white px-2.5 py-1 rounded-full text-xs">
-                                                        Working No. #{w.assigned_number}
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-xs text-muted-foreground italic">No working number assigned</span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="p-4 text-center text-xs text-muted-foreground italic">
-                                        No waitresses registered in the system.
-                                    </div>
-                                )}
-                            </div>
-
-                            {waitresses.length > 0 && (
-                                <div className="flex items-center justify-between pt-2 text-xs">
-                                    <span className="text-muted-foreground">
-                                        Showing {(waitressPage - 1) * WAITRESS_PAGE_SIZE + 1} to{' '}
-                                        {Math.min(waitressPage * WAITRESS_PAGE_SIZE, waitresses.length)} of {waitresses.length} waitresses
-                                    </span>
-                                    <div className="flex items-center gap-2">
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            className="h-8 text-xs px-2.5 cursor-pointer"
-                                            disabled={waitressPage === 1}
-                                            onClick={() => setWaitressPage((p) => Math.max(1, p - 1))}
-                                        >
-                                            Previous
-                                        </Button>
-                                        <span className="font-medium text-foreground">
-                                            Page {waitressPage} of {totalWaitressPages}
-                                        </span>
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            className="h-8 text-xs px-2.5 cursor-pointer"
-                                            disabled={waitressPage === totalWaitressPages}
-                                            onClick={() => setWaitressPage((p) => Math.min(totalWaitressPages, p + 1))}
-                                        >
-                                            Next
-                                        </Button>
-                                    </div>
-                                </div>
-                            )}
                         </div>
 
                         {/* Bottom Actions Footer */}
@@ -523,7 +540,7 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
                                         type="button"
                                         variant="outline"
                                         onClick={handleCancel}
-                                        className="gap-1.5 text-xs shadow-xs"
+                                        className="gap-1.5 text-xs shadow-xs cursor-pointer"
                                     >
                                         <X className="h-4 w-4" />
                                         Cancel
@@ -531,7 +548,7 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
                                     <Button
                                         type="submit"
                                         disabled={form.processing}
-                                        className="bg-[#823d21] text-white hover:bg-[#682e18] gap-1.5 text-xs shadow-xs min-w-[140px]"
+                                        className="bg-[#823d21] text-white hover:bg-[#682e18] gap-1.5 text-xs shadow-xs min-w-[140px] cursor-pointer"
                                     >
                                         <Save className="h-4 w-4" />
                                         {form.processing ? 'Saving...' : 'Save Settings'}
@@ -556,5 +573,6 @@ SystemSettingsIndex.layout = (page: React.ReactNode) => (
         {page}
     </AppLayout>
 );
+
 
 

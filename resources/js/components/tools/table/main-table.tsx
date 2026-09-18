@@ -128,7 +128,7 @@ export function DataTable<TData, TValue>({
             pagination: {
                 pageSize: hidePagination
                     ? data.length
-                    : pagination?.per_page || 50,
+                    : pagination?.per_page || 10,
             },
         },
         enableRowSelection: true,

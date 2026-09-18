@@ -23,11 +23,9 @@ import {
     ArrowLeft,
     Wallet,
     DollarSign,
-    Smartphone,
-    AlertTriangle,
-    ChevronRight,
-    CheckCircle,
     CheckCircle2,
+    Copy,
+    Smartphone,
 } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 
@@ -72,20 +70,21 @@ export default function PayrollCreate({ waitresses, cafeNumbers, selectedWaitres
                       : initialWaitress.earned_commission.toFixed(2),
               )
             : '',
-        fixed_number_id: '',
+        fixed_number_id: cafeNumbers[0]?.id ? String(cafeNumbers[0].id) : '',
         notes: '',
     });
 
-    // Dialog state: null = closed, 'select' = dialog 1, 'confirm' = dialog 2
-    const [dialogStep, setDialogStep] = useState<null | 'select' | 'confirm'>(null);
+    const [showEvcDialog, setShowEvcDialog] = useState(false);
+    const [copied, setCopied] = useState(false);
 
     const activeWaitress = waitresses.find((w) => String(w.id) === form.data.waitress_id);
-    const selectedCafeNumber = cafeNumbers.find((c) => String(c.id) === form.data.fixed_number_id);
 
     const payoutAmount = parseFloat(form.data.commission_amount) || 0;
-    const balanceAfter = selectedCafeNumber ? selectedCafeNumber.balance - payoutAmount : null;
-    const isInsufficientBalance = selectedCafeNumber ? selectedCafeNumber.balance < payoutAmount : false;
     const isFullyPaid = activeWaitress ? (activeWaitress.unpaid_commission <= 0 || activeWaitress.is_fully_paid) : false;
+
+    const rawPhone = activeWaitress?.phone || '';
+    const cleanReceiver = rawPhone.replace(/\D/g, '') || '55555555';
+    const ussdInstruction = `*712*${cleanReceiver}*${payoutAmount.toFixed(2)}#`;
 
     const handleWaitressChange = (value: string) => {
         const w = waitresses.find((item) => String(item.id) === value);
@@ -98,22 +97,22 @@ export default function PayrollCreate({ waitresses, cafeNumbers, selectedWaitres
         }));
     };
 
-    // Step 1: open the "select café number" dialog
     const handleConfirmClick = (e: React.FormEvent) => {
         e.preventDefault();
         if (isFullyPaid) return;
-        setDialogStep('select');
+        setShowEvcDialog(true);
     };
 
-    // Step 2: proceed to "Ma hubtaa?" confirmation dialog
-    const handleNext = () => {
-        if (!form.data.fixed_number_id) return;
-        setDialogStep('confirm');
+    const handleCopyUssd = () => {
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(ussdInstruction);
+        }
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
     };
 
-    // Final submit
     const handleFinalSubmit = () => {
-        setDialogStep(null);
+        setShowEvcDialog(false);
         form.post('/finance/payroll');
     };
 
@@ -301,170 +300,80 @@ export default function PayrollCreate({ waitresses, cafeNumbers, selectedWaitres
                 </div>
             </div>
 
-            {/* ─── DIALOG 1: Select Café Number ─── */}
-            <Dialog open={dialogStep === 'select'} onOpenChange={(open) => !open && setDialogStep(null)}>
+            {/* ─── EVC (USSD) CONFIRMATION DIALOG ─── */}
+            <Dialog open={showEvcDialog} onOpenChange={setShowEvcDialog}>
                 <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                        <div className="flex items-center gap-2 mb-1">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#823d21]/10 text-[#823d21]">
-                                <Smartphone className="h-4 w-4" />
+                    <DialogHeader className="space-y-1">
+                        <div className="flex items-center gap-2.5 mb-1">
+                            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#823d21]/10 text-[#823d21]">
+                                <Smartphone className="h-5 w-5" />
                             </div>
-                            <DialogTitle className="text-base">Select Café Number</DialogTitle>
+                            <DialogTitle className="text-base font-bold text-foreground">
+                                Confirm EVC (USSD)
+                            </DialogTitle>
                         </div>
-                        <DialogDescription className="text-xs">
-                            Choose which company number to send the payment from.
+                        <DialogDescription className="text-xs text-muted-foreground">
+                            Please confirm you have completed the USSD payment.
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="space-y-4 py-2">
-                        {/* Café Number Selector */}
-                        <div className="grid gap-2">
-                            <Label className="text-xs font-medium">Pay From <span className="text-red-500">*</span></Label>
-                            <Select
-                                value={form.data.fixed_number_id}
-                                onValueChange={(v) => form.setData('fixed_number_id', v)}
-                            >
-                                <SelectTrigger id="fixed_number_id" className="w-full h-10">
-                                    <SelectValue placeholder="— Select a café number —" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {cafeNumbers.length === 0 ? (
-                                        <SelectItem value="none" disabled>
-                                            No café numbers available
-                                        </SelectItem>
-                                    ) : (
-                                        cafeNumbers.map((c) => (
-                                            <SelectItem key={c.id} value={String(c.id)}>
-                                                <span className="font-mono">{c.label}</span>
-                                                <span className="ml-2 text-muted-foreground">
-                                                    — Bal: ${c.balance.toFixed(2)}
-                                                </span>
-                                            </SelectItem>
-                                        ))
-                                    )}
-                                </SelectContent>
-                            </Select>
-                            <InputError message={form.errors.fixed_number_id} />
+                    {/* USSD Details Box */}
+                    <div className="my-2 rounded-xl bg-muted/30 border border-border/70 p-4 space-y-3.5">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground border-b border-border/60 pb-2">
+                            USSD Payment Details
+                        </h4>
+
+                        <div className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground font-medium">Receiver:</span>
+                            <span className="font-mono font-bold text-foreground text-sm">{cleanReceiver}</span>
                         </div>
 
-                        {/* Amount being paid */}
-                        <div className="rounded-lg bg-muted/30 border border-border/60 p-3 space-y-2 text-xs">
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">Paying to</span>
-                                <span className="font-semibold text-foreground">{activeWaitress?.name ?? '—'}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">Amount</span>
-                                <span className="font-mono font-bold text-foreground">${payoutAmount.toFixed(2)}</span>
-                            </div>
-                            {selectedCafeNumber && (
+                        {/* USSD Instruction box */}
+                        <div className="rounded-lg bg-card border border-border p-3 text-xs font-mono font-bold text-foreground flex items-center justify-between shadow-xs">
+                            <span className="text-[#823d21]">USSD Instruction:</span>
+                            <span className="text-foreground select-all">{ussdInstruction}</span>
+                        </div>
+
+                        {/* Copy USSD Button */}
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleCopyUssd}
+                            className="w-full h-9 gap-2 text-xs border-[#823d21]/30 text-[#823d21] hover:bg-[#823d21]/10 shadow-xs"
+                        >
+                            {copied ? (
                                 <>
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Current Balance</span>
-                                        <span className="font-mono font-medium">${selectedCafeNumber.balance.toFixed(2)}</span>
-                                    </div>
-                                    <div className="border-t border-border/50 pt-2 flex justify-between">
-                                        <span className="text-muted-foreground">Remaining After</span>
-                                        <span
-                                            className={`font-mono font-bold ${isInsufficientBalance ? 'text-red-600' : 'text-emerald-600'}`}
-                                        >
-                                            ${(balanceAfter ?? 0).toFixed(2)}
-                                        </span>
-                                    </div>
+                                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                                    <span className="font-semibold text-emerald-600">Copied to Clipboard!</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Copy className="h-4 w-4" />
+                                    <span>Copy USSD</span>
                                 </>
                             )}
-                        </div>
-
-                        {/* Insufficient balance warning */}
-                        {isInsufficientBalance && (
-                            <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-900/30 p-3 text-xs text-red-700 dark:text-red-400">
-                                <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                                <span>
-                                    Insufficient balance. This café number only has ${selectedCafeNumber?.balance.toFixed(2)} available.
-                                </span>
-                            </div>
-                        )}
+                        </Button>
                     </div>
 
-                    <DialogFooter className="gap-2 sm:gap-2">
+                    <DialogFooter className="gap-2 sm:gap-2 pt-2">
                         <Button
+                            type="button"
                             variant="outline"
                             size="sm"
                             className="text-xs"
-                            onClick={() => setDialogStep(null)}
+                            onClick={() => setShowEvcDialog(false)}
                         >
                             Cancel
                         </Button>
                         <Button
-                            size="sm"
-                            className="gap-1.5 text-xs bg-[#823d21] text-white hover:bg-[#682e18]"
-                            disabled={!form.data.fixed_number_id || isInsufficientBalance}
-                            onClick={handleNext}
-                        >
-                            Next
-                            <ChevronRight className="h-3.5 w-3.5" />
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            {/* ─── DIALOG 2: Ma hubtaa? Confirmation ─── */}
-            <Dialog open={dialogStep === 'confirm'} onOpenChange={(open) => !open && setDialogStep('select')}>
-                <DialogContent className="sm:max-w-sm">
-                    <DialogHeader>
-                        <div className="flex items-center gap-2 mb-1">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600">
-                                <CheckCircle className="h-4 w-4" />
-                            </div>
-                            <DialogTitle className="text-base">Ma hubtaa?</DialogTitle>
-                        </div>
-                        <DialogDescription className="text-xs">
-                            Are you sure you want to process this payment?
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    {/* Payment summary */}
-                    <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3 text-xs my-2">
-                        <div className="flex justify-between">
-                            <span className="text-muted-foreground">Staff Member</span>
-                            <span className="font-semibold text-foreground">{activeWaitress?.name ?? '—'}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-muted-foreground">Amount to Pay</span>
-                            <span className="font-mono font-bold text-[#823d21] text-sm">${payoutAmount.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-muted-foreground">Sent From</span>
-                            <span className="font-mono font-medium text-foreground">
-                                {selectedCafeNumber?.label ?? '—'}
-                            </span>
-                        </div>
-                        <div className="border-t border-border pt-3 flex justify-between">
-                            <span className="text-muted-foreground">Balance After</span>
-                            <span className="font-mono font-bold text-emerald-600">
-                                ${(balanceAfter ?? 0).toFixed(2)}
-                            </span>
-                        </div>
-                    </div>
-
-                    <DialogFooter className="gap-2 sm:gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs gap-1.5"
-                            onClick={() => setDialogStep('select')}
-                        >
-                            <ArrowLeft className="h-3.5 w-3.5" />
-                            Maya, Jooji
-                        </Button>
-                        <Button
+                            type="button"
                             size="sm"
                             disabled={form.processing}
-                            className="gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white min-w-[130px]"
                             onClick={handleFinalSubmit}
+                            className="text-xs font-semibold bg-[#823d21] hover:bg-[#682e18] text-white min-w-[150px] shadow-xs"
                         >
-                            <CheckCircle className="h-3.5 w-3.5" />
-                            {form.processing ? 'Processing...' : 'Haa, Sii wad'}
+                            {form.processing ? 'Processing...' : 'Confirm I Have Paid'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

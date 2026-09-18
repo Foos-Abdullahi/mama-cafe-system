@@ -165,7 +165,7 @@ class DailyClosingController extends Controller
 
         foreach ($validated['assignments'] as $item) {
             if (! empty($item['is_active']) && ! empty($item['assigned_number'])) {
-                $num = (int) $item['assigned_number'];
+                $num = trim((string) $item['assigned_number']);
                 $wId = $item['waitress_id'];
 
                 FixedNumber::updateOrCreate(
@@ -269,7 +269,7 @@ class DailyClosingController extends Controller
 
         foreach ($validated['assignments'] as $item) {
             if (! empty($item['is_active']) && ! empty($item['assigned_number'])) {
-                $num = (int) $item['assigned_number'];
+                $num = trim((string) $item['assigned_number']);
                 $wId = $item['waitress_id'];
 
                 FixedNumber::updateOrCreate(

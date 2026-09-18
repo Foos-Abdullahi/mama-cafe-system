@@ -81,7 +81,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Operations POS routes
     Route::get('/pos', [PosController::class, 'index'])->name('pos.index');
-    Route::get('/pos/orders', [PosController::class, 'orders'])->name('pos.orders');
+    Route::redirect('/pos/orders', '/management/orders')->name('pos.orders');
     Route::post('/pos/orders', [PosController::class, 'store'])->name('pos.store');
     Route::patch('/management/orders/{order}/status', [PosController::class, 'updateStatus'])->name('management.orders.status');
     Route::patch('/management/orders/{order}/payment-status', [PosController::class, 'updatePaymentStatus'])->name('management.orders.payment-status');

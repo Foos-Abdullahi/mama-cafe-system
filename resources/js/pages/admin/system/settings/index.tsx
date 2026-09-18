@@ -50,6 +50,14 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
     const [numberInputs, setNumberInputs] = useState<string[]>(initialNumbers);
     const [commissionInputs, setCommissionInputs] = useState<string[]>(initialCommissions);
 
+    const [waitressPage, setWaitressPage] = useState(1);
+    const WAITRESS_PAGE_SIZE = 5;
+    const totalWaitressPages = Math.ceil(waitresses.length / WAITRESS_PAGE_SIZE) || 1;
+    const paginatedWaitresses = waitresses.slice(
+        (waitressPage - 1) * WAITRESS_PAGE_SIZE,
+        waitressPage * WAITRESS_PAGE_SIZE,
+    );
+
     const form = useForm({
         cafe_name: settings.cafe_name || '',
         cafe_phone: settings.cafe_phone || '',
@@ -328,7 +336,7 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
                                         )}
                                     </div>
 
-                                    <div className="space-y-3.5 max-h-[360px] overflow-y-auto pr-1">
+                                    <div className="space-y-3.5 max-h-[360px] overflow-y-auto pr-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                                         {numberInputs.length === 0 ? (
                                             <p className="text-xs text-muted-foreground italic">No working waitress numbers configured. Click Add Working Number to register one.</p>
                                         ) : (
@@ -385,7 +393,7 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
                                         )}
                                     </div>
 
-                                    <div className="space-y-3.5 max-h-[360px] overflow-y-auto pr-1">
+                                    <div className="space-y-3.5 max-h-[360px] overflow-y-auto pr-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                                         {commissionInputs.length === 0 ? (
                                             <p className="text-xs text-muted-foreground italic">No commission rates configured. Click Add Commission to create one.</p>
                                         ) : (
@@ -439,8 +447,8 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
                             </div>
 
                             <div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
-                                {waitresses.length > 0 ? (
-                                    waitresses.map((w) => (
+                                {paginatedWaitresses.length > 0 ? (
+                                    paginatedWaitresses.map((w) => (
                                         <div key={w.id} className="p-3.5 flex items-center justify-between bg-card text-xs">
                                             <div className="flex items-center gap-3">
                                                 <div>
@@ -466,6 +474,40 @@ export default function SystemSettingsIndex({ settings, waitresses = [] }: Props
                                     </div>
                                 )}
                             </div>
+
+                            {waitresses.length > 0 && (
+                                <div className="flex items-center justify-between pt-2 text-xs">
+                                    <span className="text-muted-foreground">
+                                        Showing {(waitressPage - 1) * WAITRESS_PAGE_SIZE + 1} to{' '}
+                                        {Math.min(waitressPage * WAITRESS_PAGE_SIZE, waitresses.length)} of {waitresses.length} waitresses
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-8 text-xs px-2.5"
+                                            disabled={waitressPage === 1}
+                                            onClick={() => setWaitressPage((p) => Math.max(1, p - 1))}
+                                        >
+                                            Previous
+                                        </Button>
+                                        <span className="font-medium text-foreground">
+                                            Page {waitressPage} of {totalWaitressPages}
+                                        </span>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-8 text-xs px-2.5"
+                                            disabled={waitressPage === totalWaitressPages}
+                                            onClick={() => setWaitressPage((p) => Math.min(totalWaitressPages, p + 1))}
+                                        >
+                                            Next
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Bottom Actions Footer */}

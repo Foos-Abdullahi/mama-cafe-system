@@ -77,12 +77,12 @@ test('authenticated user can view POS terminal and submit a pending order with d
     ]);
 });
 
-test('authenticated user can view POS order history page', function () {
+test('authenticated user accessing /pos/orders redirects to management orders page', function () {
     $user = User::factory()->create(['role' => 'operations']);
 
     $response = $this->actingAs($user)->get(route('pos.orders'));
 
-    $response->assertOk();
+    $response->assertRedirect(route('management.orders.index'));
 });
 
 test('operations and waitress roles redirect to POS after login', function () {

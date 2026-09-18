@@ -115,11 +115,6 @@ export default function PosShell({
                         {[
                             { label: 'Home', icon: Home, href: '/pos' },
                             {
-                                label: 'Orders',
-                                icon: ClipboardList,
-                                href: '/pos/orders',
-                            },
-                            {
                                 label: 'Reports',
                                 icon: BarChart3,
                                 href: '/finance/reports',

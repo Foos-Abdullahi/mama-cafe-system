@@ -200,20 +200,16 @@ class PayrollController extends Controller
     {
         $validated = $request->validate([
             'waitress_id' => 'required|exists:waitresses,id',
-            'fixed_number_id' => 'required|exists:fixed_numbers,id',
+            'fixed_number_id' => 'nullable|exists:fixed_numbers,id',
             'period_start' => 'required|date',
             'period_end' => 'required|date',
             'commission_amount' => 'required|numeric|min:0.01',
             'notes' => 'nullable|string',
         ]);
 
-        $cafeNumber = FixedNumber::findOrFail($validated['fixed_number_id']);
-
-        if ((float) $cafeNumber->balance < (float) $validated['commission_amount']) {
-            return back()->withErrors([
-                'fixed_number_id' => "Insufficient balance on café number {$cafeNumber->range_start}-{$cafeNumber->range_end}. Available: $".number_format((float) $cafeNumber->balance, 2),
-            ])->withInput();
-        }
+        $cafeNumber = ! empty($validated['fixed_number_id'])
+            ? FixedNumber::find($validated['fixed_number_id'])
+            : FixedNumber::first();
 
         $waitress = Waitress::findOrFail($validated['waitress_id']);
 
@@ -230,8 +226,8 @@ class PayrollController extends Controller
 
         $payroll = Payroll::create([
             'waitress_id' => $waitress->id,
-            'fixed_number_id' => $cafeNumber->id,
-            'sent_from_number' => $cafeNumber->range_start.'-'.$cafeNumber->range_end,
+            'fixed_number_id' => $cafeNumber?->id,
+            'sent_from_number' => $cafeNumber ? ($cafeNumber->range_start.'-'.$cafeNumber->range_end) : 'N/A',
             'period_start' => $validated['period_start'],
             'period_end' => $validated['period_end'],
             'total_orders' => $unpaidOrders->count(),
@@ -243,10 +239,7 @@ class PayrollController extends Controller
             'notes' => $validated['notes'] ?? 'Commission payout processed.',
         ]);
 
-        // Deduct the payout amount from the café number's balance
-        $cafeNumber->decrement('balance', round((float) $validated['commission_amount'], 2));
-
-        ActivityLog::log('payroll_create', "Payroll payout of \${$payroll->commission_amount} recorded for '{$waitress->name}' via café number {$cafeNumber->range_start}-{$cafeNumber->range_end}.");
+        ActivityLog::log('payroll_create', "Payroll payout of \${$payroll->commission_amount} recorded for '{$waitress->name}'.");
 
         return redirect()->route('finance.payroll.show', $payroll->id)->with('success', 'Payroll payout recorded successfully!');
     }

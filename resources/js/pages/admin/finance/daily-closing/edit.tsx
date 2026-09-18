@@ -56,6 +56,11 @@ export default function DailyWaitressesEdit({
         });
     });
 
+    const [page, setPage] = useState(1);
+    const PAGE_SIZE = 5;
+    const totalPages = Math.ceil(assignments.length / PAGE_SIZE) || 1;
+    const paginatedAssignments = assignments.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
     const form = useForm({
         assignments: assignments,
     });
@@ -142,8 +147,8 @@ export default function DailyWaitressesEdit({
                             <div className="col-span-5 md:col-span-6">Assigned Café Number for Today</div>
                         </div>
 
-                        {assignments.length > 0 ? (
-                            assignments.map((item) => {
+                        {paginatedAssignments.length > 0 ? (
+                            paginatedAssignments.map((item) => {
                                 const originalWaitress = waitresses.find((w) => w.id === item.waitress_id);
                                 const selectableNumbers = getSelectableNumbers(item.waitress_id, item.assigned_number);
 
@@ -211,6 +216,41 @@ export default function DailyWaitressesEdit({
                             </div>
                         )}
                     </div>
+
+                    {/* Pagination Controls */}
+                    {assignments.length > 0 && (
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 text-xs">
+                            <span className="text-muted-foreground">
+                                Showing {(page - 1) * PAGE_SIZE + 1} to{' '}
+                                {Math.min(page * PAGE_SIZE, assignments.length)} of {assignments.length} waitresses
+                            </span>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 text-xs px-3"
+                                    disabled={page === 1}
+                                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                >
+                                    Previous
+                                </Button>
+                                <span className="font-medium text-foreground px-2">
+                                    Page {page} of {totalPages}
+                                </span>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 text-xs px-3"
+                                    disabled={page === totalPages}
+                                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                                >
+                                    Next
+                                </Button>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Footer Actions */}
                     <div className="flex items-center justify-end gap-3 pt-2">

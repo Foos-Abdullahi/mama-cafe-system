@@ -49,7 +49,7 @@ test('admin or manager can access order detail show page', function () {
     $response->assertOk();
 });
 
-test('admin or manager can delete an order', function () {
+test('admin can delete an order', function () {
     $user = User::factory()->create(['role' => 'admin']);
 
     $order = Order::create([
@@ -66,6 +66,28 @@ test('admin or manager can delete an order', function () {
     $response->assertRedirect(route('management.orders.index'));
     expect(Order::find($order->id))->toBeNull();
 });
+
+test('non-admin user cannot delete an order', function (string $role) {
+    $user = User::factory()->create(['role' => $role]);
+
+    $order = Order::create([
+        'order_number' => 'ORD-1004-'.$role,
+        'order_type' => 'dine_in',
+        'status' => 'draft',
+        'payment_status' => 'unpaid',
+        'subtotal' => 10.00,
+        'total' => 10.00,
+    ]);
+
+    $response = $this->actingAs($user)->delete(route('management.orders.destroy', $order));
+
+    if (in_array($role, ['waitress', 'operations'], true)) {
+        $response->assertRedirect(route('pos.index'));
+    } else {
+        $response->assertForbidden();
+    }
+    expect(Order::find($order->id))->not->toBeNull();
+})->with(['manager', 'waitress', 'operations']);
 
 test('authenticated user can change an order status', function () {
     $user = User::factory()->create(['role' => 'admin']);

@@ -79,7 +79,7 @@ interface Props {
 
 export default function OrdersIndex({ orders, stats }: Props) {
     const { auth } = usePage<{ auth: { user: { role?: string } } }>().props;
-    const canEditDelete = auth?.user?.role === 'admin' || auth?.user?.role === 'manager';
+    const canDelete = auth?.user?.role === 'admin';
 
     const [deleteTarget, setDeleteTarget] = useState<Order | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -211,7 +211,7 @@ export default function OrdersIndex({ orders, stats }: Props) {
                                         View Receipt & Details
                                     </Link>
                                 </DropdownMenuItem>
-                                {canEditDelete && (
+                                {canDelete && (
                                     <>
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem onClick={() => setDeleteTarget(order)} className="text-red-600 focus:text-red-600 cursor-pointer">
@@ -260,14 +260,16 @@ export default function OrdersIndex({ orders, stats }: Props) {
                 </div>
             </div>
 
-            <ConfirmDeleteDialog
-                open={!!deleteTarget}
-                onOpenChange={(open) => !open && setDeleteTarget(null)}
-                onConfirm={handleConfirmDelete}
-                title={deleteTarget ? `Delete Order ${deleteTarget.order_number}` : 'Confirm Deletion'}
-                description="Are you sure you want to delete this order record? This action cannot be undone."
-                isDeleting={isDeleting}
-            />
+            {canDelete && (
+                <ConfirmDeleteDialog
+                    open={!!deleteTarget}
+                    onOpenChange={(open) => !open && setDeleteTarget(null)}
+                    onConfirm={handleConfirmDelete}
+                    title={deleteTarget ? `Delete Order ${deleteTarget.order_number}` : 'Confirm Deletion'}
+                    description="Are you sure you want to delete this order record? This action cannot be undone."
+                    isDeleting={isDeleting}
+                />
+            )}
         </>
     );
 }

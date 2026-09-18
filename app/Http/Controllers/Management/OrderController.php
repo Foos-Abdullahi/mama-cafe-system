@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\Setting;
 use App\Models\Waitress;
+use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -96,8 +97,12 @@ class OrderController extends Controller
         ];
     }
 
-    public function destroy(Order $order)
+    public function destroy(Order $order): RedirectResponse
     {
+        if (request()->user()?->role !== 'admin') {
+            abort(403, 'Unauthorized access.');
+        }
+
         $orderNumber = $order->order_number;
         $order->delete();
 

@@ -24,7 +24,7 @@ class EnsureRole
         if (! in_array($user->role, $roles, true)) {
             // Waitress or Operations trying to access unauthorized route
             if (in_array($user->role, ['waitress', 'operations'], true)) {
-                return redirect()->route('pos.index')->with('error', 'Access restricted to your user role.');
+                return redirect()->route('pos.index')->with('error', 'This is not your permission access.');
             }
 
             abort(403, 'Unauthorized access.');

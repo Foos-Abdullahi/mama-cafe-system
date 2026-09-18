@@ -76,7 +76,7 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])
-        ->middleware('role:admin,manager,operations')
+        ->middleware('role:admin,manager')
         ->name('dashboard');
 
     // Operations POS routes
@@ -93,8 +93,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('orders/{order}/invoice', [OrderController::class, 'invoice'])->name('orders.invoice');
         Route::resource('orders', OrderController::class)->only(['index', 'show']);
 
-        Route::middleware('role:admin,manager')->group(function () {
+        Route::middleware('role:admin')->group(function () {
             Route::resource('orders', OrderController::class)->only(['destroy']);
+        });
+
+        Route::middleware('role:admin,manager')->group(function () {
             Route::resource('categories', CategoryController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
             Route::resource('products', ProductController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
             Route::resource('waitresses', WaitressController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);

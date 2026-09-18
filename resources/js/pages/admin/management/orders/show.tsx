@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -114,6 +114,9 @@ const paymentBadgeClasses: Record<string, string> = {
 };
 
 export default function OrderShow({ order, company }: Props) {
+    const { auth } = usePage<{ auth?: { user?: { role?: string } } }>().props;
+    const isAdmin = auth?.user?.role === 'admin';
+
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [statusTarget, setStatusTarget] = useState<string | null>(null);
@@ -653,14 +656,16 @@ export default function OrderShow({ order, company }: Props) {
                 </div>
             </div>
 
-            <ConfirmDeleteDialog
-                open={confirmOpen}
-                onOpenChange={setConfirmOpen}
-                onConfirm={handleConfirmDelete}
-                title={`Delete Order ${order.order_number}`}
-                description="Are you sure you want to delete this order record? This action cannot be undone."
-                isDeleting={isDeleting}
-            />
+            {isAdmin && (
+                <ConfirmDeleteDialog
+                    open={confirmOpen}
+                    onOpenChange={setConfirmOpen}
+                    onConfirm={handleConfirmDelete}
+                    title={`Delete Order ${order.order_number}`}
+                    description="Are you sure you want to delete this order record? This action cannot be undone."
+                    isDeleting={isDeleting}
+                />
+            )}
 
             <Dialog
                 open={statusTarget !== null}

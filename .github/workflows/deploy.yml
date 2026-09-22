@@ -57,9 +57,26 @@ jobs:
           exclude: |
             **/.git*/**
             **/.github/**
+            **/.cursor/**
+            **/.ai/**
+            **/.agents/**
+            **/.venv/**
             **/node_modules/**
             vendor/**
             **/tests/**
+            docs/**
+            **/.editorconfig
+            **/.gitattributes
+            **/.gitignore
+            **/.npmrc
+            **/.prettierignore
+            package*.json
+            vite.config.*
+            tsconfig*.json
+            phpunit.xml*
+            pest.php
+            README*
+            .codex-ftp-upload.ps1
             **/.env*
             **/storage/logs/**
             **/storage/framework/cache/**

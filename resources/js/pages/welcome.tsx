@@ -74,7 +74,7 @@ const STORY_SLIDES = [
             'From rich espresso beans to handcrafted boba pearls, every ingredient is carefully chosen for maximum quality and freshness.',
         paragraph2:
             'Experience the magic of handcrafted drinks prepared with care by our dedicated baristas.',
-        image: '/images/hero/MaMaCaféCoffee_andChocolateStillLife.png',
+        image: '/images/hero/mama-cafe-coffee-and-chocolate-still-life.png',
         badge: '100% Fresh Daily',
     },
     {
@@ -698,7 +698,7 @@ export default function Welcome({
                             aria-label="MaMa Café home"
                         >
                             <img
-                                src="/images/hero/MaMaCaféCoffeehouseLogo.png"
+                                src="/images/hero/mama-cafe-coffeehouse-logo.png"
                                 alt="MaMa Café — Coffee, Boba, Ice Chocolate"
                                 className="h-[42px] sm:h-[50px] w-auto object-contain block"
                             />
@@ -1082,7 +1082,7 @@ export default function Welcome({
                         {/* LEFT — BRAND */}
                         <div className="flex flex-col items-center text-center md:items-start md:text-left">
                             <img
-                                src="/images/hero/MaMaCaféCoffeehouseLogo.png"
+                                src="/images/hero/mama-cafe-coffeehouse-logo.png"
                                 alt="MaMa Café — Coffee, Boba, Ice Chocolate"
                                 className="h-[40px] sm:h-[46px] w-auto object-contain brightness-0 invert opacity-95 block"
                             />

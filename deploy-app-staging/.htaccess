@@ -1,0 +1,12 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Keep Laravel application and dependency files out of the web root.
+    RewriteRule ^(?:app|bootstrap|config|database|resources|routes|storage|tests|vendor)(?:/|$) - [F,L]
+    RewriteRule ^(?:\.env|artisan|composer\.(?:json|lock)|package(?:-lock)?\.json|vite\.config\.ts|phpunit\.xml|pint\.json|tsconfig\.json)(?:/|$) - [F,L]
+
+    # The primary cPanel domain is fixed to public_html, so route requests
+    # through Laravel's public directory while keeping the standard layout.
+    RewriteCond %{REQUEST_URI} !^/public(?:/|$)
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>

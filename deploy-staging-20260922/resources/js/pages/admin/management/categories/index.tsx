@@ -1,0 +1,240 @@
+import { Head, router, Link } from '@inertiajs/react';
+import type { ColumnDef } from '@tanstack/react-table';
+import { Plus, MoreHorizontal, Eye, Edit, Trash2, Tag } from 'lucide-react';
+import React, { useState } from 'react';
+import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog';
+import type { StatSection } from '@/components/tools/StatsCard';
+import { StatsCard } from '@/components/tools/StatsCard';
+import { DataTable } from '@/components/tools/table/main-table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import AppLayout from '@/layouts/app-layout';
+
+interface Category {
+    id: number;
+    name: string;
+    description: string | null;
+    image_url: string | null;
+    status: 'active' | 'inactive';
+    products_count: number;
+    created_at?: string;
+}
+
+interface Props {
+    categories: Category[];
+    stats: StatSection[];
+}
+
+export default function CategoriesIndex({ categories, stats }: Props) {
+    const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleConfirmDelete = () => {
+        if (!deleteTarget) {
+            return;
+        }
+
+        setIsDeleting(true);
+        router.delete(`/management/categories/${deleteTarget.id}`, {
+            onFinish: () => {
+                setIsDeleting(false);
+                setDeleteTarget(null);
+            },
+        });
+    };
+
+    const columns: ColumnDef<Category>[] = [
+        {
+            accessorKey: 'id',
+            header: 'ID',
+            cell: ({ row }) => (
+                <span className="font-mono text-xs text-muted-foreground">
+                    #{row.original.id}
+                </span>
+            ),
+        },
+        {
+            accessorKey: 'name',
+            header: 'Category Name',
+            cell: ({ row }) => (
+                <div className="flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-[#823d21]/10 text-[#823d21]">
+                        {row.original.image_url ? (
+                            <img
+                                src={row.original.image_url}
+                                alt=""
+                                className="h-full w-full object-cover"
+                            />
+                        ) : (
+                            <Tag className="h-4 w-4" />
+                        )}
+                    </div>
+                    <span className="font-semibold text-foreground">
+                        {row.original.name}
+                    </span>
+                </div>
+            ),
+        },
+        {
+            accessorKey: 'description',
+            header: 'Description',
+            cell: ({ row }) => (
+                <span className="line-clamp-1 text-xs text-muted-foreground">
+                    {row.original.description || 'No description provided.'}
+                </span>
+            ),
+        },
+        {
+            accessorKey: 'products_count',
+            header: 'Products',
+            cell: ({ row }) => (
+                <Badge
+                    variant="outline"
+                    className="bg-secondary/50 font-mono text-xs"
+                >
+                    {row.original.products_count} Items
+                </Badge>
+            ),
+        },
+        {
+            accessorKey: 'status',
+            header: 'Status',
+            cell: ({ row }) => {
+                const isActive = row.original.status === 'active';
+
+                return (
+                    <Badge
+                        className={
+                            isActive
+                                ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400'
+                                : 'bg-muted text-muted-foreground hover:bg-muted'
+                        }
+                    >
+                        {isActive ? 'Active' : 'Inactive'}
+                    </Badge>
+                );
+            },
+        },
+        {
+            id: 'actions',
+            header: () => <span className="block text-right">Actions</span>,
+            cell: ({ row }) => {
+                const cat = row.original;
+
+                return (
+                    <div className="text-right">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem asChild>
+                                    <Link
+                                        href={`/management/categories/${cat.id}`}
+                                        className="flex cursor-pointer items-center"
+                                    >
+                                        <Eye className="mr-2 h-4 w-4 text-blue-600" />
+                                        View Details
+                                    </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                    <Link
+                                        href={`/management/categories/${cat.id}/edit`}
+                                        className="flex cursor-pointer items-center"
+                                    >
+                                        <Edit className="mr-2 h-4 w-4 text-amber-600" />
+                                        Edit Category
+                                    </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    onClick={() => setDeleteTarget(cat)}
+                                    className="cursor-pointer text-red-600 focus:text-red-600"
+                                >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete Category
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                );
+            },
+        },
+    ];
+
+    return (
+        <>
+            <Head title="Category Management - MaMa Café" />
+
+            <div className="p-6">
+                {/* Header */}
+                <div className="flex items-start justify-between">
+                    <div>
+                        <h1 className="text-lg font-semibold">
+                            Categories Management
+                        </h1>
+                        <p className="text-xs text-muted-foreground">
+                            Organize menu items into intuitive categories for
+                            POS and online orders.
+                        </p>
+                    </div>
+                    <Button asChild size={'sm'}>
+                        <Link href="/management/categories/create">
+                            <Plus className="h-4 w-4" />
+                            Add
+                            <span className="hidden sm:inline">Category</span>
+                        </Link>
+                    </Button>
+                </div>
+
+                {/* Stats Section */}
+                <StatsCard sections={stats} />
+
+                {/* Main Data Table */}
+                <div className="mt-6 animate-in duration-1000 ease-in-out fade-in slide-in-from-bottom-6">
+                    <DataTable
+                        title="Menu Categories"
+                        searchTitle="Filter categories by name..."
+                        columns={columns}
+                        data={categories}
+                    />
+                </div>
+            </div>
+
+            <ConfirmDeleteDialog
+                open={!!deleteTarget}
+                onOpenChange={(open) => !open && setDeleteTarget(null)}
+                onConfirm={handleConfirmDelete}
+                title={
+                    deleteTarget
+                        ? `Delete Category "${deleteTarget.name}"`
+                        : 'Confirm Deletion'
+                }
+                description="Are you sure you want to delete this category? All related menu items may be affected."
+                isDeleting={isDeleting}
+            />
+        </>
+    );
+}
+
+CategoriesIndex.layout = (page: React.ReactNode) => (
+    <AppLayout
+        breadcrumbs={[
+            { title: 'Management', href: '/management/categories' },
+            { title: 'Categories', href: '/management/categories' },
+        ]}
+    >
+        {page}
+    </AppLayout>
+);

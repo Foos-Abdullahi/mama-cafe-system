@@ -64,3 +64,7 @@ jobs:
             **/storage/framework/cache/**
             **/storage/framework/sessions/**
             **/storage/framework/views/**
+            deploy/**
+            deploy-app-staging/**
+            deploy-staging-*/**
+            *.zip

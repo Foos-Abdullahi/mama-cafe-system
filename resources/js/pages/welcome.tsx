@@ -64,7 +64,7 @@ const STORY_SLIDES = [
             'MaMa Café is a warm neighborhood café serving fresh coffee, boba, ice chocolate, shakes and tea in the heart of Mogadishu.',
         paragraph2:
             'We believe a great drink should taste amazing, look beautiful and be served with a smile.',
-        image: '/images/hero/MaMaCaféBobaTrio_Splash-removebg-preview.png',
+        image: '/images/hero/mama-cafe-boba-trio-splash.png',
         badge: 'Crafted with Love',
     },
     {

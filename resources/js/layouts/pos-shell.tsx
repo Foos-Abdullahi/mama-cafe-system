@@ -99,7 +99,7 @@ export default function PosShell({
                         )}
                     </button>
                     <img
-                        src="/images/hero/MaMaCaféWhiteLogoLockup.png"
+                        src="/images/hero/mama-cafe-white-logo-lockup.png"
                         alt="MaMa Café"
                         className="h-18 w-auto max-h-24 object-contain sm:h-20 md:h-24 lg:h-28 max-w-[400px] md:max-w-[480px]"
                     />
@@ -288,7 +288,7 @@ export default function PosShell({
                     {/* Bottom branding logo — Fitting nicely inside wider sidebar */}
                     <div className="mt-4 flex w-full flex-col items-center px-1 text-center">
                         <img
-                            src="/images/hero/MaMaCaféGoodMoodLogo.png"
+                            src="/images/hero/mama-cafe-good-mood-logo.png"
                             alt="MaMa Café - Good Drinks Good Mood"
                             className="w-full max-w-[140px] object-contain transition-transform hover:scale-105 md:max-w-[160px]"
                         />

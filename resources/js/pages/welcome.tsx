@@ -512,7 +512,7 @@ export default function Welcome({
     const [currentStorySlide, setCurrentStorySlide] = useState(0);
     const [activeSection, setActiveSection] = useState<string>('home');
 
-    // Auto-advance Our Story slideshow every 4.5 seconds
+    // Auto-advance Our Story slideshow every 4.5 seconds    
     useEffect(() => {
         const timer = setInterval(() => {
             setCurrentStorySlide((prev) => (prev + 1) % STORY_SLIDES.length);
@@ -644,7 +644,7 @@ export default function Welcome({
                         >
                             <MapPin className="h-3.5 w-3.5 shrink-0 text-[#e5c78d]" />
                             <span className="text-[12px] sm:text-[13px]">
-                                MaMa Cofé and Boba Tea, 382C+37X, Near, W Bakaaraha, Muqdisho
+                                Dahablaha Bakaro Market, Mogadishu
                             </span>
                         </a>
 
@@ -819,7 +819,7 @@ export default function Welcome({
                         HERO SECTION — heroSection.png image under Header 2
                     ===================================================== */}
                     <section id="hero-section" className="relative w-full bg-[#FAF0E4]">
-                        <img
+                        <img   
                             src="/images/hero/heroSection.png"
                             alt="MaMa Café Hero Section — Coffee, Boba, Ice Chocolate"
                             className="w-full block"
@@ -1109,10 +1109,10 @@ export default function Welcome({
                                 href="https://maps.app.goo.gl/mgdrY1B7E9TerDbEA?g_st=awb"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center justify-center gap-2 no-underline transition hover:text-[#e5c78d] md:justify-start"
+                                className="flex items-center justify-center gap-2 text-[12px] text-[#f7dfc3]/80 no-underline transition hover:text-white md:justify-start"
                             >
                                 <MapPin className="h-3.5 w-3.5 shrink-0 text-[#e5c78d]" />
-                                <span>MaMa Cofé and Boba Tea, 382C+37X, Near, W Bakaaraha, Muqdisho</span>
+                                <span>Dahablaha Bakaro Market, Mogadishu</span>
                             </a>
                         </div>
 

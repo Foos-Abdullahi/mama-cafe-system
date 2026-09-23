@@ -30,9 +30,21 @@
             }
         </style>
 
-        <link rel="icon" type="image/png" href="/images/logLogo.png">
-        <link rel="shortcut icon" href="/images/logLogo.png">
-        <link rel="apple-touch-icon" href="/images/logLogo.png">
+        <link rel="icon" href="{{ asset('mama-cafe-logo.png') }}" type="image/png">
+        <link rel="apple-touch-icon" href="{{ asset('mama-cafe-logo.png') }}">
+        <meta property="og:type" content="website">
+        <meta property="og:site_name" content="MaMa Café">
+        <meta property="og:title" content="MaMa Café — Coffee • Boba • Ice Chocolate">
+        <meta property="og:description" content="Good drinks. Good mood.">
+        <meta property="og:image" content="{{ url('/mama-cafe-logo.png') }}">
+        <meta property="og:image:width" content="1254">
+        <meta property="og:image:height" content="1254">
+        <meta property="og:image:type" content="image/png">
+        <meta property="og:image:alt" content="MaMa Café coffee, boba, and ice chocolate logo">
+        <meta name="twitter:card" content="summary_large_image">
+        <meta name="twitter:title" content="MaMa Café — Coffee • Boba • Ice Chocolate">
+        <meta name="twitter:description" content="Good drinks. Good mood.">
+        <meta name="twitter:image" content="{{ url('/mama-cafe-logo.png') }}">
 
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -43,6 +55,10 @@
                 font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
             }
         </style>
+
+        <script type="importmap">
+            {"imports":{"lucide-react":"https://esm.sh/lucide-react@0.475.0?bundle"}}
+        </script>
 
         @viteReactRefresh
         @vite(['resources/css/app.css', 'resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])

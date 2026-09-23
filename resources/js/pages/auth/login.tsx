@@ -19,7 +19,7 @@ type Props = {
 export default function Login({ status, canResetPassword }: Props) {
     return (
         <>
-            <Head title="MaMa Café Portal - Sign In" />
+            <Head title="MaMa Café - Sign In" />
 
             {status && (
                 <div className="mb-5 rounded-lg bg-amber-50 p-3 text-center text-xs font-medium text-amber-800 border border-amber-200">
@@ -136,6 +136,6 @@ export default function Login({ status, canResetPassword }: Props) {
 }
 
 Login.layout = {
-    title: 'MaMa Café Portal',
+    title: 'MaMa Café',
     description: 'Please sign in to access the admin panel.',
 };

@@ -2,7 +2,7 @@ import type { AuthLayoutProps } from '@/types';
 
 export default function AuthSplitLayout({
     children,
-    title = 'MaMa Café Portal',
+    title = 'MaMa Café',
     description = 'Please sign in to access the admin panel.',
 }: AuthLayoutProps) {
     return (
@@ -41,7 +41,7 @@ export default function AuthSplitLayout({
                     {/* MaMa Cafe Logo */}
                     <div className="w-20 h-20 rounded-full overflow-hidden mb-4 shadow-sm border border-amber-900/10 p-0.5 bg-white flex items-center justify-center">
                         <img
-                            src="/images/mama-cafe-logo.jpg"
+                            src="/images/logLogo.png"
                             alt="MaMa Café Logo"
                             className="w-full h-full object-cover rounded-full"
                         />
@@ -49,7 +49,7 @@ export default function AuthSplitLayout({
 
                     {/* Header Title & Subtitle */}
                     <h1 className="font-serif text-2xl sm:text-3xl font-bold text-[#5C2C16] tracking-tight text-center">
-                        {title || 'MaMa Café Portal'}
+                        {title || 'MaMa Café'}
                     </h1>
                     <p className="text-xs sm:text-sm text-[#8C6D5B] mt-1.5 mb-7 text-center">
                         {description || 'Please sign in to access the admin panel.'}

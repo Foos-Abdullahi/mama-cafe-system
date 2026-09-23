@@ -636,12 +636,17 @@ export default function Welcome({
                 {/* TOP BAR */}
                 <div className="border-b border-[#3c2114] bg-[#28160d] text-[13px] text-[#fff5ea]">
                     <div className="mx-auto flex h-[40px] w-[98%] max-w-[1560px] items-center justify-between">
-                        <div className="flex items-center gap-2 font-normal text-[#f5ebd9]">
+                        <a
+                            href="https://maps.app.goo.gl/mgdrY1B7E9TerDbEA?g_st=awb"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 font-normal text-[#f5ebd9] no-underline transition hover:text-[#e5c78d]"
+                        >
                             <MapPin className="h-3.5 w-3.5 shrink-0 text-[#e5c78d]" />
                             <span className="text-[12px] sm:text-[13px]">
-                                Dahablaha Bakaro Market, Mogadishu
+                                MaMa Cofé and Boba Tea, 382C+37X, Near, W Bakaaraha, Muqdisho
                             </span>
-                        </div>
+                        </a>
 
                         <div className="flex items-center gap-4 sm:gap-6">
                             {/* Social Icons */}
@@ -885,7 +890,7 @@ export default function Welcome({
                                 </div>
 
                                 {/* =================================================
-                                    RIGHT — WHY CHOOSE MAMA CAFÉ (whyMamaCafe.png with WhatsApp button on bottom right)
+                                    RIGHT — WHY CHOOSE MAMA CAFÉ
                                 ================================================= */}
                                 <div
                                     id="why"
@@ -896,17 +901,6 @@ export default function Welcome({
                                         alt="Why Choose MaMa Café"
                                         className="h-auto w-full block rounded-[20px] object-contain"
                                     />
-
-                                    {/* Floating Order on WhatsApp button inside image on bottom right */}
-                                    <a
-                                        href="https://wa.me/252613399977?text=Hello%20MaMa%20Cafe%2C%20I%20would%20like%20to%20place%20an%20order."
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="absolute bottom-2.5 right-2.5 z-10 flex items-center gap-1.5 rounded-full bg-[#1c120c]/90 px-3 py-1.5 text-[11px] font-bold text-white shadow-xl backdrop-blur-md transition-all duration-300 hover:scale-105 hover:bg-[#120a06] sm:bottom-3.5 sm:right-3.5 sm:px-3.5 sm:py-2 sm:text-[12px]"
-                                    >
-                                        <MessageCircle className="h-3.5 w-3.5 shrink-0 fill-current text-[#25D366]" />
-                                        <span>Order on WhatsApp</span>
-                                    </a>
                                 </div>
                             </div>
                         </div>
@@ -1111,10 +1105,15 @@ export default function Welcome({
                                 <span>Chat with us on WhatsApp</span>
                             </a>
 
-                            <div className="flex items-center justify-center gap-2 md:justify-start">
-                                <MapPin className="h-3.5 w-3.5 shrink-0" />
-                                <span>Dahablaha Bakaro Market, Mogadishu</span>
-                            </div>
+                            <a
+                                href="https://maps.app.goo.gl/mgdrY1B7E9TerDbEA?g_st=awb"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center justify-center gap-2 no-underline transition hover:text-[#e5c78d] md:justify-start"
+                            >
+                                <MapPin className="h-3.5 w-3.5 shrink-0 text-[#e5c78d]" />
+                                <span>MaMa Cofé and Boba Tea, 382C+37X, Near, W Bakaaraha, Muqdisho</span>
+                            </a>
                         </div>
 
                         {/* RIGHT — MENU + COPYRIGHT */}

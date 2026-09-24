@@ -2,7 +2,7 @@ import type React from "react";
 import { Facebook, Instagram, Music2 } from "lucide-react";
 
 const socials = [
-  { icon: Facebook, href: "https://facebook.com", label: "Facebook" },
+  { icon: Facebook, href: "https://www.facebook.com/share/1DpFNEB23K/", label: "Facebook" },
   { icon: Instagram, href: "https://instagram.com", label: "Instagram" },
   { icon: Music2, href: "https://tiktok.com", label: "TikTok" },
 ];

@@ -18,7 +18,7 @@ export const SocialLinks: React.FC = () => {
 
                 {/* Facebook */}
                 <a
-                    href="https://facebook.com"
+                    href="https://www.facebook.com/share/1DpFNEB23K/"
                     target="_blank"
                     rel="noreferrer"
                     className="w-8 h-8 rounded-full bg-[#FAF6EE] text-[#2B1B17] flex items-center justify-center hover:bg-[#D4AF37] hover:text-[#FAF6EE] transition-all duration-300 shadow-md transform hover:scale-110"

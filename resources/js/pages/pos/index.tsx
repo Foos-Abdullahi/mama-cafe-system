@@ -1491,20 +1491,20 @@ export default function PosIndex({
             </Dialog>
 
             <Dialog open={saleConfirmOpen} onOpenChange={setSaleConfirmOpen}>
-                <DialogContent className="max-w-lg">
+                <DialogContent className="max-w-lg border-[#E6DCD0] bg-[#FFFAF5] text-[#2C1810]">
                     <DialogHeader>
                         <DialogTitle className="text-xl font-black text-[#2C1810]">
                             {selectedPayment === 'mobile_money'
                                 ? 'Confirm EVC (USSD)'
                                 : 'Confirm Order'}
                         </DialogTitle>
-                        <DialogDescription className="text-base">
+                        <DialogDescription className="text-base text-[#7A5B49]">
                             {selectedPayment === 'mobile_money'
                                 ? 'Please confirm you have completed the mobile money payment.'
                                 : 'Please confirm you want to place this order.'}
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="rounded-xl border border-[#B9DCCF] bg-[#EAF7F1] p-4">
+                    <div className="rounded-xl border border-[#E6DCD0] bg-[#F5F0E8] p-4">
                         <div className="flex items-center justify-between text-sm font-bold text-[#2C1810]">
                             <span>Payment method</span>
                             <span className="capitalize">
@@ -1518,14 +1518,22 @@ export default function PosIndex({
                                     setSalePaymentStatus('paid');
                                     setSaleAmountPaid(grandTotal.toFixed(2));
                                 }}
-                                className={`rounded-lg border px-3 py-2 text-sm font-bold ${salePaymentStatus === 'paid' ? 'border-[#1B8B62] bg-[#D5F3E5] text-[#145C43]' : 'border-[#B9DCCF] bg-white text-[#5C3A28]'}`}
+                                className={`rounded-lg border px-3 py-2 text-sm font-bold transition-all ${
+                                    salePaymentStatus === 'paid'
+                                        ? 'border-[#7A3E22] bg-[#7A3E22] text-white shadow-md'
+                                        : 'border-[#E0D5C5] bg-white text-[#5C3A28] hover:border-[#7A3E22] hover:bg-[#F9F4EE]'
+                                }`}
                             >
                                 Paid in Full
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setSalePaymentStatus('partial')}
-                                className={`rounded-lg border px-3 py-2 text-sm font-bold ${salePaymentStatus === 'partial' ? 'border-[#C6862A] bg-[#FFF1D7] text-[#7A4B0B]' : 'border-[#B9DCCF] bg-white text-[#5C3A28]'}`}
+                                className={`rounded-lg border px-3 py-2 text-sm font-bold transition-all ${
+                                    salePaymentStatus === 'partial'
+                                        ? 'border-[#C6862A] bg-[#C6862A] text-white shadow-md'
+                                        : 'border-[#E0D5C5] bg-white text-[#5C3A28] hover:border-[#C6862A] hover:bg-[#FFF8EE]'
+                                }`}
                             >
                                 Partial Payment
                             </button>
@@ -1534,7 +1542,7 @@ export default function PosIndex({
                             <div className="mt-3 space-y-1.5">
                                 <Label
                                     htmlFor="sale-amount-paid"
-                                    className="text-xs font-bold text-[#2C1810]"
+                                    className="text-xs font-bold text-[#5C3A28]"
                                 >
                                     Amount paid now
                                 </Label>
@@ -1548,9 +1556,9 @@ export default function PosIndex({
                                     onChange={(event) =>
                                         setSaleAmountPaid(event.target.value)
                                     }
-                                    className="border-[#B9DCCF] bg-white"
+                                    className="border-[#E0D5C5] bg-white text-[#2C1810] placeholder:text-[#A38B7C] focus:border-[#7A3E22] focus:ring-1 focus:ring-[#7A3E22]"
                                 />
-                                <p className="text-xs font-semibold text-[#5C3A28]">
+                                <p className="text-xs font-semibold text-[#7A5B49]">
                                     Remaining: $
                                     {Math.max(
                                         0,
@@ -1560,15 +1568,15 @@ export default function PosIndex({
                                 </p>
                             </div>
                         )}
-                        <div className="mt-2 flex items-center justify-between border-t border-[#B9DCCF] pt-2 text-base font-black text-[#2C1810]">
+                        <div className="mt-2 flex items-center justify-between border-t border-[#E0D5C5] pt-2 text-base font-black text-[#2C1810]">
                             <span>Total</span>
-                            <span>${grandTotal.toFixed(2)}</span>
+                            <span className="text-[#7A3E22]">${grandTotal.toFixed(2)}</span>
                         </div>
                     </div>
                     <DialogFooter>
                         <button
                             type="button"
-                            className="rounded-lg border px-4 py-2 text-sm font-bold"
+                            className="rounded-lg border border-[#E0D5C5] bg-white px-4 py-2 text-sm font-bold text-[#5C3A28] transition hover:bg-[#F5F0E8]"
                             onClick={() => setSaleConfirmOpen(false)}
                             disabled={isProcessing}
                         >
@@ -1576,7 +1584,7 @@ export default function PosIndex({
                         </button>
                         <button
                             type="button"
-                            className="rounded-lg bg-[#32D39B] px-5 py-2 text-sm font-black text-[#071B18]"
+                            className="rounded-lg bg-[#7A3E22] px-5 py-2 text-sm font-black text-white shadow-md transition hover:bg-[#612F18] disabled:opacity-60"
                             onClick={submitSale}
                             disabled={isProcessing}
                         >

@@ -652,7 +652,7 @@ export default function Welcome({
                             {/* Social Icons */}
                             <div className="hidden items-center gap-2 sm:flex">
                                 <a
-                                    href="https://facebook.com"
+                                    href="https://www.facebook.com/share/1DpFNEB23K/"
                                     target="_blank"
                                     rel="noreferrer"
                                     className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-white/10 text-[11px] font-bold text-white transition duration-200 hover:bg-white hover:text-[#28160d]"

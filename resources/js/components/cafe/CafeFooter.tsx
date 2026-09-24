@@ -53,7 +53,7 @@ const SocialLinks: React.FC = () => {
         <GoldLeaf />
 
         <a
-          href="https://facebook.com"
+          href="https://www.facebook.com/share/1DpFNEB23K/"
           target="_blank"
           rel="noreferrer"
           aria-label="Facebook"

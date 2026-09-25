@@ -56,10 +56,6 @@
             }
         </style>
 
-        <script type="importmap">
-            {"imports":{"lucide-react":"https://esm.sh/lucide-react@0.475.0?bundle"}}
-        </script>
-
         @viteReactRefresh
         @vite(['resources/css/app.css', 'resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])
         <x-inertia::head>

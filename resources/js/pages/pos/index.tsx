@@ -27,6 +27,7 @@ import {
     AlertCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { OrderSuccessDialog } from '@/components/order-success-dialog';
 import type { User } from '@/types';
 import PosShell from '@/layouts/pos-shell';
 import {
@@ -132,10 +133,15 @@ export default function PosIndex({
         'cash' | 'mobile_money' | 'card' | 'credit'
     >('cash');
     const [isProcessing, setIsProcessing] = useState(false);
-    const [orderSuccess, setOrderSuccess] = useState(false);
     const [currentOrderNum, setCurrentOrderNum] = useState(nextOrderNumber);
+    const [successDialogOpen, setSuccessDialogOpen] = useState(false);
+    const [lastOrderNumber, setLastOrderNumber] = useState<string | undefined>(
+        undefined,
+    );
     const [discountAmount, setDiscountAmount] = useState(0);
-    const [discountType, setDiscountType] = useState<'fixed' | 'percentage'>('fixed');
+    const [discountType, setDiscountType] = useState<'fixed' | 'percentage'>(
+        'fixed',
+    );
     const [discountDialogOpen, setDiscountDialogOpen] = useState(false);
     const [discountInput, setDiscountInput] = useState('0');
     const [saleConfirmOpen, setSaleConfirmOpen] = useState(false);
@@ -294,14 +300,11 @@ export default function PosIndex({
             },
             {
                 onSuccess: () => {
-                    setOrderSuccess(true);
-                    toast.success(
-                        `Order #${currentOrderNum} placed successfully!`,
-                    );
+                    setLastOrderNumber(String(currentOrderNum));
+                    setSuccessDialogOpen(true);
                     setCurrentOrderNum((n) => n + 1);
                     clearCart();
                     setMobileCartOpen(false);
-                    setTimeout(() => setOrderSuccess(false), 3000);
                 },
                 onError: () => {
                     toast.error(
@@ -863,7 +866,7 @@ export default function PosIndex({
                         </div>
                         <span className="h-3 w-[1px] bg-white/20" />
                         <span className="text-xs font-semibold text-white/80">
-                            {orderSuccess ? '✓ Order saved!' : 'Ready to serve'}
+                            Ready to serve
                         </span>
                     </div>
                 </div>
@@ -1286,12 +1289,12 @@ export default function PosIndex({
                                             setDiscountInput(
                                                 discountType === 'percentage'
                                                     ? subtotal > 0
-                                                          ? (
-                                                                (discountAmount /
-                                                                    subtotal) *
-                                                                100
-                                                            ).toFixed(1)
-                                                          : '0'
+                                                        ? (
+                                                              (discountAmount /
+                                                                  subtotal) *
+                                                              100
+                                                          ).toFixed(1)
+                                                        : '0'
                                                     : discountAmount.toFixed(2),
                                             );
                                             setDiscountDialogOpen(true);
@@ -1468,9 +1471,7 @@ export default function PosIndex({
                                         Math.max(value, 0),
                                         100,
                                     );
-                                    setDiscountAmount(
-                                        (subtotal * pct) / 100,
-                                    );
+                                    setDiscountAmount((subtotal * pct) / 100);
                                 } else {
                                     setDiscountAmount(
                                         Number.isFinite(value)
@@ -1570,7 +1571,9 @@ export default function PosIndex({
                         )}
                         <div className="mt-2 flex items-center justify-between border-t border-[#E0D5C5] pt-2 text-base font-black text-[#2C1810]">
                             <span>Total</span>
-                            <span className="text-[#7A3E22]">${grandTotal.toFixed(2)}</span>
+                            <span className="text-[#7A3E22]">
+                                ${grandTotal.toFixed(2)}
+                            </span>
                         </div>
                     </div>
                     <DialogFooter>
@@ -1601,6 +1604,12 @@ export default function PosIndex({
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <OrderSuccessDialog
+                open={successDialogOpen}
+                onOpenChange={setSuccessDialogOpen}
+                orderNumber={lastOrderNumber}
+            />
 
             <Dialog
                 open={addWaitressOpen}

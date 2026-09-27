@@ -164,7 +164,7 @@ const ContactInfo: React.FC = () => {
 
         <div className="mt-3 space-y-2">
           <a
-            href="tel:+252613399977"
+            href="tel:+252619399977"
             className="flex items-center gap-2.5 text-[#E8DAB9] transition-colors hover:text-[#D6B76B]"
           >
             <span className="flex h-6 w-6 shrink-0 items-center justify-center">
@@ -172,7 +172,7 @@ const ContactInfo: React.FC = () => {
             </span>
 
             <span className="text-[14px] font-semibold sm:text-[16px]">
-              +252 61 3399977
+              +252 61 9399977
             </span>
           </a>
 

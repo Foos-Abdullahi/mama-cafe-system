@@ -682,11 +682,11 @@ export default function Welcome({
 
                             {/* Phone */}
                             <a
-                                href="tel:+252613399977"
+                                href="tel:+252619399977"
                                 className="flex items-center gap-1.5 text-[12px] text-[#f5ebd9] transition hover:text-[#e5c78d] sm:text-[13px]"
                             >
                                 <Phone className="h-3.5 w-3.5 text-[#e5c78d]" />
-                                <span>+252 61 3399977</span>
+                                <span>+252 61 9399977</span>
                             </a>
                         </div>
                     </div>
@@ -1088,15 +1088,15 @@ export default function Welcome({
                         {/* CENTER — CONTACT */}
                         <div className="space-y-2 text-center text-[12px] text-[#f7dfc3]/80 md:text-left">
                             <a
-                                href="tel:+252613399977"
+                                href="tel:+252619399977"
                                 className="flex items-center justify-center gap-2 transition hover:text-white md:justify-start"
                             >
                                 <Phone className="h-3.5 w-3.5 shrink-0" />
-                                <span>+252 61 3399977</span>
+                                <span>+252 61 9399977</span>
                             </a>
 
                             <a
-                                href="https://wa.me/252613399977?text=Hello%20MaMa%20Cafe%2C%20I%20have%20an%20inquiry."
+                                href="https://wa.me/252619399977?text=Hello%20MaMa%20Cafe%2C%20I%20have%20an%20inquiry."
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="flex items-center justify-center gap-2 transition hover:text-white md:justify-start"
@@ -1156,7 +1156,7 @@ export default function Welcome({
                 ===================================================== */}
                 <div className="fixed right-5 bottom-5 z-40">
                     <a
-                        href="https://wa.me/252613399977?text=Hello%20MaMa%20Cafe%2C%20I%20have%20an%20inquiry."
+                        href="https://wa.me/252619399977?text=Hello%20MaMa%20Cafe%2C%20I%20have%20an%20inquiry."
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-2 rounded-full border border-[#d8a16f]/40 bg-[#2a160d] px-4 py-2.5 text-[13px] font-semibold text-white shadow-[0_6px_20px_rgba(0,0,0,0.22)] transition-all duration-300 hover:scale-105 hover:bg-[#1a0c06]"

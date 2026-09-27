@@ -12,14 +12,14 @@ export const ContactInfo: React.FC = () => {
 
         <div className="mt-4 space-y-2.5">
           <a
-            href="tel:+252613399977"
+            href="tel:+252619399977"
             className="group flex items-center gap-3 rounded-2xl border border-cream/10 bg-cream/5 px-3.5 py-2.5 shine transition-all duration-300 hover:-translate-y-0.5 hover:border-gold/45"
           >
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gold/15 text-gold transition-all duration-300 group-hover:scale-110 group-hover:bg-gold group-hover:text-espresso">
               <Phone className="h-4 w-4" />
             </span>
             <span className="truncate text-sm font-semibold text-cream">
-              +252 61 3399977
+              +252 61 9399977
             </span>
           </a>
 
